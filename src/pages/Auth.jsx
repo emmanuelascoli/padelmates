@@ -7,7 +7,7 @@ const LEVELS = LEVEL_OPTIONS
 
 export default function Auth() {
   const navigate = useNavigate()
-  const [mode, setMode] = useState('login')
+  const [mode, setMode] = useState('login') // 'login' | 'register' | 'forgot'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -22,6 +22,22 @@ export default function Auth() {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
     setError('')
+  }
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault()
+    if (!form.email.trim()) { setError('Entre ton adresse email.'); return }
+    setLoading(true)
+    setError('')
+    const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (error) {
+      setError('Erreur lors de l\'envoi. Vérifie ton adresse email.')
+    } else {
+      setSuccess('Un lien de réinitialisation a été envoyé à ton adresse email.')
+    }
+    setLoading(false)
   }
 
   const handleLogin = async (e) => {
@@ -88,24 +104,34 @@ export default function Auth() {
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
-          {[
-            { key: 'login', label: 'Connexion' },
-            { key: 'register', label: 'Inscription' },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => { setMode(key); setError(''); setSuccess('') }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                mode === key
-                  ? 'bg-white text-blue-800 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {mode !== 'forgot' && (
+          <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
+            {[
+              { key: 'login', label: 'Connexion' },
+              { key: 'register', label: 'Inscription' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => { setMode(key); setError(''); setSuccess('') }}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+                  mode === key
+                    ? 'bg-white text-blue-800 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Titre mot de passe oublié */}
+        {mode === 'forgot' && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-900">Mot de passe oublié</h2>
+            <p className="text-sm text-gray-500 mt-1">Entre ton email pour recevoir un lien de réinitialisation.</p>
+          </div>
+        )}
 
         {/* Error / Success */}
         {error && (
@@ -119,7 +145,7 @@ export default function Auth() {
           </div>
         )}
 
-        <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-4">
+        <form onSubmit={mode === 'login' ? handleLogin : mode === 'forgot' ? handleForgotPassword : handleRegister} className="space-y-4">
           {mode === 'register' && (
             <>
               <div>
@@ -200,20 +226,39 @@ export default function Auth() {
               ? 'Chargement...'
               : mode === 'login'
                 ? 'Se connecter'
-                : "Créer mon compte"}
+                : mode === 'forgot'
+                  ? 'Envoyer le lien'
+                  : "Créer mon compte"}
           </button>
         </form>
 
         {mode === 'login' && (
-          <p className="text-center text-sm text-gray-500 mt-4">
-            Pas encore de compte ?{' '}
+          <div className="mt-4 space-y-2 text-center">
             <button
-              onClick={() => setMode('register')}
-              className="text-blue-700 font-medium hover:underline"
+              onClick={() => { setMode('forgot'); setError(''); setSuccess('') }}
+              className="text-sm text-blue-600 hover:underline block w-full"
             >
-              S'inscrire
+              Mot de passe oublié ?
             </button>
-          </p>
+            <p className="text-sm text-gray-500">
+              Pas encore de compte ?{' '}
+              <button
+                onClick={() => setMode('register')}
+                className="text-blue-700 font-medium hover:underline"
+              >
+                S'inscrire
+              </button>
+            </p>
+          </div>
+        )}
+
+        {mode === 'forgot' && (
+          <button
+            onClick={() => { setMode('login'); setError(''); setSuccess('') }}
+            className="text-sm text-gray-500 hover:text-gray-700 mt-4 block w-full text-center"
+          >
+            ← Retour à la connexion
+          </button>
         )}
       </div>
     </div>

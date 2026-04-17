@@ -9,6 +9,7 @@ import SessionDetail from './pages/SessionDetail'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
 import PlayerProfile from './pages/PlayerProfile'
+import ResetPassword from './pages/ResetPassword'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -32,6 +33,7 @@ function AppRoutes() {
         <main className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-6">
           <Routes>
             <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
             <Route path="/sessions/new" element={<ProtectedRoute><NewSession /></ProtectedRoute>} />
