@@ -6,11 +6,12 @@ import { format, isToday, isTomorrow, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { LEVEL_SHORT } from '../lib/constants'
 
-function SessionCard({ session }) {
+function SessionCard({ session, userId }) {
   const date = new Date(`${session.date}T${session.time}`)
   const spotsLeft = session.max_players - (session.session_participants?.length ?? 0)
   const isFull = spotsLeft <= 0
   const isPastSession = isPast(date)
+  const isRegistered = (session.session_participants || []).some(p => p.user_id === userId)
 
   let dateLabel = format(date, 'EEEE d MMMM', { locale: fr })
   if (isToday(date)) dateLabel = "Aujourd'hui"
@@ -20,20 +21,26 @@ function SessionCard({ session }) {
     <Link to={`/sessions/${session.id}`} className="card hover:shadow-md transition-shadow block">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="font-semibold text-gray-900 truncate">{session.title}</span>
-            {isPastSession && (
-              <span className="badge bg-gray-100 text-gray-500">Terminée</span>
+            {isRegistered && (
+              <span className="badge bg-green-100 text-green-700">✓ Inscrit</span>
             )}
-            {!isPastSession && isFull && (
+            {!isPastSession && isFull && !isRegistered && (
               <span className="badge bg-orange-100 text-orange-600">Complet</span>
             )}
-            {!isPastSession && !isFull && (
+            {!isPastSession && !isFull && !isRegistered && (
               <span className="badge bg-green-100 text-green-700">Ouvert</span>
+            )}
+            {isPastSession && (
+              <span className="badge bg-gray-100 text-gray-500">Terminée</span>
             )}
           </div>
           <p className="text-sm text-gray-500 capitalize">{dateLabel} à {format(date, 'HH:mm')}</p>
           <p className="text-sm text-gray-500 truncate">📍 {session.location}</p>
+          {session.organizer?.name && (
+            <p className="text-xs text-gray-400 mt-0.5">👤 {session.organizer.name}</p>
+          )}
         </div>
         <div className="text-right shrink-0">
           <div className="text-sm font-semibold text-gray-900">
@@ -49,7 +56,7 @@ function SessionCard({ session }) {
 }
 
 export default function Home() {
-  const { profile, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const [upcomingSessions, setUpcomingSessions] = useState([])
   const [myStats, setMyStats] = useState({ wins: 0, losses: 0, played: 0 })
   const [loading, setLoading] = useState(true)
@@ -62,20 +69,9 @@ export default function Home() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
 
-    // Fetch upcoming sessions (next 14 days)
-    const { data: sessions } = await supabase
-      .from('sessions')
-      .select('*, session_participants(count)')
-      .gte('date', today)
-      .neq('status', 'cancelled')
-      .order('date', { ascending: true })
-      .order('time', { ascending: true })
-      .limit(5)
-
-    // Fetch participant counts properly
     const { data: sessionsWithParts } = await supabase
       .from('sessions')
-      .select('*, session_participants(id)')
+      .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name)')
       .gte('date', today)
       .neq('status', 'cancelled')
       .order('date', { ascending: true })
@@ -176,7 +172,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-3">
-            {upcomingSessions.map(s => <SessionCard key={s.id} session={s} />)}
+            {upcomingSessions.map(s => <SessionCard key={s.id} session={s} userId={user?.id} />)}
           </div>
         )}
       </div>

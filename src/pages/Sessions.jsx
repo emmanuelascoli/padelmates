@@ -42,11 +42,12 @@ const FILTERS = [
   { key: 'friends', label: '👥 Amis' },
 ]
 
-function SessionRow({ session, friendIds, friendProfiles }) {
+function SessionRow({ session, userId, friendIds, friendProfiles }) {
   const date = new Date(`${session.date}T${session.time}`)
   const participantCount = session.session_participants?.length ?? 0
   const spotsLeft = session.max_players - participantCount
   const isFull = spotsLeft <= 0
+  const isRegistered = (session.session_participants || []).some(p => p.user_id === userId)
 
   return (
     <Link to={`/sessions/${session.id}`} className="card hover:shadow-md transition-shadow block">
@@ -65,18 +66,24 @@ function SessionRow({ session, friendIds, friendProfiles }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-gray-900">{session.title}</span>
+            {isRegistered && (
+              <span className="badge bg-green-100 text-green-700">✓ Inscrit</span>
+            )}
             {session.status === 'cancelled' ? (
               <span className="badge bg-red-100 text-red-600">Annulée</span>
-            ) : isFull ? (
+            ) : isFull && !isRegistered ? (
               <span className="badge bg-orange-100 text-orange-600">Complet</span>
-            ) : (
+            ) : !isFull && !isRegistered ? (
               <span className="badge bg-blue-100 text-blue-800">{spotsLeft} place{spotsLeft > 1 ? 's' : ''}</span>
-            )}
+            ) : null}
           </div>
           <p className="text-sm text-gray-500 mt-0.5">
             {format(date, 'EEEE d MMMM', { locale: fr })} · {format(date, 'HH:mm')}
           </p>
           <p className="text-sm text-gray-400 truncate">📍 {session.location}</p>
+          {session.organizer?.name && (
+            <p className="text-xs text-gray-400 mt-0.5">👤 {session.organizer.name}</p>
+          )}
           <FriendAvatars
             participants={session.session_participants}
             friendIds={friendIds}
@@ -168,7 +175,7 @@ export default function Sessions() {
       }
       const { data } = await supabase
         .from('sessions')
-        .select('*, session_participants(id, user_id)')
+        .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name)')
         .in('id', sessionIds)
         .gte('date', today)
         .neq('status', 'cancelled')
@@ -182,7 +189,7 @@ export default function Sessions() {
 
     let query = supabase
       .from('sessions')
-      .select('*, session_participants(id, user_id)')
+      .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name)')
       .order('date', { ascending: filter === 'upcoming' })
       .order('time', { ascending: true })
 
@@ -253,6 +260,7 @@ export default function Sessions() {
             <SessionRow
               key={s.id}
               session={s}
+              userId={user?.id}
               friendIds={friendIds}
               friendProfiles={friendProfiles}
             />
