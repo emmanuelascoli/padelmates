@@ -203,19 +203,21 @@ export default function Auth() {
             />
           </div>
 
-          <div>
-            <label className="label">Mot de passe *</label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              required
-              minLength={6}
-              className="input"
-              placeholder="Minimum 6 caractères"
-            />
-          </div>
+          {mode !== 'forgot' && (
+            <div>
+              <label className="label">Mot de passe *</label>
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                required
+                minLength={6}
+                className="input"
+                placeholder="Minimum 6 caractères"
+              />
+            </div>
+          )}
 
           <button
             type="submit"
