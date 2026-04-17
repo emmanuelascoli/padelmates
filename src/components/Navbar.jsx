@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 const NAV_ITEMS = [
   {
@@ -30,6 +32,15 @@ const NAV_ITEMS = [
     )
   },
   {
+    to: '/members',
+    label: 'Membres',
+    icon: (active) => (
+      <svg className={`w-5 h-5 ${active ? 'text-blue-700' : 'text-gray-500'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    )
+  },
+  {
     to: '/profile',
     label: 'Profil',
     icon: (active) => (
@@ -43,6 +54,20 @@ const NAV_ITEMS = [
 export default function Navbar() {
   const location = useLocation()
   const { user } = useAuth()
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    if (user) fetchPendingCount()
+  }, [location.pathname, user])
+
+  async function fetchPendingCount() {
+    const { count } = await supabase
+      .from('friendships')
+      .select('*', { count: 'exact', head: true })
+      .eq('addressee_id', user.id)
+      .eq('status', 'pending')
+    setPendingCount(count || 0)
+  }
 
   if (!user) return null
 
@@ -58,16 +83,22 @@ export default function Navbar() {
           <nav className="flex items-center gap-1">
             {NAV_ITEMS.map(item => {
               const active = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to))
+              const isProfile = item.to === '/profile'
               return (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                     active ? 'bg-blue-50 text-blue-800' : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
                   {item.icon(active)}
                   {item.label}
+                  {isProfile && pendingCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {pendingCount > 9 ? '9+' : pendingCount}
+                    </span>
+                  )}
                 </Link>
               )
             })}
@@ -77,9 +108,19 @@ export default function Navbar() {
 
       {/* Mobile top bar */}
       <header className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="px-4 flex items-center h-14">
-          <span className="text-xl mr-2">🎾</span>
-          <span className="font-bold text-gray-900">PadelMates</span>
+        <div className="px-4 flex items-center justify-between h-14">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🎾</span>
+            <span className="font-bold text-gray-900">PadelMates</span>
+          </div>
+          {pendingCount > 0 && (
+            <Link to="/profile" className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-full">
+              <span className="w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                {pendingCount > 9 ? '9+' : pendingCount}
+              </span>
+              demande{pendingCount > 1 ? 's' : ''} d'ami
+            </Link>
+          )}
         </div>
       </header>
 
@@ -88,16 +129,22 @@ export default function Navbar() {
         <div className="flex">
           {NAV_ITEMS.map(item => {
             const active = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to))
+            const isProfile = item.to === '/profile'
             return (
               <Link
                 key={item.to}
                 to={item.to}
-                className="flex-1 flex flex-col items-center py-2 gap-0.5"
+                className="relative flex-1 flex flex-col items-center py-2 gap-0.5"
               >
                 {item.icon(active)}
                 <span className={`text-xs ${active ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
                   {item.label}
                 </span>
+                {isProfile && pendingCount > 0 && (
+                  <span className="absolute top-1 right-1/4 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
+                )}
               </Link>
             )
           })}

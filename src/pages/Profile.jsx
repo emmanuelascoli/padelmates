@@ -6,6 +6,131 @@ import { LEVEL_OPTIONS, LEVEL_LABEL } from '../lib/constants'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+// ── Composant section Amis ────────────────────────────────────
+function FriendsSection({ userId }) {
+  const [friends, setFriends] = useState([])
+  const [incoming, setIncoming] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(null)
+
+  useEffect(() => { fetchFriends() }, [])
+
+  async function fetchFriends() {
+    setLoading(true)
+    const { data: fs } = await supabase
+      .from('friendships')
+      .select('*, requester:profiles!friendships_requester_id_fkey(id, name, level, avatar_url), addressee:profiles!friendships_addressee_id_fkey(id, name, level, avatar_url)')
+      .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
+
+    const accepted = []
+    const pending = []
+
+    ;(fs || []).forEach(f => {
+      const other = f.requester_id === userId ? f.addressee : f.requester
+      if (f.status === 'accepted') accepted.push({ ...other, friendshipId: f.id })
+      if (f.status === 'pending' && f.addressee_id === userId) pending.push({ ...other, friendshipId: f.id })
+    })
+
+    setFriends(accepted)
+    setIncoming(pending)
+    setLoading(false)
+  }
+
+  async function handleAccept(friendshipId) {
+    setActionLoading(friendshipId)
+    await supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId)
+    await fetchFriends()
+    setActionLoading(null)
+  }
+
+  async function handleRemove(friendshipId) {
+    setActionLoading(friendshipId)
+    await supabase.from('friendships').delete().eq('id', friendshipId)
+    await fetchFriends()
+    setActionLoading(null)
+  }
+
+  const Avatar = ({ p, size = 'w-10 h-10', bg = 'bg-blue-100 text-blue-700' }) => (
+    p.avatar_url
+      ? <img src={p.avatar_url} className={`${size} rounded-full object-cover shrink-0`} alt="" />
+      : <div className={`${size} ${bg} rounded-full flex items-center justify-center font-bold text-sm shrink-0`}>{p.name?.charAt(0).toUpperCase()}</div>
+  )
+
+  if (loading) return <div className="flex justify-center py-8"><div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
+
+  return (
+    <div className="space-y-4">
+      {/* Demandes reçues */}
+      {incoming.length > 0 && (
+        <div className="card border-red-100 bg-red-50">
+          <h3 className="text-sm font-semibold text-red-700 mb-3">
+            🔔 {incoming.length} demande{incoming.length > 1 ? 's' : ''} reçue{incoming.length > 1 ? 's' : ''}
+          </h3>
+          <div className="space-y-2">
+            {incoming.map(p => (
+              <div key={p.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2">
+                <Avatar p={p} bg="bg-red-100 text-red-600" />
+                <Link to={`/players/${p.id}`} className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 text-sm">{p.name}</p>
+                  <p className="text-xs text-gray-400">{LEVEL_LABEL[p.level] ?? '—'}</p>
+                </Link>
+                <div className="flex gap-1.5 shrink-0">
+                  <button
+                    onClick={() => handleAccept(p.friendshipId)}
+                    disabled={actionLoading === p.friendshipId}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {actionLoading === p.friendshipId ? '…' : 'Accepter'}
+                  </button>
+                  <button
+                    onClick={() => handleRemove(p.friendshipId)}
+                    disabled={actionLoading === p.friendshipId}
+                    className="px-2 py-1.5 border border-gray-200 text-gray-400 hover:text-red-500 text-xs rounded-lg transition-colors"
+                  >✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Liste des amis */}
+      <div className="card">
+        <h3 className="font-semibold text-gray-900 mb-3">
+          Mes amis ({friends.length})
+        </h3>
+        {friends.length === 0 ? (
+          <div className="text-center py-6 text-gray-400">
+            <div className="text-4xl mb-2">👥</div>
+            <p className="text-sm">Aucun ami pour l'instant</p>
+            <Link to="/members" className="text-sm text-blue-600 hover:underline mt-1 inline-block">
+              Parcourir les membres →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {friends.map(p => (
+              <div key={p.id} className="flex items-center gap-3">
+                <Avatar p={p} />
+                <Link to={`/players/${p.id}`} className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 text-sm">{p.name}</p>
+                  <p className="text-xs text-gray-400">{LEVEL_LABEL[p.level] ?? '—'}</p>
+                </Link>
+                <button
+                  onClick={() => handleRemove(p.friendshipId)}
+                  disabled={actionLoading === p.friendshipId}
+                  className="text-xs text-gray-300 hover:text-red-400 transition-colors shrink-0"
+                  title="Retirer des amis"
+                >✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function Profile() {
   const { user, profile, refreshProfile, signOut } = useAuth()
   const [form, setForm] = useState({ name: '', phone: '', level: '3' })
@@ -250,6 +375,7 @@ export default function Profile() {
         {[
           { key: 'info', label: 'Mon profil' },
           { key: 'history', label: `Historique (${history.length})` },
+          { key: 'amis', label: 'Amis' },
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
@@ -324,6 +450,9 @@ export default function Profile() {
           })}
         </div>
       )}
+
+      {/* ── TAB : Amis ── */}
+      {tab === 'amis' && <FriendsSection userId={user.id} />}
 
       {/* ── TAB : Mon profil ── */}
       {tab === 'info' && <>

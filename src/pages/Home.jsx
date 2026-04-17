@@ -29,7 +29,7 @@ function SessionCard({ session }) {
               <span className="badge bg-orange-100 text-orange-600">Complet</span>
             )}
             {!isPastSession && !isFull && (
-              <span className="badge bg-blue-100 text-blue-800">Ouvert</span>
+              <span className="badge bg-green-100 text-green-700">Ouvert</span>
             )}
           </div>
           <p className="text-sm text-gray-500 capitalize">{dateLabel} à {format(date, 'HH:mm')}</p>

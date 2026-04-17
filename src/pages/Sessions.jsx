@@ -5,13 +5,44 @@ import { useAuth } from '../contexts/AuthContext'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+function FriendAvatars({ participants, friendIds, friendProfiles }) {
+  const friendsIn = (participants || [])
+    .map(p => p.user_id)
+    .filter(id => friendIds.includes(id))
+    .slice(0, 3)
+
+  if (friendsIn.length === 0) return null
+
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5">
+      <div className="flex -space-x-1.5">
+        {friendsIn.map(id => {
+          const p = friendProfiles[id]
+          return p?.avatar_url ? (
+            <img key={id} src={p.avatar_url} className="w-5 h-5 rounded-full object-cover border border-white" alt="" />
+          ) : (
+            <div key={id} className="w-5 h-5 rounded-full bg-blue-200 border border-white flex items-center justify-center text-blue-700 font-bold text-xs">
+              {p?.name?.charAt(0).toUpperCase() ?? '?'}
+            </div>
+          )
+        })}
+      </div>
+      <span className="text-xs text-blue-600 font-medium">
+        {friendsIn.length === 1
+          ? `${friendProfiles[friendsIn[0]]?.name?.split(' ')[0] ?? 'Ami'} joue`
+          : `${friendsIn.length} amis jouent`}
+      </span>
+    </div>
+  )
+}
+
 const FILTERS = [
   { key: 'upcoming', label: 'À venir' },
   { key: 'past', label: 'Passées' },
   { key: 'friends', label: '👥 Amis' },
 ]
 
-function SessionRow({ session }) {
+function SessionRow({ session, friendIds, friendProfiles }) {
   const date = new Date(`${session.date}T${session.time}`)
   const participantCount = session.session_participants?.length ?? 0
   const spotsLeft = session.max_players - participantCount
@@ -46,6 +77,11 @@ function SessionRow({ session }) {
             {format(date, 'EEEE d MMMM', { locale: fr })} · {format(date, 'HH:mm')}
           </p>
           <p className="text-sm text-gray-400 truncate">📍 {session.location}</p>
+          <FriendAvatars
+            participants={session.session_participants}
+            friendIds={friendIds}
+            friendProfiles={friendProfiles}
+          />
         </div>
 
         {/* Price */}
@@ -65,10 +101,37 @@ export default function Sessions() {
   const [sessions, setSessions] = useState([])
   const [filter, setFilter] = useState('upcoming')
   const [loading, setLoading] = useState(true)
+  const [friendIds, setFriendIds] = useState([])
+  const [friendProfiles, setFriendProfiles] = useState({})
+
+  useEffect(() => {
+    if (user) fetchFriendData()
+  }, [user])
 
   useEffect(() => {
     fetchSessions()
   }, [filter])
+
+  async function fetchFriendData() {
+    const { data: fs } = await supabase
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+
+    if (!fs?.length) return
+
+    const ids = fs.map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id)
+    setFriendIds(ids)
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url')
+      .in('id', ids)
+
+    const map = Object.fromEntries((profiles || []).map(p => [p.id, p]))
+    setFriendProfiles(map)
+  }
 
   async function getFriendSessionIds() {
     if (!user) return []
@@ -105,7 +168,7 @@ export default function Sessions() {
       }
       const { data } = await supabase
         .from('sessions')
-        .select('*, session_participants(id)')
+        .select('*, session_participants(id, user_id)')
         .in('id', sessionIds)
         .gte('date', today)
         .neq('status', 'cancelled')
@@ -119,7 +182,7 @@ export default function Sessions() {
 
     let query = supabase
       .from('sessions')
-      .select('*, session_participants(id)')
+      .select('*, session_participants(id, user_id)')
       .order('date', { ascending: filter === 'upcoming' })
       .order('time', { ascending: true })
 
@@ -186,7 +249,14 @@ export default function Sessions() {
         </div>
       ) : (
         <div className="space-y-3">
-          {sessions.map(s => <SessionRow key={s.id} session={s} />)}
+          {sessions.map(s => (
+            <SessionRow
+              key={s.id}
+              session={s}
+              friendIds={friendIds}
+              friendProfiles={friendProfiles}
+            />
+          ))}
         </div>
       )}
     </div>

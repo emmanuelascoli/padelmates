@@ -10,6 +10,7 @@ import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
 import PlayerProfile from './pages/PlayerProfile'
 import ResetPassword from './pages/ResetPassword'
+import Members from './pages/Members'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -39,6 +40,7 @@ function AppRoutes() {
             <Route path="/sessions/new" element={<ProtectedRoute><NewSession /></ProtectedRoute>} />
             <Route path="/sessions/:id" element={<ProtectedRoute><SessionDetail /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+            <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
             <Route path="/players/:id" element={<ProtectedRoute><PlayerProfile /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
