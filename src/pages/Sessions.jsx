@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
 const FILTERS = [
   { key: 'upcoming', label: 'À venir' },
   { key: 'past', label: 'Passées' },
+  { key: 'friends', label: '👥 Amis' },
 ]
 
 function SessionRow({ session }) {
@@ -59,6 +61,7 @@ function SessionRow({ session }) {
 }
 
 export default function Sessions() {
+  const { user } = useAuth()
   const [sessions, setSessions] = useState([])
   const [filter, setFilter] = useState('upcoming')
   const [loading, setLoading] = useState(true)
@@ -67,9 +70,52 @@ export default function Sessions() {
     fetchSessions()
   }, [filter])
 
+  async function getFriendSessionIds() {
+    if (!user) return []
+    const { data: friendships } = await supabase
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+
+    if (!friendships?.length) return []
+
+    const friendIds = friendships.map(f =>
+      f.requester_id === user.id ? f.addressee_id : f.requester_id
+    )
+
+    const { data: participations } = await supabase
+      .from('session_participants')
+      .select('session_id')
+      .in('user_id', friendIds)
+
+    return [...new Set((participations || []).map(p => p.session_id))]
+  }
+
   async function fetchSessions() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
+
+    if (filter === 'friends') {
+      const sessionIds = await getFriendSessionIds()
+      if (sessionIds.length === 0) {
+        setSessions([])
+        setLoading(false)
+        return
+      }
+      const { data } = await supabase
+        .from('sessions')
+        .select('*, session_participants(id)')
+        .in('id', sessionIds)
+        .gte('date', today)
+        .neq('status', 'cancelled')
+        .order('date', { ascending: true })
+        .order('time', { ascending: true })
+        .limit(30)
+      setSessions(data || [])
+      setLoading(false)
+      return
+    }
 
     let query = supabase
       .from('sessions')
@@ -128,6 +174,11 @@ export default function Sessions() {
               <Link to="/sessions/new" className="btn-primary inline-block mt-4 text-sm">
                 Organiser une partie
               </Link>
+            </>
+          ) : filter === 'friends' ? (
+            <>
+              <p className="font-medium text-gray-600">Aucune partie avec tes amis</p>
+              <p className="text-sm mt-1">Ajoute des amis depuis leur profil pour voir leurs parties ici.</p>
             </>
           ) : (
             <p className="font-medium text-gray-600">Aucune partie passée</p>

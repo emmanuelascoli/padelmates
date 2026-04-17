@@ -18,6 +18,8 @@ export default function PlayerProfile() {
   const [recentSessions, setRecentSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('h2h')
+  const [friendship, setFriendship] = useState(null)
+  const [friendLoading, setFriendLoading] = useState(false)
 
   const isOwnProfile = user?.id === id
 
@@ -25,8 +27,39 @@ export default function PlayerProfile() {
 
   async function fetchAll() {
     setLoading(true)
-    await Promise.all([fetchProfile(), fetchMatchStats(), fetchSessions()])
+    await Promise.all([fetchProfile(), fetchMatchStats(), fetchSessions(), fetchFriendship()])
     setLoading(false)
+  }
+
+  async function fetchFriendship() {
+    if (!user || user.id === id) return
+    const { data } = await supabase
+      .from('friendships')
+      .select('*')
+      .or(`and(requester_id.eq.${user.id},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${user.id})`)
+      .maybeSingle()
+    setFriendship(data)
+  }
+
+  async function handleAddFriend() {
+    setFriendLoading(true)
+    await supabase.from('friendships').insert({ requester_id: user.id, addressee_id: id })
+    await fetchFriendship()
+    setFriendLoading(false)
+  }
+
+  async function handleAcceptFriend() {
+    setFriendLoading(true)
+    await supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendship.id)
+    await fetchFriendship()
+    setFriendLoading(false)
+  }
+
+  async function handleRemoveFriend() {
+    setFriendLoading(true)
+    await supabase.from('friendships').delete().eq('id', friendship.id)
+    setFriendship(null)
+    setFriendLoading(false)
   }
 
   async function fetchProfile() {
@@ -155,6 +188,51 @@ export default function PlayerProfile() {
         {isOwnProfile && (
           <div className="mt-2">
             <Link to="/profile" className="text-xs text-blue-600 hover:underline">Modifier mon profil →</Link>
+          </div>
+        )}
+
+        {/* Bouton ami */}
+        {!isOwnProfile && (
+          <div className="mt-3">
+            {!friendship && (
+              <button
+                onClick={handleAddFriend}
+                disabled={friendLoading}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+              >
+                {friendLoading ? '...' : '+ Ajouter comme ami'}
+              </button>
+            )}
+            {friendship?.status === 'pending' && friendship.requester_id === user?.id && (
+              <div className="flex items-center gap-2 justify-center">
+                <span className="text-sm text-gray-500">⏳ Demande envoyée</span>
+                <button onClick={handleRemoveFriend} disabled={friendLoading} className="text-xs text-red-400 hover:text-red-600">
+                  Annuler
+                </button>
+              </div>
+            )}
+            {friendship?.status === 'pending' && friendship.addressee_id === user?.id && (
+              <div className="flex items-center gap-2 justify-center">
+                <button
+                  onClick={handleAcceptFriend}
+                  disabled={friendLoading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {friendLoading ? '...' : '✓ Accepter la demande'}
+                </button>
+                <button onClick={handleRemoveFriend} disabled={friendLoading} className="text-xs text-red-400 hover:text-red-600">
+                  Refuser
+                </button>
+              </div>
+            )}
+            {friendship?.status === 'accepted' && (
+              <div className="flex items-center gap-2 justify-center">
+                <span className="text-sm text-blue-600 font-medium">✓ Amis</span>
+                <button onClick={handleRemoveFriend} disabled={friendLoading} className="text-xs text-gray-400 hover:text-red-500">
+                  Retirer
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

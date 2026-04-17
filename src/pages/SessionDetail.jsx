@@ -42,6 +42,54 @@ function buildReminderMessage(session, participants) {
   return encodeURIComponent(msg)
 }
 
+// ── Calendar helpers ─────────────────────────────────────────
+function getDurationMinutes(duration) {
+  if (duration === '1h') return 60
+  if (duration === '1h30') return 90
+  if (duration === '2h') return 120
+  return 90
+}
+
+function formatICSDate(date) {
+  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+}
+
+function buildGoogleCalendarUrl(session) {
+  const start = new Date(`${session.date}T${session.time}`)
+  const end = new Date(start.getTime() + getDurationMinutes(session.duration) * 60000)
+  const title = encodeURIComponent(`Padel - ${session.location}`)
+  const details = encodeURIComponent('Partie de padel PadelMates')
+  const loc = encodeURIComponent(session.location)
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatICSDate(start)}/${formatICSDate(end)}&details=${details}&location=${loc}`
+}
+
+function downloadICS(session) {
+  const start = new Date(`${session.date}T${session.time}`)
+  const end = new Date(start.getTime() + getDurationMinutes(session.duration) * 60000)
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//PadelMates//FR',
+    'BEGIN:VEVENT',
+    `DTSTART:${formatICSDate(start)}`,
+    `DTEND:${formatICSDate(end)}`,
+    `SUMMARY:Padel - ${session.location}`,
+    `DESCRIPTION:Partie de padel PadelMates`,
+    `LOCATION:${session.location}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n')
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `padel-${session.date}.ics`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 // ── Match Form ───────────────────────────────────────────────
 function MatchForm({ sessionId, participants, onSaved }) {
   const [form, setForm] = useState({ t1p1: '', t1p2: '', t2p1: '', t2p2: '', t1score: '', t2score: '' })
@@ -149,6 +197,7 @@ export default function SessionDetail() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [showMatchForm, setShowMatchForm] = useState(false)
+  const [showCalendar, setShowCalendar] = useState(false)
   const [tab, setTab] = useState('info')
 
   useEffect(() => { fetchAll() }, [id])
@@ -375,6 +424,49 @@ export default function SessionDetail() {
                 </svg>
                 Envoyer un rappel
               </a>
+            )}
+          </div>
+        )}
+
+        {/* Bouton Agenda */}
+        {!isPastSession && session.status !== 'cancelled' && (
+          <div className="relative mt-2">
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium py-2.5 px-4 rounded-xl transition-colors"
+            >
+              📅 Ajouter à mon agenda
+              <svg className={`w-4 h-4 transition-transform ${showCalendar ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showCalendar && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-10">
+                <a
+                  href={buildGoogleCalendarUrl(session)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowCalendar(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-xl">📅</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Google Calendar</p>
+                    <p className="text-xs text-gray-400">Ouvrir dans Google Calendar</p>
+                  </div>
+                </a>
+                <div className="border-t border-gray-100" />
+                <button
+                  onClick={() => { downloadICS(session); setShowCalendar(false) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <span className="text-xl">🍎</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Apple Calendar / Outlook</p>
+                    <p className="text-xs text-gray-400">Télécharger le fichier .ics</p>
+                  </div>
+                </button>
+              </div>
             )}
           </div>
         )}

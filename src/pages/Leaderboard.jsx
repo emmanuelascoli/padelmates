@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { LEVEL_LABEL } from '../lib/constants'
@@ -89,6 +89,7 @@ export default function Leaderboard() {
   }
 
   const myRank = rankings.findIndex(r => r.id === user?.id)
+  const navigate = useNavigate()
 
   return (
     <div className="space-y-5">
@@ -161,7 +162,7 @@ export default function Leaderboard() {
                   <tr
                     key={player.id}
                     className={`border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors ${isMe ? 'bg-blue-50 hover:bg-blue-50' : ''}`}
-                    onClick={() => window.location.href = `/players/${player.id}`}
+                    onClick={() => navigate(`/players/${player.id}`)}
                   >
                     <td className="py-3 px-4">
                       {i < 3 ? (
