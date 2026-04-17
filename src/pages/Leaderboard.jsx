@@ -71,7 +71,7 @@ export default function Leaderboard() {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, name, level')
+      .select('id, name, level, avatar_url')
       .in('id', playerIds)
 
     const ranked = (profiles || [])
@@ -173,11 +173,19 @@ export default function Leaderboard() {
                     </td>
                     <td className="py-3 px-2">
                       <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                          isMe ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {player.name?.charAt(0).toUpperCase()}
-                        </div>
+                        {player.avatar_url ? (
+                          <img
+                            src={player.avatar_url}
+                            alt={player.name}
+                            className={`w-8 h-8 rounded-full object-cover shrink-0 ${isMe ? 'ring-2 ring-blue-400' : ''}`}
+                          />
+                        ) : (
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                            isMe ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {player.name?.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <p className={`text-sm font-medium truncate ${isMe ? 'text-blue-800' : 'text-gray-900'}`}>
                             {player.name}{isMe && ' (moi)'}
