@@ -141,6 +141,7 @@ export default function Profile() {
   const [history, setHistory] = useState([])
   const [historyMatches, setHistoryMatches] = useState({})
   const [tab, setTab] = useState('info')
+  const [pendingFriendCount, setPendingFriendCount] = useState(0)
 
   // Photo
   const [photoLoading, setPhotoLoading] = useState(false)
@@ -160,8 +161,17 @@ export default function Profile() {
         level: profile.level || '3',
       })
     }
-    if (user) { fetchStats(); fetchHistory() }
+    if (user) { fetchStats(); fetchHistory(); fetchPendingFriendCount() }
   }, [profile, user])
+
+  async function fetchPendingFriendCount() {
+    const { count } = await supabase
+      .from('friendships')
+      .select('*', { count: 'exact', head: true })
+      .eq('addressee_id', user.id)
+      .eq('status', 'pending')
+    setPendingFriendCount(count || 0)
+  }
 
   async function fetchStats() {
     const { count: sessionCount } = await supabase
@@ -378,11 +388,16 @@ export default function Profile() {
           { key: 'amis', label: 'Amis' },
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+            className={`relative flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
               tab === key ? 'bg-white text-blue-800 shadow-sm' : 'text-gray-500'
             }`}
           >
             {label}
+            {key === 'amis' && pendingFriendCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
+                {pendingFriendCount > 9 ? '9+' : pendingFriendCount}
+              </span>
+            )}
           </button>
         ))}
       </div>

@@ -11,10 +11,26 @@ export default function Leaderboard() {
   const [rankings, setRankings] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('all')
+  const [friendsOnly, setFriendsOnly] = useState(false)
+  const [friendIds, setFriendIds] = useState([])
+
+  useEffect(() => {
+    if (user) fetchFriendIds()
+  }, [user])
 
   useEffect(() => {
     fetchRankings()
   }, [period])
+
+  async function fetchFriendIds() {
+    const { data } = await supabase
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+    const ids = (data || []).map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id)
+    setFriendIds(ids)
+  }
 
   async function fetchRankings() {
     setLoading(true)
@@ -88,7 +104,12 @@ export default function Leaderboard() {
     setLoading(false)
   }
 
-  const myRank = rankings.findIndex(r => r.id === user?.id)
+  // Filtre amis : garde uniquement les amis + soi-même
+  const visibleRankings = friendsOnly
+    ? rankings.filter(r => r.id === user?.id || friendIds.includes(r.id))
+    : rankings
+
+  const myRank = visibleRankings.findIndex(r => r.id === user?.id)
   const navigate = useNavigate()
 
   return (
@@ -118,6 +139,30 @@ export default function Leaderboard() {
         ))}
       </div>
 
+      {/* Friends toggle */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setFriendsOnly(false)}
+          className={`flex-1 py-2 text-xs font-medium rounded-xl border transition-all ${
+            !friendsOnly
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          🌍 Tous les joueurs
+        </button>
+        <button
+          onClick={() => setFriendsOnly(true)}
+          className={`flex-1 py-2 text-xs font-medium rounded-xl border transition-all ${
+            friendsOnly
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          👥 Mes amis
+        </button>
+      </div>
+
       {/* My rank highlight */}
       {myRank >= 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -125,7 +170,7 @@ export default function Leaderboard() {
           <div>
             <p className="text-sm font-semibold text-blue-900">Ta position : {myRank + 1}ème</p>
             <p className="text-xs text-blue-700">
-              {rankings[myRank].points} pts · {rankings[myRank].wins}V / {rankings[myRank].losses}D
+              {visibleRankings[myRank].points} pts · {visibleRankings[myRank].wins}V / {visibleRankings[myRank].losses}D
             </p>
           </div>
         </div>
@@ -136,11 +181,15 @@ export default function Leaderboard() {
         <div className="flex justify-center py-12">
           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : rankings.length === 0 ? (
+      ) : visibleRankings.length === 0 ? (
         <div className="card text-center py-12 text-gray-400">
-          <div className="text-5xl mb-3">🏆</div>
-          <p className="font-medium text-gray-600">Aucun match joué pour cette période</p>
-          <p className="text-sm mt-1">Jouez et enregistrez vos matchs pour apparaître ici !</p>
+          <div className="text-5xl mb-3">{friendsOnly ? '👥' : '🏆'}</div>
+          <p className="font-medium text-gray-600">
+            {friendsOnly ? 'Aucun ami n\'a joué sur cette période' : 'Aucun match joué pour cette période'}
+          </p>
+          <p className="text-sm mt-1">
+            {friendsOnly ? 'Ajoute des amis depuis la page Membres !' : 'Jouez et enregistrez vos matchs pour apparaître ici !'}
+          </p>
         </div>
       ) : (
         <div className="card p-0 overflow-hidden">
@@ -156,7 +205,7 @@ export default function Leaderboard() {
               </tr>
             </thead>
             <tbody>
-              {rankings.map((player, i) => {
+              {visibleRankings.map((player, i) => {
                 const isMe = player.id === user?.id
                 return (
                   <tr
