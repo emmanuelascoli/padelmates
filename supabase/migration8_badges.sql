@@ -6,57 +6,52 @@
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS badges TEXT[] NOT NULL DEFAULT '{}';
 
--- ── 2. Fonction de calcul des badges pour un utilisateur ───────────────────
+-- ── 2. Fonction de calcul des badges — pure SQL, zéro variable PL/pgSQL ─────
+--    CASE WHEN retourne NULL si la condition est fausse ; le WHERE b IS NOT NULL
+--    filtre les NULLs pour ne garder que les badges mérités.
 CREATE OR REPLACE FUNCTION compute_badges_for_user(uid UUID)
 RETURNS TEXT[]
-LANGUAGE plpgsql
+LANGUAGE sql
 SECURITY DEFINER
+SET search_path = public
 AS $$
-DECLARE
-  session_count      INT;
-  played_count       INT;
-  this_month_count   INT;
-  is_verified        BOOLEAN := FALSE;
-  result             TEXT[] := '{}';
-BEGIN
-  -- ⭐ Lire le badge manuel via colonne SQL (pas de variable tableau pour éviter
-  --    l'ambiguïté de = ANY(variable) avec PostgreSQL)
-  SELECT ('verified_organizer' = ANY(badges))
-  INTO   is_verified
-  FROM   profiles WHERE id = uid;
+  SELECT COALESCE(
+    ARRAY(
+      SELECT b
+      FROM unnest(ARRAY[
 
-  -- 🏅 Organisateur actif : 5+ parties créées
-  SELECT COUNT(*) INTO session_count
-  FROM sessions WHERE organizer_id = uid;
-  IF session_count >= 5 THEN
-    result := array_append(result, 'organizer_active');
-  END IF;
+        -- 🏅 Organisateur actif : 5+ parties créées
+        CASE WHEN (
+          SELECT COUNT(*) FROM sessions WHERE organizer_id = uid
+        ) >= 5 THEN 'organizer_active'::TEXT END,
 
-  -- 🎾 Joueur fidèle : 10+ parties jouées
-  SELECT COUNT(*) INTO played_count
-  FROM session_participants WHERE user_id = uid;
-  IF played_count >= 10 THEN
-    result := array_append(result, 'loyal_player');
-  END IF;
+        -- 🎾 Joueur fidèle : 10+ parties jouées
+        CASE WHEN (
+          SELECT COUNT(*) FROM session_participants WHERE user_id = uid
+        ) >= 10 THEN 'loyal_player'::TEXT END,
 
-  -- 🔥 En forme : 3+ parties jouées ce mois-ci
-  SELECT COUNT(*) INTO this_month_count
-  FROM session_participants sp
-  JOIN sessions s ON s.id = sp.session_id
-  WHERE sp.user_id = uid
-    AND s.date >= date_trunc('month', CURRENT_DATE)::date
-    AND s.date <  (date_trunc('month', CURRENT_DATE) + INTERVAL '1 month')::date;
-  IF this_month_count >= 3 THEN
-    result := array_append(result, 'on_fire');
-  END IF;
+        -- 🔥 En forme : 3+ parties ce mois-ci
+        CASE WHEN (
+          SELECT COUNT(*)
+          FROM session_participants sp
+          JOIN sessions s ON s.id = sp.session_id
+          WHERE sp.user_id = uid
+            AND s.date >= date_trunc('month', CURRENT_DATE)::date
+            AND s.date <  (date_trunc('month', CURRENT_DATE)
+                           + INTERVAL '1 month')::date
+        ) >= 3 THEN 'on_fire'::TEXT END,
 
-  -- ⭐ Organisateur vérifié : réintégrer si le badge manuel était présent
-  IF is_verified THEN
-    result := array_append(result, 'verified_organizer');
-  END IF;
+        -- ⭐ Organisateur vérifié : badge manuel — préserver s'il existait
+        CASE WHEN EXISTS (
+          SELECT 1 FROM profiles p
+          WHERE p.id = uid AND 'verified_organizer' = ANY(p.badges)
+        ) THEN 'verified_organizer'::TEXT END
 
-  RETURN result;
-END;
+      ]) AS b
+      WHERE b IS NOT NULL
+    ),
+    '{}'::TEXT[]
+  );
 $$;
 
 -- ── 3. Rafraîchir les badges d'un utilisateur ──────────────────────────────
