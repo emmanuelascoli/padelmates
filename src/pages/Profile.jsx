@@ -132,6 +132,88 @@ function FriendsSection({ userId }) {
   )
 }
 
+// ── Suppression de compte ─────────────────────────────────────
+function DeleteAccountSection({ userEmail, onDeleted }) {
+  const [open, setOpen] = useState(false)
+  const [confirmInput, setConfirmInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const confirmed = confirmInput.trim().toLowerCase() === (userEmail ?? '').toLowerCase()
+
+  async function handleDelete() {
+    if (!confirmed) return
+    setLoading(true)
+    setError('')
+    try {
+      const { error: rpcError } = await supabase.rpc('delete_own_account')
+      if (rpcError) throw rpcError
+      onDeleted()
+    } catch (e) {
+      setError(e.message ?? 'Une erreur est survenue.')
+      setLoading(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className="card border-red-100">
+        <button
+          onClick={() => setOpen(true)}
+          className="w-full text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
+        >
+          Supprimer mon compte
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card border-red-200 bg-red-50 space-y-4">
+      <div>
+        <p className="font-semibold text-red-800">⚠️ Supprimer mon compte</p>
+        <p className="text-sm text-red-700 mt-1">
+          Cette action est <strong>irréversible</strong>. Toutes tes données seront supprimées : profil, inscriptions, historique de matchs, amis.
+        </p>
+      </div>
+
+      <div>
+        <label className="text-xs text-red-700 font-medium block mb-1">
+          Pour confirmer, entre ton adresse email : <strong>{userEmail}</strong>
+        </label>
+        <input
+          type="email"
+          value={confirmInput}
+          onChange={e => { setConfirmInput(e.target.value); setError('') }}
+          className="input bg-white border-red-200 text-sm"
+          placeholder={userEmail}
+          autoComplete="off"
+        />
+      </div>
+
+      {error && (
+        <p className="text-xs text-red-600 bg-red-100 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => { setOpen(false); setConfirmInput(''); setError('') }}
+          className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          Annuler
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={!confirmed || loading}
+          className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Suppression…' : 'Supprimer définitivement'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Profile() {
   const { user, profile, refreshProfile, signOut } = useAuth()
   const [form, setForm] = useState({ name: '', phone: '', level: '3' })
@@ -550,6 +632,9 @@ export default function Profile() {
           Se déconnecter
         </button>
       </div>
+
+      {/* Delete account */}
+      <DeleteAccountSection userEmail={user?.email} onDeleted={signOut} />
 
       </> /* fin tab === 'info' */}
     </div>
