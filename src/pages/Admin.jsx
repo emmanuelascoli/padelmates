@@ -89,6 +89,74 @@ function VerifiedBadgeToggle({ memberId, currentBadges, onChanged }) {
   )
 }
 
+// ── Delete user modal ────────────────────────────────────────
+function DeleteUserModal({ member, onConfirm, onCancel }) {
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const confirmed = input.trim().toLowerCase() === member.name?.trim().toLowerCase()
+
+  async function handleDelete() {
+    if (!confirmed) return
+    setLoading(true)
+    setError('')
+    const { error: rpcError } = await supabase.rpc('admin_delete_user', { target_uid: member.id })
+    if (rpcError) { setError(rpcError.message); setLoading(false); return }
+    onConfirm(member.id)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+        <div>
+          <p className="font-bold text-red-700 text-lg">⚠️ Supprimer un compte</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Tu es sur le point de supprimer définitivement le compte de{' '}
+            <strong>{member.name}</strong>. Cette action est <strong>irréversible</strong> :
+            profil, inscriptions, historique de matchs et amis seront supprimés.
+            Les parties qu'il a organisées seront annulées.
+          </p>
+        </div>
+
+        <div>
+          <label className="text-xs text-red-700 font-medium block mb-1">
+            Pour confirmer, tape le nom du membre : <strong>{member.name}</strong>
+          </label>
+          <input
+            type="text"
+            value={input}
+            onChange={e => { setInput(e.target.value); setError('') }}
+            className="input bg-white border-red-200 text-sm"
+            placeholder={member.name}
+            autoComplete="off"
+            autoFocus
+          />
+        </div>
+
+        {error && (
+          <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={!confirmed || loading}
+            className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Suppression…' : 'Supprimer définitivement'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Tab Membres ──────────────────────────────────────────────
 function TabMembres() {
   const { user } = useAuth()
@@ -96,6 +164,7 @@ function TabMembres() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   useEffect(() => { fetchMembers() }, [])
 
@@ -115,6 +184,11 @@ function TabMembres() {
 
   function handleBadgesChange(memberId, newBadges) {
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, badges: newBadges } : m))
+  }
+
+  function handleDeleted(memberId) {
+    setMembers(prev => prev.filter(m => m.id !== memberId))
+    setDeleteTarget(null)
   }
 
   const filtered = members.filter(m => {
@@ -206,6 +280,18 @@ function TabMembres() {
                   </div>
                   <p className="text-xs text-gray-400">{LEVEL_LABEL[m.level] ?? '—'}</p>
                 </div>
+                {/* Supprimer — désactivé pour son propre compte */}
+                {m.id !== user?.id && (
+                  <button
+                    onClick={() => setDeleteTarget(m)}
+                    className="shrink-0 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Supprimer ce compte"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
               {/* Role selector */}
@@ -240,6 +326,15 @@ function TabMembres() {
             <div className="card text-center py-10 text-gray-400">Aucun membre trouvé</div>
           )}
         </div>
+      )}
+
+      {/* Modal confirmation suppression */}
+      {deleteTarget && (
+        <DeleteUserModal
+          member={deleteTarget}
+          onConfirm={handleDeleted}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   )
