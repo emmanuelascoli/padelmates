@@ -177,7 +177,10 @@ export default function Auth() {
   // ── Register step 2 : create profile ───────────────────────
   async function handleRegisterStep2(e) {
     e.preventDefault()
-    if (!form.name.trim()) { setError('Le prénom et nom sont requis.'); return }
+    if (!form.name.trim() || form.name.trim().length < 2) {
+      setError('Le prénom et nom sont obligatoires (minimum 2 caractères).')
+      return
+    }
     setLoading(true); setError('')
 
     const { data: { user: currentUser } } = await supabase.auth.getUser()
@@ -342,8 +345,15 @@ export default function Auth() {
         {mode === 'register' && regStep === 2 && (
           <form onSubmit={handleRegisterStep2} className="space-y-4">
             <div>
-              <label className="label">Prénom et Nom *</label>
-              <input type="text" name="name" value={form.name} onChange={handleChange} required className="input" placeholder="Marie Dupont" autoFocus />
+              <label className="label">
+                Prénom et Nom <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text" name="name" value={form.name} onChange={handleChange}
+                required minLength={2} autoFocus
+                className={`input ${!form.name.trim() && form.name !== '' ? 'border-red-300 focus:ring-red-300' : ''}`}
+                placeholder="Marie Dupont"
+              />
             </div>
             <div>
               <label className="label">Téléphone <span className="text-gray-400 font-normal">(pour Twint / Revolut)</span></label>

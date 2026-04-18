@@ -25,7 +25,10 @@ export default function ProfileSetup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.name.trim()) { setError('Le prénom et nom sont requis.'); return }
+    if (!form.name.trim() || form.name.trim().length < 2) {
+      setError('Le prénom et nom sont obligatoires (minimum 2 caractères).')
+      return
+    }
     setLoading(true); setError('')
 
     const { error: err } = await supabase.from('profiles').insert({
@@ -81,10 +84,12 @@ export default function ProfileSetup() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="label">Prénom et Nom *</label>
+            <label className="label">
+              Prénom et Nom <span className="text-red-500">*</span>
+            </label>
             <input
               type="text" name="name" value={form.name} onChange={handleChange}
-              required className="input" placeholder="Marie Dupont"
+              required minLength={2} className="input" placeholder="Marie Dupont"
             />
             {oauthMeta?.name && (
               <p className="text-xs text-green-600 mt-1">✓ Récupéré depuis Google</p>
