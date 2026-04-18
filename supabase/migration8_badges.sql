@@ -49,7 +49,8 @@ BEGIN
   END IF;
 
   -- ⭐ Organisateur vérifié : badge manuel — conserver s'il existait
-  IF 'verified_organizer' = ANY(existing_badges) THEN
+  -- (utilise @> pour éviter l'ambiguïté de ANY() avec les variables tableau)
+  IF existing_badges @> ARRAY['verified_organizer'::TEXT] THEN
     result := array_append(result, 'verified_organizer');
   END IF;
 
