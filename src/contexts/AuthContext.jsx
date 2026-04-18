@@ -74,10 +74,15 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut()
   }
 
+  const role      = profile?.role ?? 'member'
+  const isAdmin   = role === 'admin'
+  const isOrganizer = role === 'admin' || role === 'organizer'
+
   return (
     <AuthContext.Provider value={{
       user, profile, loading,
       needsProfileSetup, oauthMeta,
+      role, isAdmin, isOrganizer,
       signOut, refreshProfile,
     }}>
       {children}

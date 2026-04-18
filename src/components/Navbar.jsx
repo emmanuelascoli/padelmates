@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -46,7 +46,7 @@ const NAV_ITEMS = [
 
 export default function Navbar() {
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
@@ -102,6 +102,20 @@ export default function Navbar() {
                 </Link>
               )
             })}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  location.pathname === '/admin' ? 'bg-purple-50 text-purple-800' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <svg className={`w-5 h-5 ${location.pathname === '/admin' ? 'text-purple-700' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Admin
+              </Link>
+            )}
           </nav>
         </div>
       </header>
@@ -113,14 +127,25 @@ export default function Navbar() {
             <span className="text-xl">🎾</span>
             <span className="font-bold text-gray-900">PadelMates</span>
           </div>
-          {pendingCount > 0 && (
-            <Link to="/profile" className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-full">
-              <span className="w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                {pendingCount > 9 ? '9+' : pendingCount}
-              </span>
-              demande{pendingCount > 1 ? 's' : ''} d'ami
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {pendingCount > 0 && (
+              <Link to="/profile" className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-full">
+                <span className="w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {pendingCount > 9 ? '9+' : pendingCount}
+                </span>
+                demande{pendingCount > 1 ? 's' : ''} d'ami
+              </Link>
+            )}
+            {isAdmin && (
+              <Link to="/admin" className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border ${
+                location.pathname === '/admin'
+                  ? 'bg-purple-100 border-purple-200 text-purple-700'
+                  : 'bg-white border-gray-200 text-gray-600'
+              }`}>
+                👑 Admin
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 

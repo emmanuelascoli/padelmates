@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { LEVEL_LABEL } from '../lib/constants'
+import { LEVEL_LABEL, ROLES } from '../lib/constants'
 
 // Couleur de l'avatar selon le niveau
 function getLevelColor(level) {
@@ -41,7 +41,7 @@ export default function Members() {
   async function fetchMembers() {
     const { data } = await supabase
       .from('profiles')
-      .select('id, name, level, avatar_url')
+      .select('id, name, level, avatar_url, role')
       .order('name', { ascending: true })
     setMembers(data || [])
   }
@@ -196,7 +196,15 @@ export default function Members() {
                   )}
                 </Link>
                 <Link to={`/players/${m.id}`} className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{m.name}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="font-medium text-gray-900 truncate">{m.name}</p>
+                    {m.role === 'admin' && (
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 shrink-0">👑</span>
+                    )}
+                    {m.role === 'organizer' && (
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 shrink-0">✓</span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-400">{LEVEL_LABEL[m.level] ?? '—'}</p>
                 </Link>
 

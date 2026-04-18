@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { LEVEL_OPTIONS, LEVEL_LABEL } from '../lib/constants'
+import { LEVEL_OPTIONS, LEVEL_LABEL, ROLES } from '../lib/constants'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import PasswordInput from '../components/PasswordInput'
@@ -215,7 +215,7 @@ function DeleteAccountSection({ userEmail, onDeleted }) {
 }
 
 export default function Profile() {
-  const { user, profile, refreshProfile, signOut } = useAuth()
+  const { user, profile, refreshProfile, signOut, role } = useAuth()
   const [form, setForm] = useState({ name: '', phone: '', level: '3' })
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -440,7 +440,17 @@ export default function Profile() {
         {photoError && <p className="text-xs text-red-500 mb-1">{photoError}</p>}
 
         <h2 className="text-xl font-bold text-gray-900">{profile?.name || <span className="text-gray-400 italic">Nom non renseigné</span>}</h2>
-        <p className="text-sm text-gray-400 mb-3">{user?.email}</p>
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <p className="text-sm text-gray-400">{user?.email}</p>
+        </div>
+        {role && role !== 'member' && (() => {
+          const r = ROLES[role]
+          return (
+            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full border mb-2 ${r.color} ${r.border}`}>
+              {r.badge} {r.label}
+            </span>
+          )
+        })()}
         {profile?.level && (
           <div className="px-4">
             <div className="flex items-center justify-between mb-1.5">
@@ -625,6 +635,21 @@ export default function Profile() {
           {pwLoading ? 'Mise à jour...' : 'Changer le mot de passe'}
         </button>
       </form>
+
+      {/* Admin panel shortcut */}
+      {role === 'admin' && (
+        <div className="card bg-purple-50 border-purple-100">
+          <Link to="/admin" className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-purple-900">👑 Panneau d'administration</p>
+              <p className="text-xs text-purple-600 mt-0.5">Gérer les membres, les parties et les statistiques</p>
+            </div>
+            <svg className="w-5 h-5 text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      )}
 
       {/* Sign out */}
       <div className="card">

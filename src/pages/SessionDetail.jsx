@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { LEVEL_LABEL } from '../lib/constants'
+import { LEVEL_LABEL, ROLES, CANCEL_HOURS } from '../lib/constants'
 
 // ── WhatsApp helpers ─────────────────────────────────────────
 function buildShareMessage(session, participantCount) {
@@ -294,7 +294,7 @@ function PublicSessionTeaser({ session, participantCount }) {
 export default function SessionDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, role, isAdmin } = useAuth()
 
   const [session, setSession] = useState(null)
   const [participants, setParticipants] = useState([])
@@ -325,7 +325,7 @@ export default function SessionDetail() {
   async function fetchParticipants() {
     const { data } = await supabase
       .from('session_participants')
-      .select('*, profiles(id, name, phone, level)')
+      .select('*, profiles(id, name, phone, level, role)')
       .eq('session_id', id).order('joined_at')
     setParticipants(data || [])
   }
@@ -363,6 +363,19 @@ export default function SessionDetail() {
   const isFull = participants.length >= (session?.max_players ?? 4)
   const canJoin = !isParticipant && !isFull && !isPastSession && session?.status === 'open'
   const canWaitlist = !isParticipant && isFull && !isOnWaitlist && !isPastSession && session?.status === 'open'
+
+  // Cancel restrictions: admin=anytime, organizer=2h, member=24h
+  const hoursUntilSession = sessionDate
+    ? (sessionDate.getTime() - Date.now()) / 3600000
+    : Infinity
+  const cancelHoursRequired = CANCEL_HOURS[role] ?? CANCEL_HOURS.member
+  const canCancelSession = (isOrganizer || isAdmin) && !isPastSession && session?.status !== 'cancelled'
+  const canLeave = isParticipant && !isOrganizer && !isPastSession && session?.status !== 'cancelled'
+    && (isAdmin ? true : hoursUntilSession >= cancelHoursRequired)
+  const leaveBlockedReason = isParticipant && !isOrganizer && !isPastSession && session?.status !== 'cancelled'
+    && !isAdmin && hoursUntilSession < cancelHoursRequired
+    ? `Désinscription impossible — il reste moins de ${cancelHoursRequired}h avant la partie.`
+    : null
 
   async function handleJoin() {
     setActionLoading(true)
@@ -497,16 +510,21 @@ export default function SessionDetail() {
               {actionLoading ? '…' : 'Quitter la liste d\'attente'}
             </button>
           )}
-          {isParticipant && !isOrganizer && !isPastSession && session.status !== 'cancelled' && (
+          {canLeave && (
             <button onClick={handleLeave} disabled={actionLoading}
               className="flex-1 bg-white hover:bg-red-50 text-red-500 font-medium text-sm py-2.5 rounded-xl border border-red-200 transition-colors disabled:opacity-50">
               {actionLoading ? '…' : 'Se désinscrire'}
             </button>
           )}
-          {isOrganizer && !isPastSession && session.status !== 'cancelled' && (
+          {leaveBlockedReason && (
+            <div className="w-full bg-orange-50 border border-orange-200 text-orange-700 text-xs px-3 py-2 rounded-xl">
+              ⏱ {leaveBlockedReason}
+            </div>
+          )}
+          {canCancelSession && (
             <button onClick={handleCancelSession} disabled={actionLoading}
               className="bg-white hover:bg-red-50 text-red-500 font-medium text-xs py-2 px-3 rounded-xl border border-red-200 transition-colors disabled:opacity-50">
-              Annuler la partie
+              {isAdmin && !isOrganizer ? '👑 Annuler (admin)' : 'Annuler la partie'}
             </button>
           )}
         </div>
@@ -626,12 +644,18 @@ export default function SessionDetail() {
                     {p.profiles?.name?.charAt(0).toUpperCase()}
                   </Link>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Link to={`/players/${p.user_id}`} className="font-medium text-gray-900 hover:text-blue-700 transition-colors">
                         {p.profiles?.name}
                       </Link>
                       {p.user_id === session.organizer_id && (
                         <span className="badge bg-gray-100 text-gray-500 text-xs">Organisateur</span>
+                      )}
+                      {p.profiles?.role === 'admin' && (
+                        <span className="badge bg-purple-100 text-purple-700 text-xs border border-purple-200">👑</span>
+                      )}
+                      {p.profiles?.role === 'organizer' && (
+                        <span className="badge bg-blue-100 text-blue-700 text-xs border border-blue-200">✓ Vérifié</span>
                       )}
                     </div>
                     <p className="text-xs text-gray-400">{LEVEL_LABEL[p.profiles?.level] ?? '—'}</p>
