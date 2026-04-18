@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import Auth from './pages/Auth'
 import Home from './pages/Home'
 import PublicHome from './pages/PublicHome'
+import ProfileSetup from './pages/ProfileSetup'
 import Sessions from './pages/Sessions'
 import NewSession from './pages/NewSession'
 import SessionDetail from './pages/SessionDetail'
@@ -28,7 +29,7 @@ function ProtectedRoute({ children }) {
 }
 
 function AppRoutes() {
-  const { user, loading } = useAuth()
+  const { user, loading, needsProfileSetup } = useAuth()
 
   if (loading) {
     return (
@@ -36,6 +37,11 @@ function AppRoutes() {
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
+  }
+
+  // User is authenticated but has no profile yet (e.g. just signed in with Google)
+  if (user && needsProfileSetup) {
+    return <ProfileSetup />
   }
 
   return (
