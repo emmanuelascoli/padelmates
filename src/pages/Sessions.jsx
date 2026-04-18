@@ -42,6 +42,27 @@ const FILTERS = [
   { key: 'friends', label: '👥 Amis' },
 ]
 
+function SlotBar({ current, max }) {
+  const pct = Math.min(100, Math.round((current / max) * 100))
+  const isFull = current >= max
+  return (
+    <div className="mt-2">
+      <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <span>{current} / {max} joueurs</span>
+        {isFull
+          ? <span className="text-orange-500 font-medium">Complet</span>
+          : <span className="text-green-600 font-medium">{max - current} place{max - current > 1 ? 's' : ''} dispo</span>}
+      </div>
+      <div className="w-full bg-gray-100 rounded-full h-1.5">
+        <div
+          className={`h-1.5 rounded-full transition-all ${isFull ? 'bg-orange-400' : pct >= 75 ? 'bg-yellow-400' : 'bg-green-400'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 function SessionRow({ session, userId, friendIds, friendProfiles }) {
   const date = new Date(`${session.date}T${session.time}`)
   const participantCount = session.session_participants?.length ?? 0
@@ -69,13 +90,9 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
             {isRegistered && (
               <span className="badge bg-green-100 text-green-700">✓ Inscrit</span>
             )}
-            {session.status === 'cancelled' ? (
+            {session.status === 'cancelled' && (
               <span className="badge bg-red-100 text-red-600">Annulée</span>
-            ) : isFull && !isRegistered ? (
-              <span className="badge bg-orange-100 text-orange-600">Complet</span>
-            ) : !isFull && !isRegistered ? (
-              <span className="badge bg-blue-100 text-blue-800">{spotsLeft} place{spotsLeft > 1 ? 's' : ''}</span>
-            ) : null}
+            )}
           </div>
           <p className="text-sm text-gray-500 mt-0.5">
             {format(date, 'EEEE d MMMM', { locale: fr })} · {format(date, 'HH:mm')}
@@ -89,6 +106,7 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
             friendIds={friendIds}
             friendProfiles={friendProfiles}
           />
+          <SlotBar current={participantCount} max={session.max_players} />
         </div>
 
         {/* Price */}

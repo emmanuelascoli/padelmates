@@ -1,10 +1,46 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { LEVEL_LABEL } from '../lib/constants'
 
 const MEDAL = ['🥇', '🥈', '🥉']
+
+function PointsTooltip() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  return (
+    <div className="relative inline-block" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-5 h-5 rounded-full bg-gray-200 text-gray-500 text-xs font-bold hover:bg-gray-300 transition-colors flex items-center justify-center"
+        aria-label="Explication du système de points"
+      >
+        ?
+      </button>
+      {open && (
+        <div className="absolute left-1/2 -translate-x-1/2 top-7 z-10 w-52 bg-gray-900 text-white text-xs rounded-xl p-3 shadow-xl">
+          <p className="font-semibold mb-1.5">Système de points</p>
+          <div className="space-y-1 text-gray-300">
+            <p>🏆 Victoire = <span className="text-white font-medium">3 pts</span></p>
+            <p>😓 Défaite = <span className="text-white font-medium">1 pt</span></p>
+          </div>
+          <p className="mt-2 text-gray-400 text-xs">La défaite rapporte 1 pt pour récompenser la participation.</p>
+          <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-900 rotate-45" />
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Leaderboard() {
   const { user } = useAuth()
@@ -115,9 +151,9 @@ export default function Leaderboard() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
+      <div className="flex items-center gap-2">
         <h1 className="text-xl font-bold text-gray-900">Classement</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Victoire = 3 pts · Défaite = 1 pt</p>
+        <PointsTooltip />
       </div>
 
       {/* Period filter */}
@@ -182,14 +218,21 @@ export default function Leaderboard() {
           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : visibleRankings.length === 0 ? (
-        <div className="card text-center py-12 text-gray-400">
+        <div className="card text-center py-12">
           <div className="text-5xl mb-3">{friendsOnly ? '👥' : '🏆'}</div>
-          <p className="font-medium text-gray-600">
-            {friendsOnly ? 'Aucun ami n\'a joué sur cette période' : 'Aucun match joué pour cette période'}
+          <p className="font-semibold text-gray-700 text-base">
+            {friendsOnly ? 'Aucun ami n\'a joué sur cette période' : 'Aucun match enregistré'}
           </p>
-          <p className="text-sm mt-1">
-            {friendsOnly ? 'Ajoute des amis depuis la page Membres !' : 'Jouez et enregistrez vos matchs pour apparaître ici !'}
+          <p className="text-sm text-gray-400 mt-1 max-w-xs mx-auto">
+            {friendsOnly
+              ? 'Ajoute des amis depuis la page Membres pour voir leur classement ici.'
+              : 'Jouez une partie et enregistrez vos matchs pour apparaître dans le classement !'}
           </p>
+          {!friendsOnly && (
+            <Link to="/sessions" className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors">
+              Voir les parties →
+            </Link>
+          )}
         </div>
       ) : (
         <div className="card p-0 overflow-hidden">

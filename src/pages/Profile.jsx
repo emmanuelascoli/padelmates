@@ -357,11 +357,24 @@ export default function Profile() {
         {photoError && <p className="text-xs text-red-500 mb-1">{photoError}</p>}
 
         <h2 className="text-xl font-bold text-gray-900">{profile?.name || <span className="text-gray-400 italic">Nom non renseigné</span>}</h2>
-        <p className="text-sm text-gray-400 mb-2">{user?.email}</p>
+        <p className="text-sm text-gray-400 mb-3">{user?.email}</p>
         {profile?.level && (
-          <span className="badge bg-blue-100 text-blue-800">
-            {LEVEL_LABEL[profile.level] ?? profile.level}
-          </span>
+          <div className="px-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs text-gray-500 font-medium">Niveau</span>
+              <span className="text-xs font-semibold text-blue-700">{LEVEL_LABEL[profile.level] ?? profile.level}</span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+              <div
+                className="h-2.5 rounded-full bg-gradient-to-r from-blue-400 to-indigo-600 transition-all"
+                style={{ width: `${(parseInt(profile.level) / 10) * 100}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-gray-300 mt-1">
+              <span>1</span>
+              <span>10</span>
+            </div>
+          </div>
         )}
       </div>
 

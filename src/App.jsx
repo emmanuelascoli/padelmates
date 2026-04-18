@@ -7,6 +7,7 @@ import Sessions from './pages/Sessions'
 import NewSession from './pages/NewSession'
 import SessionDetail from './pages/SessionDetail'
 import Leaderboard from './pages/Leaderboard'
+import Community from './pages/Community'
 import Profile from './pages/Profile'
 import PlayerProfile from './pages/PlayerProfile'
 import ResetPassword from './pages/ResetPassword'
@@ -41,6 +42,7 @@ function AppRoutes() {
             <Route path="/sessions/:id" element={<ProtectedRoute><SessionDetail /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
             <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
+            <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
             <Route path="/players/:id" element={<ProtectedRoute><PlayerProfile /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />

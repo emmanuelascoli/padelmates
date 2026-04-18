@@ -6,9 +6,29 @@ import { format, isToday, isTomorrow, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { LEVEL_SHORT } from '../lib/constants'
 
+function SlotBar({ current, max }) {
+  const pct = Math.min(100, Math.round((current / max) * 100))
+  const isFull = current >= max
+  return (
+    <div className="mt-2">
+      <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <span>{current} / {max} joueurs</span>
+        {isFull ? <span className="text-orange-500 font-medium">Complet</span> : <span className="text-green-600 font-medium">{max - current} place{max - current > 1 ? 's' : ''} dispo</span>}
+      </div>
+      <div className="w-full bg-gray-100 rounded-full h-1.5">
+        <div
+          className={`h-1.5 rounded-full transition-all ${isFull ? 'bg-orange-400' : pct >= 75 ? 'bg-yellow-400' : 'bg-green-400'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 function SessionCard({ session, userId }) {
   const date = new Date(`${session.date}T${session.time}`)
-  const spotsLeft = session.max_players - (session.session_participants?.length ?? 0)
+  const participantCount = session.session_participants?.length ?? 0
+  const spotsLeft = session.max_players - participantCount
   const isFull = spotsLeft <= 0
   const isPastSession = isPast(date)
   const isRegistered = (session.session_participants || []).some(p => p.user_id === userId)
@@ -46,11 +66,9 @@ function SessionCard({ session, userId }) {
           <div className="text-sm font-semibold text-gray-900">
             {session.cost_per_player > 0 ? `${session.cost_per_player} CHF` : 'Gratuit'}
           </div>
-          <div className="text-xs text-gray-400 mt-0.5">
-            {session.session_participants?.length ?? 0} / {session.max_players} joueurs
-          </div>
         </div>
       </div>
+      <SlotBar current={participantCount} max={session.max_players} />
     </Link>
   )
 }
@@ -124,20 +142,30 @@ export default function Home() {
       </div>
 
       {/* My stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card text-center py-4">
-          <div className="text-2xl font-bold text-blue-600">{myStats.wins}</div>
-          <div className="text-xs text-gray-500 mt-0.5">Victoires</div>
+      {myStats.played === 0 ? (
+        <div className="card bg-blue-50 border border-blue-100 flex items-center gap-4 py-4">
+          <div className="text-3xl">🎾</div>
+          <div>
+            <p className="font-semibold text-blue-900 text-sm">Prêt à jouer ?</p>
+            <p className="text-xs text-blue-600 mt-0.5">Inscris-toi à une partie pour voir tes stats apparaître ici !</p>
+          </div>
         </div>
-        <div className="card text-center py-4">
-          <div className="text-2xl font-bold text-red-500">{myStats.losses}</div>
-          <div className="text-xs text-gray-500 mt-0.5">Défaites</div>
+      ) : (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="card text-center py-4">
+            <div className="text-2xl font-bold text-blue-600">{myStats.wins}</div>
+            <div className="text-xs text-gray-500 mt-0.5">Victoires</div>
+          </div>
+          <div className="card text-center py-4">
+            <div className="text-2xl font-bold text-red-500">{myStats.losses}</div>
+            <div className="text-xs text-gray-500 mt-0.5">Défaites</div>
+          </div>
+          <div className="card text-center py-4">
+            <div className="text-2xl font-bold text-gray-700">{myStats.played}</div>
+            <div className="text-xs text-gray-500 mt-0.5">Matchs</div>
+          </div>
         </div>
-        <div className="card text-center py-4">
-          <div className="text-2xl font-bold text-gray-700">{myStats.played}</div>
-          <div className="text-xs text-gray-500 mt-0.5">Matchs</div>
-        </div>
-      </div>
+      )}
 
       {/* Quick actions */}
       <div className="flex gap-3">

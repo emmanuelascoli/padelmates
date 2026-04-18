@@ -23,20 +23,13 @@ const NAV_ITEMS = [
     )
   },
   {
-    to: '/leaderboard',
-    label: 'Classement',
+    to: '/community',
+    label: 'Communauté',
+    // Match both /community, /leaderboard and /members as "active"
+    matchPaths: ['/community', '/leaderboard', '/members'],
     icon: (active) => (
       <svg className={`w-5 h-5 ${active ? 'text-blue-700' : 'text-gray-500'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    )
-  },
-  {
-    to: '/members',
-    label: 'Membres',
-    icon: (active) => (
-      <svg className={`w-5 h-5 ${active ? 'text-blue-700' : 'text-gray-500'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
       </svg>
     )
   },
@@ -69,6 +62,13 @@ export default function Navbar() {
     setPendingCount(count || 0)
   }
 
+  function isActive(item) {
+    if (item.matchPaths) {
+      return item.matchPaths.some(p => location.pathname === p || (p !== '/' && location.pathname.startsWith(p)))
+    }
+    return location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to))
+  }
+
   if (!user) return null
 
   return (
@@ -82,7 +82,7 @@ export default function Navbar() {
           </Link>
           <nav className="flex items-center gap-1">
             {NAV_ITEMS.map(item => {
-              const active = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to))
+              const active = isActive(item)
               const isProfile = item.to === '/profile'
               return (
                 <Link
@@ -128,7 +128,7 @@ export default function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
         <div className="flex">
           {NAV_ITEMS.map(item => {
-            const active = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to))
+            const active = isActive(item)
             const isProfile = item.to === '/profile'
             return (
               <Link
