@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { LEVEL_OPTIONS } from '../lib/constants'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import PasswordInput from '../components/PasswordInput'
 
 const LEVELS = LEVEL_OPTIONS
 
@@ -252,7 +253,7 @@ export default function Auth() {
           {mode !== 'forgot' && (
             <div>
               <label className="label">Mot de passe *</label>
-              <input type="password" name="password" value={form.password} onChange={handleChange} required minLength={6} className="input" placeholder="Minimum 6 caractères" />
+              <PasswordInput name="password" value={form.password} onChange={handleChange} required minLength={6} placeholder="Minimum 6 caractères" />
             </div>
           )}
 

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { LEVEL_OPTIONS, LEVEL_LABEL } from '../lib/constants'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import PasswordInput from '../components/PasswordInput'
 
 // ── Composant section Amis ────────────────────────────────────
 function FriendsSection({ userId }) {
@@ -524,18 +525,18 @@ export default function Profile() {
         {pwSaved && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">✅ Mot de passe mis à jour !</div>}
         <div>
           <label className="label">Nouveau mot de passe</label>
-          <input
-            type="password" value={pwForm.newPw} minLength={6}
+          <PasswordInput
+            value={pwForm.newPw} minLength={6}
             onChange={e => { setPwForm({ ...pwForm, newPw: e.target.value }); setPwError(''); setPwSaved(false) }}
-            className="input" placeholder="Minimum 6 caractères" required
+            placeholder="Minimum 6 caractères" required
           />
         </div>
         <div>
           <label className="label">Confirmer le mot de passe</label>
-          <input
-            type="password" value={pwForm.confirm} minLength={6}
+          <PasswordInput
+            value={pwForm.confirm} minLength={6}
             onChange={e => { setPwForm({ ...pwForm, confirm: e.target.value }); setPwError('') }}
-            className="input" placeholder="Répète le nouveau mot de passe" required
+            placeholder="Répète le nouveau mot de passe" required
           />
         </div>
         <button type="submit" disabled={pwLoading} className="btn-secondary w-full">

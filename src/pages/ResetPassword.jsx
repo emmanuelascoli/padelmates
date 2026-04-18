@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import PasswordInput from '../components/PasswordInput'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -87,26 +88,22 @@ export default function ResetPassword() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="label">Nouveau mot de passe *</label>
-                <input
-                  type="password"
+                <PasswordInput
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError('') }}
                   required
                   minLength={6}
-                  className="input"
                   placeholder="Minimum 6 caractères"
                   autoFocus
                 />
               </div>
               <div>
                 <label className="label">Confirmer le mot de passe *</label>
-                <input
-                  type="password"
+                <PasswordInput
                   value={confirm}
                   onChange={(e) => { setConfirm(e.target.value); setError('') }}
                   required
                   minLength={6}
-                  className="input"
                   placeholder="Répète le mot de passe"
                 />
               </div>
