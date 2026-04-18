@@ -16,12 +16,14 @@ DECLARE
   session_count      INT;
   played_count       INT;
   this_month_count   INT;
-  existing_badges    TEXT[];
+  is_verified        BOOLEAN := FALSE;
   result             TEXT[] := '{}';
 BEGIN
-  -- Lire les badges existants (pour préserver les badges manuels)
-  SELECT COALESCE(badges, '{}') INTO existing_badges
-  FROM profiles WHERE id = uid;
+  -- ⭐ Lire le badge manuel via colonne SQL (pas de variable tableau pour éviter
+  --    l'ambiguïté de = ANY(variable) avec PostgreSQL)
+  SELECT ('verified_organizer' = ANY(badges))
+  INTO   is_verified
+  FROM   profiles WHERE id = uid;
 
   -- 🏅 Organisateur actif : 5+ parties créées
   SELECT COUNT(*) INTO session_count
@@ -48,9 +50,8 @@ BEGIN
     result := array_append(result, 'on_fire');
   END IF;
 
-  -- ⭐ Organisateur vérifié : badge manuel — conserver s'il existait
-  -- (utilise @> pour éviter l'ambiguïté de ANY() avec les variables tableau)
-  IF existing_badges @> ARRAY['verified_organizer'::TEXT] THEN
+  -- ⭐ Organisateur vérifié : réintégrer si le badge manuel était présent
+  IF is_verified THEN
     result := array_append(result, 'verified_organizer');
   END IF;
 
