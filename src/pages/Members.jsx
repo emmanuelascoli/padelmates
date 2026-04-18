@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { LEVEL_LABEL, ROLES } from '../lib/constants'
+import { BadgeList } from '../components/BadgeList'
 
 // Couleur de l'avatar selon le niveau
 function getLevelColor(level) {
@@ -41,7 +42,7 @@ export default function Members() {
   async function fetchMembers() {
     const { data } = await supabase
       .from('profiles')
-      .select('id, name, level, avatar_url, role')
+      .select('id, name, level, avatar_url, role, badges')
       .order('name', { ascending: true })
     setMembers(data || [])
   }
@@ -205,7 +206,10 @@ export default function Members() {
                       <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 shrink-0">✓</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400">{LEVEL_LABEL[m.level] ?? '—'}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <p className="text-xs text-gray-400">{LEVEL_LABEL[m.level] ?? '—'}</p>
+                    {m.badges?.length > 0 && <BadgeList badges={m.badges} size="sm" />}
+                  </div>
                 </Link>
 
                 <div className="shrink-0">

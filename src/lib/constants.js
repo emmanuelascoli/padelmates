@@ -1,3 +1,27 @@
+// ── Badges ───────────────────────────────────────────────────
+export const BADGES = {
+  organizer_active: {
+    emoji:       '🏅',
+    label:       'Organisateur actif',
+    description: 'A créé au moins 5 parties',
+  },
+  loyal_player: {
+    emoji:       '🎾',
+    label:       'Joueur fidèle',
+    description: 'A participé à au moins 10 parties',
+  },
+  verified_organizer: {
+    emoji:       '⭐',
+    label:       'Organisateur vérifié',
+    description: 'Badge attribué par l\'administration',
+  },
+  on_fire: {
+    emoji:       '🔥',
+    label:       'En forme',
+    description: 'A joué 3 parties ou plus ce mois-ci',
+  },
+}
+
 // ── Rôles ────────────────────────────────────────────────────
 export const ROLES = {
   admin: {

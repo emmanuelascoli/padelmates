@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { LEVEL_LABEL } from '../lib/constants'
+import { LEVEL_LABEL, BADGES } from '../lib/constants'
 
 const MEDAL = ['🥇', '🥈', '🥉']
 
@@ -123,7 +123,7 @@ export default function Leaderboard() {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, name, level, avatar_url')
+      .select('id, name, level, avatar_url, badges')
       .in('id', playerIds)
 
     const ranked = (profiles || [])
@@ -279,9 +279,16 @@ export default function Leaderboard() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className={`text-sm font-medium truncate ${isMe ? 'text-blue-800' : 'text-gray-900'}`}>
-                            {player.name}{isMe && ' (moi)'}
-                          </p>
+                          <div className="flex items-center gap-1">
+                            <p className={`text-sm font-medium truncate ${isMe ? 'text-blue-800' : 'text-gray-900'}`}>
+                              {player.name}{isMe && ' (moi)'}
+                            </p>
+                            {player.badges?.length > 0 && (
+                              <span className="shrink-0 text-xs leading-none" title={player.badges.map(b => BADGES[b]?.label).filter(Boolean).join(', ')}>
+                                {player.badges.map(b => BADGES[b]?.emoji).filter(Boolean).join('')}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-gray-400 truncate">{LEVEL_LABEL[player.level]}</p>
                         </div>
                       </div>

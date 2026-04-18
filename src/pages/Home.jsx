@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { format, isToday, isTomorrow, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { LEVEL_SHORT } from '../lib/constants'
+import { LEVEL_SHORT, BADGES } from '../lib/constants'
 
 function SlotBar({ current, max }) {
   const pct = Math.min(100, Math.round((current / max) * 100))
@@ -59,7 +59,14 @@ function SessionCard({ session, userId }) {
           <p className="text-sm text-gray-500 capitalize">{dateLabel} à {format(date, 'HH:mm')}</p>
           <p className="text-sm text-gray-500 truncate">📍 {session.location}</p>
           {session.organizer?.name && (
-            <p className="text-xs text-gray-400 mt-0.5">👤 {session.organizer.name}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              👤 {session.organizer.name}
+              {session.organizer.badges?.length > 0 && (
+                <span className="ml-1" title={session.organizer.badges.map(b => BADGES[b]?.label).filter(Boolean).join(', ')}>
+                  {session.organizer.badges.map(b => BADGES[b]?.emoji).filter(Boolean).join('')}
+                </span>
+              )}
+            </p>
           )}
         </div>
         <div className="text-right shrink-0">
@@ -89,7 +96,7 @@ export default function Home() {
 
     const { data: sessionsWithParts } = await supabase
       .from('sessions')
-      .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name)')
+      .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name, badges)')
       .gte('date', today)
       .neq('status', 'cancelled')
       .order('date', { ascending: true })

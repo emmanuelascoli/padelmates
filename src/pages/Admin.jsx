@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { ROLES, LEVEL_LABEL } from '../lib/constants'
+import { ROLES, LEVEL_LABEL, BADGES } from '../lib/constants'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -53,6 +53,42 @@ function RoleSelector({ memberId, currentRole, onChanged }) {
   )
 }
 
+// ── Verified organizer badge toggle ─────────────────────────
+function VerifiedBadgeToggle({ memberId, currentBadges, onChanged }) {
+  const hasIt = (currentBadges || []).includes('verified_organizer')
+  const [loading, setLoading] = useState(false)
+
+  async function toggle() {
+    setLoading(true)
+    const { error } = await supabase.rpc('admin_toggle_verified_organizer', {
+      uid: memberId,
+      grant_badge: !hasIt,
+    })
+    if (!error) {
+      const next = hasIt
+        ? (currentBadges || []).filter(b => b !== 'verified_organizer')
+        : [...(currentBadges || []), 'verified_organizer']
+      onChanged(memberId, next)
+    }
+    setLoading(false)
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      disabled={loading}
+      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-all disabled:opacity-50 ${
+        hasIt
+          ? 'bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100'
+          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+      }`}
+    >
+      <span>{BADGES.verified_organizer.emoji}</span>
+      {hasIt ? 'Retirer Organisateur Vérifié' : 'Attribuer Organisateur Vérifié'}
+    </button>
+  )
+}
+
 // ── Tab Membres ──────────────────────────────────────────────
 function TabMembres() {
   const { user } = useAuth()
@@ -67,7 +103,7 @@ function TabMembres() {
     setLoading(true)
     const { data } = await supabase
       .from('profiles')
-      .select('id, name, level, avatar_url, role, phone')
+      .select('id, name, level, avatar_url, role, phone, badges')
       .order('name', { ascending: true })
     setMembers(data || [])
     setLoading(false)
@@ -75,6 +111,10 @@ function TabMembres() {
 
   function handleRoleChange(memberId, newRole) {
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m))
+  }
+
+  function handleBadgesChange(memberId, newBadges) {
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, badges: newBadges } : m))
   }
 
   const filtered = members.filter(m => {
@@ -176,6 +216,23 @@ function TabMembres() {
                   currentRole={m.role ?? 'member'}
                   onChanged={handleRoleChange}
                 />
+              </div>
+
+              {/* Badge Organisateur Vérifié */}
+              <div>
+                <p className="text-xs text-gray-400 mb-2">Badge :</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <VerifiedBadgeToggle
+                    memberId={m.id}
+                    currentBadges={m.badges}
+                    onChanged={handleBadgesChange}
+                  />
+                  {m.badges?.length > 0 && (
+                    <span className="text-xs text-gray-400">
+                      Badges actifs : {m.badges.map(b => `${BADGES[b]?.emoji} ${BADGES[b]?.label}`).filter(Boolean).join(', ')}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -327,6 +384,17 @@ function TabStats() {
   const [loading, setLoading] = useState(true)
   const [topPlayers, setTopPlayers] = useState([])
   const [recentSessions, setRecentSessions] = useState([])
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshResult, setRefreshResult] = useState(null)
+
+  async function handleRefreshAllBadges() {
+    setRefreshing(true)
+    setRefreshResult(null)
+    const { data, error } = await supabase.rpc('admin_refresh_all_badges')
+    if (error) setRefreshResult({ ok: false, msg: error.message })
+    else setRefreshResult({ ok: true, msg: `${data} profils mis à jour.` })
+    setRefreshing(false)
+  }
 
   useEffect(() => { fetchStats() }, [])
 
@@ -425,6 +493,28 @@ function TabStats() {
 
   return (
     <div className="space-y-5">
+      {/* Recalculate badges */}
+      <div className="card flex items-center justify-between gap-3">
+        <div>
+          <p className="font-medium text-gray-900 text-sm">🏅 Recalculer tous les badges</p>
+          <p className="text-xs text-gray-400 mt-0.5">À faire après un import de données ou en fin de mois pour mettre à jour "En forme".</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <button
+            onClick={handleRefreshAllBadges}
+            disabled={refreshing}
+            className="text-xs px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+          >
+            {refreshing ? 'En cours…' : 'Recalculer'}
+          </button>
+          {refreshResult && (
+            <p className={`text-xs mt-1 ${refreshResult.ok ? 'text-green-600' : 'text-red-500'}`}>
+              {refreshResult.ok ? '✓' : '✗'} {refreshResult.msg}
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Global KPIs */}
       <div className="grid grid-cols-2 gap-3">
         {[

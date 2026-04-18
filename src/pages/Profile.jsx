@@ -6,6 +6,7 @@ import { LEVEL_OPTIONS, LEVEL_LABEL, ROLES } from '../lib/constants'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import PasswordInput from '../components/PasswordInput'
+import { BadgeList } from '../components/BadgeList'
 
 // ── Composant section Amis ────────────────────────────────────
 function FriendsSection({ userId }) {
@@ -451,6 +452,12 @@ export default function Profile() {
             </span>
           )
         })()}
+        {/* Badges */}
+        {profile?.badges?.length > 0 && (
+          <div className="mt-2 mb-1">
+            <BadgeList badges={profile.badges} size="lg" className="justify-center" />
+          </div>
+        )}
         {profile?.level && (
           <div className="px-4">
             <div className="flex items-center justify-between mb-1.5">

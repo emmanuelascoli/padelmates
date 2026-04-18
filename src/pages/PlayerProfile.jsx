@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { LEVEL_LABEL } from '../lib/constants'
+import { BadgeList } from '../components/BadgeList'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -184,6 +185,11 @@ export default function PlayerProfile() {
         <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
         {profile.level && (
           <span className="badge bg-blue-100 text-blue-800 mt-2">{LEVEL_LABEL[profile.level]}</span>
+        )}
+        {profile.badges?.length > 0 && (
+          <div className="mt-3">
+            <BadgeList badges={profile.badges} size="lg" className="justify-center" />
+          </div>
         )}
         {isOwnProfile && (
           <div className="mt-2">

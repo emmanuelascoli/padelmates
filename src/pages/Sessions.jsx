@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { BADGES } from '../lib/constants'
 
 function FriendAvatars({ participants, friendIds, friendProfiles }) {
   const friendsIn = (participants || [])
@@ -99,7 +100,14 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
           </p>
           <p className="text-sm text-gray-400 truncate">📍 {session.location}</p>
           {session.organizer?.name && (
-            <p className="text-xs text-gray-400 mt-0.5">👤 {session.organizer.name}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              👤 {session.organizer.name}
+              {session.organizer.badges?.length > 0 && (
+                <span className="ml-1" title={session.organizer.badges.map(b => BADGES[b]?.label).filter(Boolean).join(', ')}>
+                  {session.organizer.badges.map(b => BADGES[b]?.emoji).filter(Boolean).join('')}
+                </span>
+              )}
+            </p>
           )}
           <FriendAvatars
             participants={session.session_participants}
@@ -193,7 +201,7 @@ export default function Sessions() {
       }
       const { data } = await supabase
         .from('sessions')
-        .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name)')
+        .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name, badges)')
         .in('id', sessionIds)
         .gte('date', today)
         .neq('status', 'cancelled')
@@ -207,7 +215,7 @@ export default function Sessions() {
 
     let query = supabase
       .from('sessions')
-      .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name)')
+      .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name, badges)')
       .order('date', { ascending: filter === 'upcoming' })
       .order('time', { ascending: true })
 
