@@ -184,6 +184,112 @@ function MatchCard({ match, canDelete, onDelete }) {
   )
 }
 
+// ── Public teaser view (non-authenticated) ───────────────────
+function PublicSessionTeaser({ session, participantCount }) {
+  const navigate = useNavigate()
+  const date = new Date(`${session.date}T${session.time}`)
+  const spotsLeft = session.max_players - participantCount
+  const isFull = spotsLeft <= 0
+  const pct = Math.min(100, Math.round((participantCount / session.max_players) * 100))
+
+  return (
+    <div className="max-w-lg mx-auto space-y-5">
+      {/* Back */}
+      <button onClick={() => navigate('/')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800">
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        Retour
+      </button>
+
+      {/* Session info */}
+      <div className="card">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-gray-900 mb-1">{session.title}</h1>
+            <p className="text-gray-600 font-medium capitalize">
+              📅 {format(date, 'EEEE d MMMM yyyy', { locale: fr })} à {session.time}
+            </p>
+            {session.duration && <p className="text-gray-500 text-sm mt-0.5">⏱ Durée : {session.duration}</p>}
+            <p className="text-gray-500 text-sm">📍 {session.location}</p>
+            {session.cost_per_player > 0 && (
+              <p className="text-gray-500 text-sm">💰 {session.cost_per_player} CHF / joueur</p>
+            )}
+            {(session.level_min || session.level_max) && (
+              <p className="text-gray-500 text-sm">
+                🎯 Niveau : {session.level_min && LEVEL_LABEL[session.level_min]}
+                {session.level_min && session.level_max && ' → '}
+                {session.level_max && LEVEL_LABEL[session.level_max]}
+              </p>
+            )}
+          </div>
+          <div className="shrink-0 text-right">
+            {isFull
+              ? <span className="badge bg-orange-100 text-orange-600">Complet</span>
+              : <span className="badge bg-green-100 text-green-700">Ouvert</span>
+            }
+          </div>
+        </div>
+
+        {/* Slot bar */}
+        <div className="mb-4">
+          <div className="flex justify-between text-xs text-gray-400 mb-1">
+            <span>{participantCount} / {session.max_players} joueurs</span>
+            {!isFull && <span className="text-green-600 font-medium">{spotsLeft} place{spotsLeft > 1 ? 's' : ''} libre{spotsLeft > 1 ? 's' : ''}</span>}
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full ${isFull ? 'bg-orange-400' : pct >= 75 ? 'bg-yellow-400' : 'bg-green-400'}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Blurred participant silhouettes */}
+        {participantCount > 0 && (
+          <div className="flex items-center gap-3 py-3 border-t border-gray-50 mb-4">
+            <div className="flex -space-x-2">
+              {Array.from({ length: Math.min(participantCount, 5) }).map((_, i) => (
+                <div key={i} className="w-9 h-9 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 text-gray-400" fill="currentColor">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                  </svg>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-gray-500">
+              <span className="font-semibold">{participantCount} joueur{participantCount > 1 ? 's' : ''}</span> déjà inscrit{participantCount > 1 ? 's' : ''}
+              <span className="text-gray-400"> — connecte-toi pour voir qui</span>
+            </p>
+          </div>
+        )}
+
+        {/* Join CTA */}
+        <button
+          onClick={() => navigate(`/auth?join=${session.id}&mode=register`)}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+        >
+          <span>🔒</span>
+          {isFull ? 'Rejoindre la liste d\'attente' : 'Je rejoins cette partie'}
+        </button>
+        <button
+          onClick={() => navigate(`/auth?join=${session.id}&mode=login`)}
+          className="w-full mt-2 text-sm text-gray-500 hover:text-gray-700 py-2"
+        >
+          J'ai déjà un compte → me connecter
+        </button>
+      </div>
+
+      {/* Value prop */}
+      <div className="card bg-blue-50 border-blue-100">
+        <p className="text-sm font-semibold text-blue-900 mb-1">🎾 Qu'est-ce que PadelMates ?</p>
+        <p className="text-sm text-blue-700">La plateforme de votre groupe padel — organise des parties, suis ton classement, retrouve tes amis.</p>
+        <p className="text-sm text-blue-600 mt-1 font-medium">Inscription gratuite en 30 secondes.</p>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ────────────────────────────────────────────────
 export default function SessionDetail() {
   const { id } = useParams()
@@ -319,6 +425,11 @@ export default function SessionDetail() {
       <Link to="/sessions" className="text-blue-600 hover:underline mt-2 inline-block">← Retour</Link>
     </div>
   )
+
+  // Non-authenticated: show public teaser
+  if (!user) {
+    return <PublicSessionTeaser session={session} participantCount={participants.length} />
+  }
 
   const paymentStatusLabel = { pending: 'En attente', paid: 'Payé', confirmed: 'Confirmé' }
   const paymentStatusColor = { pending: 'bg-yellow-100 text-yellow-700', paid: 'bg-blue-100 text-blue-700', confirmed: 'bg-blue-100 text-blue-800' }

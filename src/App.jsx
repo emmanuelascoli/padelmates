@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Navbar from './components/Navbar'
 import Auth from './pages/Auth'
 import Home from './pages/Home'
+import PublicHome from './pages/PublicHome'
 import Sessions from './pages/Sessions'
 import NewSession from './pages/NewSession'
 import SessionDetail from './pages/SessionDetail'
@@ -27,19 +28,35 @@ function ProtectedRoute({ children }) {
 }
 
 function AppRoutes() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-6">
           <Routes>
+            {/* Public routes */}
             <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+
+            {/* Home: public landing for guests, app home for authenticated */}
+            <Route path="/" element={user ? <Home /> : <PublicHome />} />
+
+            {/* Session detail: public teaser for guests (handled inside component), full view for auth */}
+            <Route path="/sessions/:id" element={<SessionDetail />} />
+
+            {/* Protected routes */}
             <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
             <Route path="/sessions/new" element={<ProtectedRoute><NewSession /></ProtectedRoute>} />
-            <Route path="/sessions/:id" element={<ProtectedRoute><SessionDetail /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
             <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
             <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
