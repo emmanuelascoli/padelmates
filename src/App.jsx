@@ -15,6 +15,7 @@ import PlayerProfile from './pages/PlayerProfile'
 import ResetPassword from './pages/ResetPassword'
 import Members from './pages/Members'
 import Admin from './pages/Admin'
+import SessionByToken from './pages/SessionByToken'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -60,6 +61,9 @@ function AppRoutes() {
 
             {/* Session detail: public teaser for guests (handled inside component), full view for auth */}
             <Route path="/sessions/:id" element={<SessionDetail />} />
+
+            {/* Private session access via unique token */}
+            <Route path="/partie/:token" element={<SessionByToken />} />
 
             {/* Protected routes */}
             <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />

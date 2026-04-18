@@ -7,11 +7,18 @@ import { fr } from 'date-fns/locale'
 import { LEVEL_LABEL, ROLES, CANCEL_HOURS } from '../lib/constants'
 
 // ── WhatsApp helpers ─────────────────────────────────────────
+function getSessionUrl(session) {
+  if (session.is_private && session.private_token) {
+    return `${window.location.origin}/partie/${session.private_token}`
+  }
+  return `${window.location.origin}/sessions/${session.id}`
+}
+
 function buildShareMessage(session, participantCount) {
   const date = new Date(`${session.date}T${session.time}`)
   const dateStr = format(date, 'EEEE d MMMM à HH:mm', { locale: fr })
   const spotsLeft = session.max_players - participantCount
-  const url = `${window.location.origin}/sessions/${session.id}`
+  const url = getSessionUrl(session)
 
   let msg = `🎾 *Nouvelle partie de padel !*\n\n`
   msg += `📅 ${dateStr}\n`
@@ -38,7 +45,7 @@ function buildReminderMessage(session, participants) {
   if (session.cost_per_player > 0) msg += `💰 ${session.cost_per_player} CHF / joueur\n`
   msg += `\n👥 Joueurs inscrits :\n`
   participants.forEach(p => { msg += `• ${p.profiles?.name}\n` })
-  msg += `\n➡️ Voir la partie : ${url}`
+  msg += `\n➡️ Voir la partie : ${getSessionUrl(session)}`
   return encodeURIComponent(msg)
 }
 
@@ -226,7 +233,7 @@ function PublicSessionTeaser({ session, participantCount }) {
           <div className="shrink-0 text-right">
             {isFull
               ? <span className="badge bg-orange-100 text-orange-600">Complet</span>
-              : <span className="badge bg-green-100 text-green-700">Ouvert</span>
+              : <span className="badge bg-blue-100 text-blue-700">Ouvert</span>
             }
           </div>
         </div>
@@ -295,6 +302,7 @@ export default function SessionDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user, role, isAdmin } = useAuth()
+  const [linkCopied, setLinkCopied] = useState(false)
 
   const [session, setSession] = useState(null)
   const [participants, setParticipants] = useState([])
@@ -317,7 +325,7 @@ export default function SessionDetail() {
   async function fetchSession() {
     const { data } = await supabase
       .from('sessions')
-      .select('*, organizer:profiles!sessions_organizer_id_fkey(id, name, phone, level)')
+      .select('*, organizer:profiles!sessions_organizer_id_fkey(id, name, phone, level), is_private, private_token')
       .eq('id', id).single()
     setSession(data)
   }
@@ -463,6 +471,7 @@ export default function SessionDetail() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <h1 className="text-xl font-bold text-gray-900">{session.title}</h1>
+              {session.is_private && <span className="badge bg-purple-100 text-purple-700">🔒 Privée</span>}
               {session.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
               {session.status !== 'cancelled' && isPastSession && <span className="badge bg-gray-100 text-gray-500">Terminée</span>}
               {session.status === 'open' && !isPastSession && !isFull && <span className="badge bg-blue-100 text-blue-800">Ouverte</span>}
@@ -528,6 +537,33 @@ export default function SessionDetail() {
             </button>
           )}
         </div>
+
+        {/* Lien privé (organisateur uniquement) */}
+        {session.is_private && session.private_token && isOrganizer && (
+          <div className="mt-3 bg-purple-50 border border-purple-100 rounded-xl p-3">
+            <p className="text-xs font-semibold text-purple-700 mb-2">🔒 Lien d'invitation privé</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs bg-white border border-purple-200 rounded-lg px-2 py-1.5 text-purple-800 truncate font-mono">
+                {getSessionUrl(session)}
+              </code>
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(getSessionUrl(session))
+                  setLinkCopied(true)
+                  setTimeout(() => setLinkCopied(false), 2500)
+                }}
+                className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
+                  linkCopied
+                    ? 'bg-green-100 text-green-700 border-green-200'
+                    : 'bg-white text-purple-700 border-purple-200 hover:bg-purple-100'
+                }`}
+              >
+                {linkCopied ? '✓ Copié !' : 'Copier'}
+              </button>
+            </div>
+            <p className="text-xs text-purple-500 mt-1.5">Partage ce lien uniquement avec les personnes que tu veux inviter.</p>
+          </div>
+        )}
 
         {/* Boutons WhatsApp */}
         {!isPastSession && session.status !== 'cancelled' && (

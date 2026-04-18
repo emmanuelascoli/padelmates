@@ -438,7 +438,7 @@ function TabParties() {
                       </Link>
                       {s.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
                       {s.status === 'open' && past && <span className="badge bg-gray-100 text-gray-500">Terminée</span>}
-                      {s.status === 'open' && !past && <span className="badge bg-green-100 text-green-700">Ouverte</span>}
+                      {s.status === 'open' && !past && <span className="badge bg-blue-100 text-blue-700">Ouverte</span>}
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">📍 {s.location} · {format(date, 'HH:mm')}</p>
                     <p className="text-xs text-gray-400">👤 {s.organizer?.name}</p>
@@ -699,7 +699,7 @@ function TabStats() {
                   </div>
                   {s.status === 'cancelled' && <span className="badge bg-red-100 text-red-600 text-xs shrink-0">Annulée</span>}
                   {s.status === 'open' && isPast(date) && <span className="badge bg-gray-100 text-gray-500 text-xs shrink-0">Terminée</span>}
-                  {s.status === 'open' && !isPast(date) && <span className="badge bg-green-100 text-green-700 text-xs shrink-0">Ouverte</span>}
+                  {s.status === 'open' && !isPast(date) && <span className="badge bg-blue-100 text-blue-700 text-xs shrink-0">Ouverte</span>}
                 </Link>
               )
             })}

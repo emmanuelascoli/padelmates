@@ -31,6 +31,7 @@ export default function NewSession() {
     total_cost: '',
     level_min: '',
     level_max: '',
+    isPrivate: false,
   })
 
   const handleChange = (e) => {
@@ -72,6 +73,7 @@ export default function NewSession() {
         level_min: form.level_min || null,
         level_max: form.level_max || null,
         status: 'open',
+        is_private: form.isPrivate,
       })
       .select()
       .single()
@@ -217,6 +219,40 @@ export default function NewSession() {
           {form.level_min && form.level_max && (
             <p className="text-xs text-gray-400 mt-1">
               Niveau souhaité : entre {form.level_min} et {form.level_max}
+            </p>
+          )}
+        </div>
+
+        {/* Visibilité : publique / privée */}
+        <div>
+          <label className="label mb-2">Visibilité</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, isPrivate: false })}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-medium transition-all ${
+                !form.isPrivate
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300'
+              }`}
+            >
+              <span>🌍</span> Publique
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, isPrivate: true })}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-medium transition-all ${
+                form.isPrivate
+                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-purple-300'
+              }`}
+            >
+              <span>🔒</span> Privée
+            </button>
+          </div>
+          {form.isPrivate && (
+            <p className="text-xs text-purple-700 mt-2 bg-purple-50 rounded-lg px-3 py-2">
+              🔒 Cette partie n'apparaîtra pas dans les listes. Un lien unique sera généré pour que tu puisses inviter ton groupe.
             </p>
           )}
         </div>

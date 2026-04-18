@@ -186,7 +186,7 @@ export default function Auth() {
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     if (!currentUser) { setError('Session expirée, recommence.'); setLoading(false); return }
 
-    const { error: profileError } = await supabase.from('profiles').insert({
+    const { error: profileError } = await supabase.from('profiles').upsert({
       id:    currentUser.id,
       name:  form.name.trim(),
       phone: form.phone.trim() || null,

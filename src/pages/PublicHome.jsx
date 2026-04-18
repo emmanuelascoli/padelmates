@@ -43,7 +43,7 @@ function PublicSessionCard({ session, onJoin }) {
               <span className="font-bold text-gray-900">{session.title}</span>
               {isFull
                 ? <span className="text-xs font-semibold px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full">Complet</span>
-                : <span className="text-xs font-semibold px-2 py-0.5 bg-green-100 text-green-700 rounded-full">Ouvert</span>
+                : <span className="text-xs font-semibold px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Ouvert</span>
               }
             </div>
             <p className="text-sm text-gray-500 mt-0.5 capitalize">{dateLabel} · {format(date, 'HH:mm')}</p>
@@ -124,6 +124,7 @@ export default function PublicHome() {
       .from('sessions')
       .select('id, title, date, time, location, max_players, cost_per_player, level_min, level_max, status')
       .eq('status', 'open')
+      .eq('is_private', false)
       .gte('date', today)
       .order('date', { ascending: true })
       .order('time', { ascending: true })

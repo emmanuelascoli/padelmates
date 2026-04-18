@@ -50,7 +50,7 @@ function SessionCard({ session, userId }) {
               <span className="badge bg-orange-100 text-orange-600">Complet</span>
             )}
             {!isPastSession && !isFull && !isRegistered && (
-              <span className="badge bg-green-100 text-green-700">Ouvert</span>
+              <span className="badge bg-blue-100 text-blue-700">Ouvert</span>
             )}
             {isPastSession && (
               <span className="badge bg-gray-100 text-gray-500">Terminée</span>
@@ -99,6 +99,7 @@ export default function Home() {
       .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name, badges)')
       .gte('date', today)
       .neq('status', 'cancelled')
+      .eq('is_private', false)
       .order('date', { ascending: true })
       .order('time', { ascending: true })
       .limit(5)
