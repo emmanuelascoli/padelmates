@@ -11,9 +11,21 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      else setLoading(false)
+      if (session?.user) {
+        // If user chose "don't remember me", sign them out when they reopen the browser
+        // (sessionStorage is cleared on browser close; localStorage is not)
+        const sessionOnly = localStorage.getItem('padelmates_session_only')
+        const activeThisTab = sessionStorage.getItem('padelmates_active')
+        if (sessionOnly === '1' && !activeThisTab) {
+          supabase.auth.signOut()
+          setLoading(false)
+          return
+        }
+        setUser(session.user)
+        fetchProfile(session.user.id)
+      } else {
+        setLoading(false)
+      }
     })
 
     // Listen for auth changes

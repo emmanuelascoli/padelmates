@@ -16,6 +16,7 @@ export default function Auth() {
   const initialMode = searchParams.get('mode') === 'register' ? 'register' : 'login'
 
   const [mode, setMode] = useState(initialMode) // 'login' | 'register' | 'forgot'
+  const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -47,8 +48,17 @@ export default function Auth() {
     }
   }
 
-  // After successful auth, redirect to the right place
+  // Save persistence preference and redirect after successful auth
   function redirectAfterAuth() {
+    if (rememberMe) {
+      // Persistent session: clear the "session only" flag so the session survives browser restarts
+      localStorage.removeItem('padelmates_session_only')
+      sessionStorage.removeItem('padelmates_active')
+    } else {
+      // Session-only: mark that this session should not survive a browser restart
+      localStorage.setItem('padelmates_session_only', '1')
+      sessionStorage.setItem('padelmates_active', '1')
+    }
     if (joinSessionId) {
       navigate(`/sessions/${joinSessionId}`)
     } else {
@@ -244,6 +254,25 @@ export default function Auth() {
               <label className="label">Mot de passe *</label>
               <input type="password" name="password" value={form.password} onChange={handleChange} required minLength={6} className="input" placeholder="Minimum 6 caractères" />
             </div>
+          )}
+
+          {/* Rester connecté — visible en mode login et register */}
+          {mode !== 'forgot' && (
+            <label className="flex items-center gap-2.5 cursor-pointer select-none mt-1">
+              <div
+                onClick={() => setRememberMe(v => !v)}
+                className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors shrink-0 ${
+                  rememberMe ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
+                }`}
+              >
+                {rememberMe && (
+                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm text-gray-600">Rester connecté</span>
+            </label>
           )}
 
           <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
