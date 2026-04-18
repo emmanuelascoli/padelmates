@@ -27,6 +27,7 @@ export default function NewSession() {
     time: '18:00',
     duration: '1h30',
     location: '',
+    court_number: '',
     total_cost: '',
     level_min: '',
     level_max: '',
@@ -63,7 +64,9 @@ export default function NewSession() {
         date: form.date,
         time: form.time,
         duration: form.duration,
-        location: form.location.trim(),
+        location: form.court_number.trim()
+          ? `${form.location} — Terrain ${form.court_number.trim()}`
+          : form.location.trim(),
         cost_per_player: parseFloat(form.total_cost) / 4 || 0,
         max_players: 4,
         level_min: form.level_min || null,
@@ -144,15 +147,35 @@ export default function NewSession() {
         </div>
 
         {/* Lieu */}
-        <div>
-          <label className="label">Lieu *</label>
-          <select name="location" value={form.location} onChange={handleChange} required className="input">
-            <option value="">-- Choisir un lieu --</option>
-            <option value="La Praille">La Praille</option>
-            <option value="Les Acacias">Les Acacias</option>
-            <option value="Cologny">Cologny</option>
-            <option value="Jonction">Jonction</option>
-          </select>
+        <div className="space-y-3">
+          <div>
+            <label className="label">Lieu *</label>
+            <select name="location" value={form.location} onChange={handleChange} required className="input">
+              <option value="">-- Choisir un lieu --</option>
+              <option value="David Lloyd's Club">David Lloyd's Club</option>
+              <option value="La Praille">La Praille</option>
+              <option value="Les Acacias">Les Acacias</option>
+              <option value="Cologny">Cologny</option>
+              <option value="Jonction">Jonction</option>
+            </select>
+          </div>
+          <div>
+            <label className="label">Numéro du terrain <span className="text-gray-400 font-normal">(optionnel)</span></label>
+            <input
+              type="text"
+              name="court_number"
+              value={form.court_number}
+              onChange={handleChange}
+              className="input"
+              placeholder="ex : 3"
+              maxLength={10}
+            />
+            {form.location && form.court_number.trim() && (
+              <p className="text-xs text-blue-600 mt-1.5">
+                📍 Affiché comme : <strong>{form.location} — Terrain {form.court_number.trim()}</strong>
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Coût total */}
