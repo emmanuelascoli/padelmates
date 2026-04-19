@@ -451,17 +451,15 @@ export default function SessionDetail() {
     setActionLoading(false)
   }
 
-  // Twint payment: copy phone + open app + show toast
-  // Must stay synchronous — browsers block custom URL schemes if called after async/await
-  function handleTwintPay() {
+  // Twint payment: copy phone + show toast.
+  // Navigation to twint:// is handled by the <a href="twint://"> element directly —
+  // that's the only reliable method on iOS Safari / Android Chrome for custom URL schemes.
+  function handleTwintClick() {
     if (session?.organizer?.phone) {
-      // Fire-and-forget clipboard write (no await — keeps user gesture active)
       navigator.clipboard.writeText(session.organizer.phone).catch(() => {})
     }
     setTwintCopied(true)
     setTimeout(() => setTwintCopied(false), 5000)
-    // Navigate synchronously within user gesture — Safari/Chrome will honour twint://
-    window.location.href = 'twint://'
   }
 
   async function handleCancelSession() {
@@ -923,15 +921,16 @@ export default function SessionDetail() {
                           Revolut
                         </a>
                       )}
-                      {/* Twint */}
+                      {/* Twint — <a href="twint://"> is the only reliable deep link on iOS/Android */}
                       {session.organizer?.phone && (
-                        <button
-                          onClick={handleTwintPay}
+                        <a
+                          href="twint://"
+                          onClick={handleTwintClick}
                           className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-[#E7001C] hover:bg-[#c50018] text-white text-sm font-semibold py-3 px-4 rounded-xl transition-colors shadow-sm"
                         >
                           <span className="font-black text-base leading-none">T</span>
                           Twint
-                        </button>
+                        </a>
                       )}
                     </div>
 

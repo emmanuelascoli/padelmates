@@ -548,8 +548,8 @@ function TabStats() {
 
     setStats({ memberCount, sessionCount, openCount, matchCount, adminCount, organizerCount })
 
-    // Top players (by wins)
-    const { data: matches } = await supabase.from('matches').select('*').not('winner_team', 'is', null)
+    // Top players (by wins) — valid_matches excludes cancelled sessions
+    const { data: matches } = await supabase.from('valid_matches').select('*').not('winner_team', 'is', null)
     if (matches?.length) {
       const winsMap = {}
       const gamesMap = {}

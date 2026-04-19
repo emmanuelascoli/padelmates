@@ -69,8 +69,9 @@ export default function PlayerProfile() {
   }
 
   async function fetchMatchStats() {
+    // Use valid_matches view to exclude cancelled sessions
     const { data: matches } = await supabase
-      .from('matches')
+      .from('valid_matches')
       .select('*')
       .or(`team1_player1.eq.${id},team1_player2.eq.${id},team2_player1.eq.${id},team2_player2.eq.${id}`)
       .not('winner_team', 'is', null)
@@ -141,8 +142,8 @@ export default function PlayerProfile() {
       .filter(p => p.sessions)
       .map(p => p.sessions)
 
-    setRecentSessions(sessions)
-    setStats(s => ({ ...s, sessionCount: sessions.length }))
+    setRecentSessions(sessions) // Keep all for display (cancelled shown with badge)
+    setStats(s => ({ ...s, sessionCount: sessions.filter(s => s.status !== 'cancelled').length }))
   }
 
   if (loading) return (

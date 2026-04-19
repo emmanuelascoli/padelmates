@@ -259,13 +259,16 @@ export default function Profile() {
   }
 
   async function fetchStats() {
-    const { count: sessionCount } = await supabase
+    // Session count: exclude cancelled sessions
+    const { data: parts } = await supabase
       .from('session_participants')
-      .select('*', { count: 'exact', head: true })
+      .select('sessions!inner(status)')
       .eq('user_id', user.id)
+    const sessionCount = (parts || []).filter(p => p.sessions?.status !== 'cancelled').length
 
+    // Matches from non-cancelled sessions only (via valid_matches view)
     const { data: matches } = await supabase
-      .from('matches')
+      .from('valid_matches')
       .select('*')
       .or(`team1_player1.eq.${user.id},team1_player2.eq.${user.id},team2_player1.eq.${user.id},team2_player2.eq.${user.id}`)
       .not('winner_team', 'is', null)

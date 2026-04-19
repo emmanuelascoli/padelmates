@@ -106,10 +106,10 @@ export default function Home() {
 
     setUpcomingSessions(sessionsWithParts || [])
 
-    // Fetch my match stats
+    // Fetch my match stats (valid_matches excludes cancelled sessions)
     if (profile) {
       const { data: matches } = await supabase
-        .from('matches')
+        .from('valid_matches')
         .select('*')
         .or(`team1_player1.eq.${profile.id},team1_player2.eq.${profile.id},team2_player1.eq.${profile.id},team2_player2.eq.${profile.id}`)
         .not('winner_team', 'is', null)

@@ -71,8 +71,8 @@ export default function Leaderboard() {
   async function fetchRankings() {
     setLoading(true)
 
-    // Fetch all matches (with optional date filter)
-    let query = supabase.from('matches').select('*').not('winner_team', 'is', null)
+    // Fetch all matches from non-cancelled sessions only
+    let query = supabase.from('valid_matches').select('*').not('winner_team', 'is', null)
 
     if (period === 'month') {
       const startOfMonth = new Date()
