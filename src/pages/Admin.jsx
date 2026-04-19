@@ -364,8 +364,13 @@ function TabParties() {
   async function handleCancelSession(sessionId) {
     setConfirmCancelId(null)
     setActionLoading(sessionId)
-    await supabase.from('sessions').update({ status: 'cancelled' }).eq('id', sessionId)
-    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'cancelled' } : s))
+    // Hard delete in dependency order (FK constraints)
+    await supabase.from('notification_log').delete().eq('session_id', sessionId)
+    await supabase.from('matches').delete().eq('session_id', sessionId)
+    await supabase.from('session_waitlist').delete().eq('session_id', sessionId)
+    await supabase.from('session_participants').delete().eq('session_id', sessionId)
+    await supabase.from('sessions').delete().eq('id', sessionId)
+    setSessions(prev => prev.filter(s => s.id !== sessionId))
     setActionLoading(null)
   }
 

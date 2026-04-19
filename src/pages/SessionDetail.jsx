@@ -465,10 +465,13 @@ export default function SessionDetail() {
   async function handleCancelSession() {
     setActionLoading(true)
     setShowCancelConfirm(false)
-    const { error: cancelErr } = await supabase.from('sessions').update({ status: 'cancelled' }).eq('id', id)
-    if (cancelErr) console.error('Cancel error:', cancelErr)
-    await fetchSession()
-    setActionLoading(false)
+    // Hard delete in dependency order (FK constraints)
+    await supabase.from('notification_log').delete().eq('session_id', id)
+    await supabase.from('matches').delete().eq('session_id', id)
+    await supabase.from('session_waitlist').delete().eq('session_id', id)
+    await supabase.from('session_participants').delete().eq('session_id', id)
+    await supabase.from('sessions').delete().eq('id', id)
+    navigate('/sessions', { replace: true })
   }
 
   async function handleDeleteMatch(matchId) {
