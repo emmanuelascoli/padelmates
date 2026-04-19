@@ -56,13 +56,13 @@ function FriendAvatars({ participants, friendIds, friendProfiles }) {
           return p?.avatar_url ? (
             <img key={id} src={p.avatar_url} className="w-5 h-5 rounded-full object-cover border border-white" alt="" />
           ) : (
-            <div key={id} className="w-5 h-5 rounded-full bg-blue-200 border border-white flex items-center justify-center text-blue-700 font-bold text-xs">
+            <div key={id} className="w-5 h-5 rounded-full bg-blue-200 border border-white flex items-center justify-center text-forest-800 font-bold text-xs">
               {p?.name?.charAt(0).toUpperCase() ?? '?'}
             </div>
           )
         })}
       </div>
-      <span className="text-xs text-blue-600 font-medium">
+      <span className="text-xs text-forest-700 font-medium">
         {friendsIn.length === 1
           ? `${friendProfiles[friendsIn[0]]?.name?.split(' ')[0] ?? 'Ami'} joue`
           : `${friendsIn.length} amis jouent`}
@@ -101,14 +101,14 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
     <Link to={`/sessions/${session.id}`} className="card hover:shadow-md transition-shadow block">
       <div className="flex items-start gap-4">
         {/* Date block */}
-        <div className="bg-blue-50 rounded-xl p-3 text-center min-w-[56px] shrink-0">
-          <div className="text-xs text-blue-700 font-medium uppercase">
+        <div className="bg-forest-50 rounded-xl p-3 text-center min-w-[56px] shrink-0">
+          <div className="text-xs text-forest-800 font-medium uppercase">
             {format(date, 'MMM', { locale: fr })}
           </div>
-          <div className="text-2xl font-bold text-blue-800 leading-none">
+          <div className="text-2xl font-bold text-forest-900 leading-none">
             {format(date, 'd')}
           </div>
-          <div className="text-xs text-blue-600 mt-0.5">
+          <div className="text-xs text-forest-700 mt-0.5">
             {format(date, 'HH:mm')}
           </div>
         </div>
@@ -169,7 +169,7 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
 // ── Pill toggle helper ───────────────────────────────────────
 function Pill({ active, onClick, children, color = 'blue' }) {
   const colors = {
-    blue:   active ? 'bg-blue-600 text-white border-blue-600'     : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300',
+    blue:   active ? 'bg-forest-900 text-white border-forest-700'     : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300',
     green:  active ? 'bg-green-600 text-white border-green-600'   : 'bg-white text-gray-600 border-gray-200 hover:border-green-300',
     orange: active ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300',
   }
@@ -351,7 +351,7 @@ export default function Sessions() {
             key={key}
             onClick={() => setTab(key)}
             className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
-              tab === key ? 'bg-white text-blue-800 shadow-sm' : 'text-gray-500'
+              tab === key ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
             }`}
           >
             {label}
@@ -396,7 +396,7 @@ export default function Sessions() {
               </span>
               <button
                 onClick={resetFilters}
-                className="text-xs text-blue-600 hover:underline font-medium"
+                className="text-xs text-forest-700 hover:underline font-medium"
               >
                 Effacer les filtres ✕
               </button>
@@ -408,7 +408,7 @@ export default function Sessions() {
       {/* Liste */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredSessions.length === 0 ? (
         <div className="card text-center py-12 text-gray-400">
@@ -418,7 +418,7 @@ export default function Sessions() {
           {hasActiveFilters ? (
             <>
               <p className="font-medium text-gray-600">Aucune partie pour ces filtres</p>
-              <button onClick={resetFilters} className="text-sm text-blue-600 hover:underline mt-2">
+              <button onClick={resetFilters} className="text-sm text-forest-700 hover:underline mt-2">
                 Effacer les filtres
               </button>
             </>

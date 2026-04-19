@@ -210,7 +210,7 @@ function TabMembres() {
       <div className="grid grid-cols-3 gap-3">
         {[
           { key: 'admin', label: 'Admins', color: 'text-purple-700' },
-          { key: 'organizer', label: 'Organisateurs', color: 'text-blue-700' },
+          { key: 'organizer', label: 'Organisateurs', color: 'text-forest-800' },
           { key: 'member', label: 'Membres', color: 'text-gray-700' },
         ].map(s => (
           <div key={s.key} className="card text-center py-3">
@@ -240,7 +240,7 @@ function TabMembres() {
           <button key={f.key} onClick={() => setRoleFilter(f.key)}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${
               roleFilter === f.key
-                ? 'bg-blue-600 text-white border-blue-600'
+                ? 'bg-forest-900 text-white border-forest-700'
                 : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
             }`}>
             {f.label}
@@ -251,7 +251,7 @@ function TabMembres() {
       {/* Members list */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <div className="space-y-2">
@@ -263,14 +263,14 @@ function TabMembres() {
                   {m.avatar_url ? (
                     <img src={m.avatar_url} className="w-10 h-10 rounded-full object-cover" alt="" />
                   ) : (
-                    <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">
+                    <div className="w-10 h-10 bg-forest-100 text-forest-800 rounded-full flex items-center justify-center font-bold text-sm">
                       {m.name?.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </Link>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Link to={`/players/${m.id}`} className="font-medium text-gray-900 hover:text-blue-700 transition-colors">
+                    <Link to={`/players/${m.id}`} className="font-medium text-gray-900 hover:text-forest-800 transition-colors">
                       {m.name}
                     </Link>
                     {m.role !== 'member' && <RoleBadge role={m.role} />}
@@ -409,7 +409,7 @@ function TabParties() {
           <button key={f.key} onClick={() => setFilter(f.key)}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${
               filter === f.key
-                ? 'bg-blue-600 text-white border-blue-600'
+                ? 'bg-forest-900 text-white border-forest-700'
                 : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
             }`}>
             {f.label}
@@ -419,7 +419,7 @@ function TabParties() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="card text-center py-10 text-gray-400">Aucune partie</div>
@@ -431,18 +431,18 @@ function TabParties() {
             return (
               <div key={s.id} className="card">
                 <div className="flex items-start gap-3">
-                  <div className="bg-blue-50 rounded-xl p-2 text-center min-w-[44px] shrink-0">
-                    <div className="text-xs text-blue-600 font-medium uppercase">{format(date, 'MMM', { locale: fr })}</div>
-                    <div className="text-lg font-bold text-blue-800 leading-none">{format(date, 'd')}</div>
+                  <div className="bg-forest-50 rounded-xl p-2 text-center min-w-[44px] shrink-0">
+                    <div className="text-xs text-forest-700 font-medium uppercase">{format(date, 'MMM', { locale: fr })}</div>
+                    <div className="text-lg font-bold text-forest-900 leading-none">{format(date, 'd')}</div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Link to={`/sessions/${s.id}`} className="font-semibold text-gray-900 hover:text-blue-700 transition-colors truncate">
+                      <Link to={`/sessions/${s.id}`} className="font-semibold text-gray-900 hover:text-forest-800 transition-colors truncate">
                         {s.title}
                       </Link>
                       {s.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
                       {s.status === 'open' && past && <span className="badge bg-gray-100 text-gray-500">Terminée</span>}
-                      {s.status === 'open' && !past && <span className="badge bg-blue-100 text-blue-700">Ouverte</span>}
+                      {s.status === 'open' && !past && <span className="badge bg-forest-100 text-forest-800">Ouverte</span>}
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">📍 {s.location} · {format(date, 'HH:mm')}</p>
                     <p className="text-xs text-gray-400">👤 {s.organizer?.name}</p>
@@ -602,7 +602,7 @@ function TabStats() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -619,7 +619,7 @@ function TabStats() {
           <button
             onClick={handleRefreshAllBadges}
             disabled={refreshing}
-            className="text-xs px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+            className="text-xs px-3 py-2 bg-forest-900 hover:bg-forest-800 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
           >
             {refreshing ? 'En cours…' : 'Recalculer'}
           </button>
@@ -634,8 +634,8 @@ function TabStats() {
       {/* Global KPIs */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: 'Membres', value: stats?.memberCount ?? 0, icon: '👥', color: 'text-blue-700' },
-          { label: 'Parties créées', value: stats?.sessionCount ?? 0, icon: '📅', color: 'text-indigo-700' },
+          { label: 'Membres', value: stats?.memberCount ?? 0, icon: '👥', color: 'text-forest-800' },
+          { label: 'Parties créées', value: stats?.sessionCount ?? 0, icon: '📅', color: 'text-forest-800' },
           { label: 'Parties à venir', value: stats?.openCount ?? 0, icon: '🟢', color: 'text-green-700' },
           { label: 'Matchs joués', value: stats?.matchCount ?? 0, icon: '🎾', color: 'text-orange-700' },
         ].map(s => (
@@ -653,7 +653,7 @@ function TabStats() {
         <div className="space-y-2">
           {[
             { label: '👑 Administrateurs', count: stats?.adminCount ?? 0, color: 'bg-purple-500', total: stats?.memberCount || 1 },
-            { label: '✓ Organisateurs Vérifiés', count: stats?.organizerCount ?? 0, color: 'bg-blue-500', total: stats?.memberCount || 1 },
+            { label: '✓ Organisateurs Vérifiés', count: stats?.organizerCount ?? 0, color: 'bg-forest-700', total: stats?.memberCount || 1 },
             { label: '● Membres', count: (stats?.memberCount ?? 0) - (stats?.adminCount ?? 0) - (stats?.organizerCount ?? 0), color: 'bg-gray-400', total: stats?.memberCount || 1 },
           ].map(r => (
             <div key={r.label}>
@@ -685,14 +685,14 @@ function TabStats() {
                 {p.avatar_url ? (
                   <img src={p.avatar_url} className="w-8 h-8 rounded-full object-cover shrink-0" alt="" />
                 ) : (
-                  <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                  <div className="w-8 h-8 bg-forest-100 text-forest-800 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
                     {p.name?.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <Link to={`/players/${p.id}`} className="flex-1 min-w-0 font-medium text-gray-900 hover:text-blue-700 transition-colors truncate text-sm">
+                <Link to={`/players/${p.id}`} className="flex-1 min-w-0 font-medium text-gray-900 hover:text-forest-800 transition-colors truncate text-sm">
                   {p.name}
                 </Link>
-                <span className="text-sm font-bold text-blue-700 shrink-0">{p.wins}V</span>
+                <span className="text-sm font-bold text-forest-800 shrink-0">{p.wins}V</span>
                 <span className="text-xs text-gray-400 shrink-0">{p.rate}%</span>
               </div>
             ))}
@@ -710,9 +710,9 @@ function TabStats() {
               return (
                 <Link key={s.id} to={`/sessions/${s.id}`}
                   className="flex items-center gap-3 py-2 hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
-                  <div className="bg-blue-50 rounded-lg p-1.5 text-center min-w-[36px] shrink-0">
-                    <div className="text-xs text-blue-600 font-medium uppercase leading-none">{format(date, 'MMM', { locale: fr })}</div>
-                    <div className="text-sm font-bold text-blue-800 leading-none">{format(date, 'd')}</div>
+                  <div className="bg-forest-50 rounded-lg p-1.5 text-center min-w-[36px] shrink-0">
+                    <div className="text-xs text-forest-700 font-medium uppercase leading-none">{format(date, 'MMM', { locale: fr })}</div>
+                    <div className="text-sm font-bold text-forest-900 leading-none">{format(date, 'd')}</div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{s.title}</p>
@@ -720,7 +720,7 @@ function TabStats() {
                   </div>
                   {s.status === 'cancelled' && <span className="badge bg-red-100 text-red-600 text-xs shrink-0">Annulée</span>}
                   {s.status === 'open' && isPast(date) && <span className="badge bg-gray-100 text-gray-500 text-xs shrink-0">Terminée</span>}
-                  {s.status === 'open' && !isPast(date) && <span className="badge bg-blue-100 text-blue-700 text-xs shrink-0">Ouverte</span>}
+                  {s.status === 'open' && !isPast(date) && <span className="badge bg-forest-100 text-forest-800 text-xs shrink-0">Ouverte</span>}
                 </Link>
               )
             })}
@@ -744,7 +744,7 @@ export default function Admin() {
   if (authLoading || !isAdmin) {
     return (
       <div className="flex justify-center py-20">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-forest-700 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -772,7 +772,7 @@ export default function Admin() {
             key={key}
             onClick={() => setTab(key)}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-              tab === key ? 'bg-white text-blue-800 shadow-sm' : 'text-gray-500'
+              tab === key ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
             }`}
           >
             {label}

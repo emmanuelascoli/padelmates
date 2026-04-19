@@ -9,8 +9,8 @@ import { BadgeList } from '../components/BadgeList'
 function getLevelColor(level) {
   const n = parseInt(level) || 0
   if (n <= 2) return 'bg-green-100 text-green-700'
-  if (n <= 4) return 'bg-blue-100 text-blue-700'
-  if (n <= 6) return 'bg-indigo-100 text-indigo-700'
+  if (n <= 4) return 'bg-forest-100 text-forest-800'
+  if (n <= 6) return 'bg-indigo-100 text-forest-800'
   if (n <= 8) return 'bg-purple-100 text-purple-700'
   return 'bg-orange-100 text-orange-700'
 }
@@ -129,7 +129,7 @@ export default function Members() {
                   </Link>
                   <div className="flex gap-1.5 shrink-0">
                     <button onClick={() => handleAccept(f.id, m.id)} disabled={actionLoading === m.id}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50">
+                      className="px-3 py-1.5 bg-forest-900 hover:bg-forest-800 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50">
                       Accepter
                     </button>
                     <button onClick={() => handleRemove(f.id, m.id)} disabled={actionLoading === m.id}
@@ -159,7 +159,7 @@ export default function Members() {
           <button key={f.key} onClick={() => setLevelFilter(f.key)}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${
               levelFilter === f.key
-                ? 'bg-blue-600 text-white border-blue-600'
+                ? 'bg-forest-900 text-white border-forest-700'
                 : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
             }`}>
             {f.label}
@@ -170,7 +170,7 @@ export default function Members() {
       {/* Liste */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="card text-center py-10 text-gray-400">
@@ -203,7 +203,7 @@ export default function Members() {
                       <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 shrink-0">👑</span>
                     )}
                     {m.role === 'organizer' && (
-                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 shrink-0">✓</span>
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-forest-100 text-forest-800 border border-forest-200 shrink-0">✓</span>
                     )}
                   </div>
                   <div className="flex items-center gap-1 mt-0.5">
@@ -215,7 +215,7 @@ export default function Members() {
                 <div className="shrink-0">
                   {isFriend ? (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-blue-600 font-medium">✓ Amis</span>
+                      <span className="text-xs text-forest-700 font-medium">✓ Amis</span>
                       <button onClick={() => handleRemove(f.id, m.id)} disabled={isLoading}
                         className="text-xs text-gray-300 hover:text-red-400 transition-colors">✕</button>
                     </div>
@@ -228,7 +228,7 @@ export default function Members() {
                   ) : isPendingReceived ? (
                     <div className="flex gap-1.5">
                       <button onClick={() => handleAccept(f.id, m.id)} disabled={isLoading}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50">
+                        className="px-3 py-1.5 bg-forest-900 hover:bg-forest-800 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50">
                         {isLoading ? '…' : 'Accepter'}
                       </button>
                       <button onClick={() => handleRemove(f.id, m.id)} disabled={isLoading}
@@ -236,7 +236,7 @@ export default function Members() {
                     </div>
                   ) : (
                     <button onClick={() => handleAddFriend(m.id)} disabled={isLoading}
-                      className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 border border-blue-100">
+                      className="px-3 py-1.5 bg-forest-50 hover:bg-forest-100 text-forest-800 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 border border-forest-100">
                       {isLoading ? '…' : '+ Ami'}
                     </button>
                   )}

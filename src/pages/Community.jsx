@@ -16,7 +16,7 @@ export default function Community() {
         <button
           onClick={() => setTab('leaderboard')}
           className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-            tab === 'leaderboard' ? 'bg-white text-blue-800 shadow-sm' : 'text-gray-500'
+            tab === 'leaderboard' ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
           }`}
         >
           🏆 Classement
@@ -24,7 +24,7 @@ export default function Community() {
         <button
           onClick={() => setTab('members')}
           className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-            tab === 'members' ? 'bg-white text-blue-800 shadow-sm' : 'text-gray-500'
+            tab === 'members' ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
           }`}
         >
           👥 Membres

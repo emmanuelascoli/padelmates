@@ -3,46 +3,37 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
-const NAV_ITEMS = [
-  {
-    to: '/',
-    label: 'Accueil',
-    icon: (active) => (
-      <svg className={`w-5 h-5 ${active ? 'text-blue-700' : 'text-gray-500'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    )
-  },
-  {
-    to: '/sessions',
-    label: 'Parties',
-    icon: (active) => (
-      <svg className={`w-5 h-5 ${active ? 'text-blue-700' : 'text-gray-500'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    )
-  },
-  {
-    to: '/community',
-    label: 'Communauté',
-    // Match both /community, /leaderboard and /members as "active"
-    matchPaths: ['/community', '/leaderboard', '/members'],
-    icon: (active) => (
-      <svg className={`w-5 h-5 ${active ? 'text-blue-700' : 'text-gray-500'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    )
-  },
-  {
-    to: '/profile',
-    label: 'Profil',
-    icon: (active) => (
-      <svg className={`w-5 h-5 ${active ? 'text-blue-700' : 'text-gray-500'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-      </svg>
-    )
-  },
+// Icons
+const IconHome = ({ active }) => (
+  <svg className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+  </svg>
+)
+const IconCalendar = ({ active }) => (
+  <svg className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+)
+const IconCommunity = ({ active }) => (
+  <svg className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+)
+const IconProfile = ({ active }) => (
+  <svg className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+)
+
+const LEFT_ITEMS = [
+  { to: '/', label: 'Accueil', icon: IconHome },
+  { to: '/sessions', label: 'Parties', icon: IconCalendar },
 ]
+const RIGHT_ITEMS = [
+  { to: '/community', label: 'Communauté', icon: IconCommunity, matchPaths: ['/community', '/leaderboard', '/members'] },
+  { to: '/profile', label: 'Profil', icon: IconProfile },
+]
+const ALL_DESKTOP_ITEMS = [...LEFT_ITEMS, ...RIGHT_ITEMS]
 
 export default function Navbar() {
   const location = useLocation()
@@ -73,12 +64,12 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Desktop top navbar */}
+      {/* ── Desktop top navbar ───────────────────────────── */}
       <header className="hidden md:block bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 mr-6">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm shadow-blue-500/30">
+            <div className="w-9 h-9 bg-forest-900 rounded-xl flex items-center justify-center shadow-sm">
               <span className="text-lg">🎾</span>
             </div>
             <span className="font-bold text-gray-900 text-lg tracking-tight">PadelMates</span>
@@ -86,7 +77,7 @@ export default function Navbar() {
 
           {/* Nav items */}
           <nav className="flex items-center gap-0.5 flex-1">
-            {NAV_ITEMS.map(item => {
+            {ALL_DESKTOP_ITEMS.map(item => {
               const active = isActive(item)
               const isProfile = item.to === '/profile'
               return (
@@ -94,15 +85,13 @@ export default function Navbar() {
                   key={item.to}
                   to={item.to}
                   className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
-                    active
-                      ? 'text-blue-700 bg-blue-50'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                    active ? 'text-forest-900 bg-forest-50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
                   }`}
                 >
-                  {item.icon(active)}
+                  <item.icon active={active} />
                   {item.label}
                   {active && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-blue-600 rounded-full" />
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-forest-900 rounded-full" />
                   )}
                   {isProfile && pendingCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
@@ -116,9 +105,7 @@ export default function Navbar() {
               <Link
                 to="/admin"
                 className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
-                  location.pathname === '/admin'
-                    ? 'text-purple-700 bg-purple-50'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                  location.pathname === '/admin' ? 'text-purple-700 bg-purple-50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
                 }`}
               >
                 <svg className={`w-5 h-5 ${location.pathname === '/admin' ? 'text-purple-600' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -130,7 +117,7 @@ export default function Navbar() {
             )}
           </nav>
 
-          {/* CTA */}
+          {/* CTA desktop */}
           <Link to="/sessions/new" className="btn-primary text-sm py-2 px-4 gap-1.5 ml-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -140,11 +127,11 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Mobile top bar */}
+      {/* ── Mobile top bar ───────────────────────────────── */}
       <header className="md:hidden bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
         <div className="px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 bg-forest-900 rounded-xl flex items-center justify-center">
               <span className="text-sm">🎾</span>
             </div>
             <span className="font-bold text-gray-900">PadelMates</span>
@@ -155,11 +142,11 @@ export default function Navbar() {
                 <span className="w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                   {pendingCount > 9 ? '9+' : pendingCount}
                 </span>
-                demande{pendingCount > 1 ? 's' : ''} d'ami
+                demande{pendingCount > 1 ? 's' : ''}
               </Link>
             )}
             {isAdmin && (
-              <Link to="/admin" className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+              <Link to="/admin" className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
                 location.pathname === '/admin'
                   ? 'bg-purple-100 border-purple-200 text-purple-700'
                   : 'bg-white border-gray-200 text-gray-600'
@@ -167,31 +154,48 @@ export default function Navbar() {
                 👑 Admin
               </Link>
             )}
-            <Link to="/sessions/new" className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white">
-              + Créer
-            </Link>
           </div>
         </div>
       </header>
 
-      {/* Mobile bottom navbar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 shadow-[0_-1px_8px_rgba(0,0,0,0.06)]">
-        <div className="flex">
-          {NAV_ITEMS.map(item => {
+      {/* ── Mobile bottom navbar with FAB ────────────────── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 shadow-[0_-1px_12px_rgba(0,0,0,0.08)]">
+        <div className="flex items-end">
+          {/* Left items */}
+          {LEFT_ITEMS.map(item => {
+            const active = isActive(item)
+            return (
+              <Link key={item.to} to={item.to} className="relative flex-1 flex flex-col items-center pt-2.5 pb-2 gap-0.5">
+                {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-forest-900 rounded-full" />}
+                <item.icon active={active} />
+                <span className={`text-xs ${active ? 'text-forest-900 font-semibold' : 'text-gray-400'}`}>
+                  {item.label}
+                </span>
+              </Link>
+            )
+          })}
+
+          {/* FAB — centre */}
+          <div className="flex-1 flex justify-center pb-2">
+            <Link
+              to="/sessions/new"
+              className="w-14 h-14 bg-forest-900 rounded-2xl flex items-center justify-center shadow-lg shadow-forest-900/30 -translate-y-3 active:scale-95 transition-transform"
+            >
+              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </Link>
+          </div>
+
+          {/* Right items */}
+          {RIGHT_ITEMS.map(item => {
             const active = isActive(item)
             const isProfile = item.to === '/profile'
             return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="relative flex-1 flex flex-col items-center pt-3 pb-2 gap-0.5"
-              >
-                {/* Active top indicator */}
-                {active && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" />
-                )}
-                {item.icon(active)}
-                <span className={`text-xs ${active ? 'text-blue-700 font-semibold' : 'text-gray-400'}`}>
+              <Link key={item.to} to={item.to} className="relative flex-1 flex flex-col items-center pt-2.5 pb-2 gap-0.5">
+                {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-forest-900 rounded-full" />}
+                <item.icon active={active} />
+                <span className={`text-xs ${active ? 'text-forest-900 font-semibold' : 'text-gray-400'}`}>
                   {item.label}
                 </span>
                 {isProfile && pendingCount > 0 && (

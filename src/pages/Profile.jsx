@@ -52,13 +52,13 @@ function FriendsSection({ userId }) {
     setActionLoading(null)
   }
 
-  const Avatar = ({ p, size = 'w-10 h-10', bg = 'bg-blue-100 text-blue-700' }) => (
+  const Avatar = ({ p, size = 'w-10 h-10', bg = 'bg-forest-100 text-forest-800' }) => (
     p.avatar_url
       ? <img src={p.avatar_url} className={`${size} rounded-full object-cover shrink-0`} alt="" />
       : <div className={`${size} ${bg} rounded-full flex items-center justify-center font-bold text-sm shrink-0`}>{p.name?.charAt(0).toUpperCase()}</div>
   )
 
-  if (loading) return <div className="flex justify-center py-8"><div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
+  if (loading) return <div className="flex justify-center py-8"><div className="w-6 h-6 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div className="space-y-4">
@@ -80,7 +80,7 @@ function FriendsSection({ userId }) {
                   <button
                     onClick={() => handleAccept(p.friendshipId)}
                     disabled={actionLoading === p.friendshipId}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-forest-900 hover:bg-forest-800 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
                   >
                     {actionLoading === p.friendshipId ? '…' : 'Accepter'}
                   </button>
@@ -105,7 +105,7 @@ function FriendsSection({ userId }) {
           <div className="text-center py-6 text-gray-400">
             <div className="text-4xl mb-2">👥</div>
             <p className="text-sm">Aucun ami pour l'instant</p>
-            <Link to="/members" className="text-sm text-blue-600 hover:underline mt-1 inline-block">
+            <Link to="/members" className="text-sm text-forest-700 hover:underline mt-1 inline-block">
               Parcourir les membres →
             </Link>
           </div>
@@ -428,14 +428,14 @@ export default function Profile() {
               className="w-24 h-24 rounded-full object-cover mx-auto shadow-md border-4 border-white ring-2 ring-blue-100"
             />
           ) : (
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-md">
+            <div className="w-24 h-24 bg-gradient-to-br from-forest-800 to-forest-800 rounded-full flex items-center justify-center mx-auto shadow-md">
               <span className="text-4xl font-bold text-white">
                 {profile?.name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? '?'}
               </span>
             </div>
           )}
           {/* Upload button overlay */}
-          <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center cursor-pointer shadow-md transition-colors">
+          <label className="absolute bottom-0 right-0 w-8 h-8 bg-forest-900 hover:bg-forest-800 rounded-full flex items-center justify-center cursor-pointer shadow-md transition-colors">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -443,7 +443,7 @@ export default function Profile() {
             <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
           </label>
         </div>
-        {photoLoading && <p className="text-xs text-blue-600 mb-1">Upload en cours…</p>}
+        {photoLoading && <p className="text-xs text-forest-700 mb-1">Upload en cours…</p>}
         {photoError && <p className="text-xs text-red-500 mb-1">{photoError}</p>}
 
         <h2 className="text-xl font-bold text-gray-900">{profile?.name || <span className="text-gray-400 italic">Nom non renseigné</span>}</h2>
@@ -468,11 +468,11 @@ export default function Profile() {
           <div className="px-4">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-gray-500 font-medium">Niveau</span>
-              <span className="text-xs font-semibold text-blue-700">{LEVEL_LABEL[profile.level] ?? profile.level}</span>
+              <span className="text-xs font-semibold text-forest-800">{LEVEL_LABEL[profile.level] ?? profile.level}</span>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
               <div
-                className="h-2.5 rounded-full bg-gradient-to-r from-blue-400 to-indigo-600 transition-all"
+                className="h-2.5 rounded-full bg-gradient-to-r from-blue-400 to-forest-800 transition-all"
                 style={{ width: `${(parseInt(profile.level) / 10) * 100}%` }}
               />
             </div>
@@ -488,7 +488,7 @@ export default function Profile() {
       <div className="grid grid-cols-4 gap-2">
         {[
           { label: 'Parties', value: stats.sessions, color: 'text-gray-800' },
-          { label: 'Victoires', value: stats.wins, color: 'text-blue-700' },
+          { label: 'Victoires', value: stats.wins, color: 'text-forest-800' },
           { label: 'Défaites', value: stats.losses, color: 'text-red-500' },
           { label: '% Victoire', value: `${winRate}%`, color: 'text-gray-700' },
         ].map(s => (
@@ -508,7 +508,7 @@ export default function Profile() {
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
             className={`relative flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-              tab === key ? 'bg-white text-blue-800 shadow-sm' : 'text-gray-500'
+              tab === key ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
             }`}
           >
             {label}
@@ -539,9 +539,9 @@ export default function Profile() {
               <div key={s.id} className="card space-y-3">
                 {/* Session header */}
                 <Link to={`/sessions/${s.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                  <div className="bg-blue-50 rounded-xl p-2 text-center min-w-[44px] shrink-0">
-                    <div className="text-xs text-blue-600 font-medium uppercase">{format(date, 'MMM', { locale: fr })}</div>
-                    <div className="text-lg font-bold text-blue-800 leading-none">{format(date, 'd')}</div>
+                  <div className="bg-forest-50 rounded-xl p-2 text-center min-w-[44px] shrink-0">
+                    <div className="text-xs text-forest-700 font-medium uppercase">{format(date, 'MMM', { locale: fr })}</div>
+                    <div className="text-lg font-bold text-forest-900 leading-none">{format(date, 'd')}</div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{s.title}</p>
@@ -549,7 +549,7 @@ export default function Profile() {
                   </div>
                   {matches.length > 0 && (
                     <div className="text-right shrink-0">
-                      <span className="text-sm font-bold text-blue-600">{wins}V</span>
+                      <span className="text-sm font-bold text-forest-700">{wins}V</span>
                       <span className="text-gray-300 mx-1">·</span>
                       <span className="text-sm font-bold text-red-500">{losses}D</span>
                     </div>
@@ -560,8 +560,8 @@ export default function Profile() {
                 {matches.length > 0 && (
                   <div className="space-y-1.5 pt-2 border-t border-gray-50">
                     {matches.map((m, i) => (
-                      <div key={m.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${m.won ? 'bg-blue-50' : 'bg-red-50'}`}>
-                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ${m.won ? 'bg-blue-200 text-blue-800' : 'bg-red-200 text-red-700'}`}>
+                      <div key={m.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${m.won ? 'bg-forest-50' : 'bg-red-50'}`}>
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ${m.won ? 'bg-blue-200 text-forest-900' : 'bg-red-200 text-red-700'}`}>
                           {m.won ? 'V' : 'D'}
                         </span>
                         <span className="flex-1 truncate text-gray-700">
@@ -596,7 +596,7 @@ export default function Profile() {
         <h3 className="font-semibold text-gray-900">Mes informations</h3>
 
         {!profile && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl text-sm">
+          <div className="bg-forest-50 border border-forest-200 text-forest-900 px-4 py-3 rounded-xl text-sm">
             👋 Complète ton profil pour apparaître dans le classement et les parties.
           </div>
         )}

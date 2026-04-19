@@ -23,7 +23,7 @@ export default function Confidentialite() {
     <div className="max-w-2xl mx-auto space-y-6 py-2">
       {/* Header */}
       <div>
-        <Link to="/" className="text-sm text-blue-600 hover:underline">← Retour</Link>
+        <Link to="/" className="text-sm text-forest-700 hover:underline">← Retour</Link>
         <h1 className="text-2xl font-bold text-gray-900 mt-3">Politique de confidentialité</h1>
         <p className="text-sm text-gray-400 mt-1">
           Dernière mise à jour : {new Date().toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -48,9 +48,9 @@ export default function Confidentialite() {
           <p>Dans le cadre de l'utilisation de PadelMates, les données suivantes sont collectées :</p>
 
           <div className="space-y-3 mt-2">
-            <div className="bg-blue-50 rounded-xl p-3">
-              <p className="font-semibold text-blue-900 text-xs uppercase tracking-wide mb-2">Données d'inscription</p>
-              <ul className="space-y-1 text-sm text-blue-800">
+            <div className="bg-forest-50 rounded-xl p-3">
+              <p className="font-semibold text-forest-900 text-xs uppercase tracking-wide mb-2">Données d'inscription</p>
+              <ul className="space-y-1 text-sm text-forest-900">
                 <li>• Adresse email (authentification, notifications)</li>
                 <li>• Prénom et nom (affiché aux autres membres)</li>
                 <li>• Numéro de téléphone (facultatif — visible uniquement des membres connectés)</li>
@@ -134,7 +134,7 @@ export default function Confidentialite() {
           </ul>
           <p>
             Pour exercer ces droits, contactez-nous à{' '}
-            <a href="mailto:contact@padelmates.ch" className="text-blue-600 hover:underline">
+            <a href="mailto:contact@padelmates.ch" className="text-forest-700 hover:underline">
               contact@padelmates.ch
             </a>
             . Nous répondrons dans un délai de <strong>30 jours</strong>.
@@ -175,14 +175,14 @@ export default function Confidentialite() {
         <Section title="9. Contact et réclamation">
           <p>
             Pour toute question relative à la protection de vos données :{' '}
-            <a href="mailto:contact@padelmates.ch" className="text-blue-600 hover:underline">
+            <a href="mailto:contact@padelmates.ch" className="text-forest-700 hover:underline">
               contact@padelmates.ch
             </a>
           </p>
           <p>
             En cas de litige non résolu, vous pouvez vous adresser au
             Préposé fédéral à la protection des données et à la transparence (PFPDT) :{' '}
-            <a href="https://www.edoeb.admin.ch" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            <a href="https://www.edoeb.admin.ch" target="_blank" rel="noopener noreferrer" className="text-forest-700 hover:underline">
               www.edoeb.admin.ch
             </a>
           </p>
@@ -191,7 +191,7 @@ export default function Confidentialite() {
       </div>
 
       <div className="text-center pb-4">
-        <Link to="/mentions-legales" className="text-sm text-blue-600 hover:underline">
+        <Link to="/mentions-legales" className="text-sm text-forest-700 hover:underline">
           Lire aussi : Mentions légales →
         </Link>
       </div>

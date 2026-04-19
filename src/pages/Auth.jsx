@@ -39,7 +39,7 @@ function StepIndicator({ step }) {
         <div key={n} className="flex items-center gap-2 flex-1">
           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
             n < step  ? 'bg-green-100 text-green-600' :
-            n === step ? 'bg-blue-600 text-white' :
+            n === step ? 'bg-forest-900 text-white' :
                          'bg-gray-100 text-gray-400'
           }`}>
             {n < step ? (
@@ -49,7 +49,7 @@ function StepIndicator({ step }) {
             ) : n}
           </div>
           {n < 2 && (
-            <div className={`flex-1 h-1 rounded-full transition-colors ${n < step ? 'bg-blue-600' : 'bg-gray-200'}`} />
+            <div className={`flex-1 h-1 rounded-full transition-colors ${n < step ? 'bg-forest-900' : 'bg-gray-200'}`} />
           )}
         </div>
       ))}
@@ -213,13 +213,13 @@ export default function Auth() {
 
         {/* Session join context banner */}
         {joinSession && (
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
-            <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Tu veux rejoindre</p>
+          <div className="bg-forest-50 border border-forest-100 rounded-xl p-4 mb-6">
+            <p className="text-xs font-semibold text-forest-600 uppercase tracking-wide mb-1">Tu veux rejoindre</p>
             <p className="font-bold text-gray-900">{joinSession.title}</p>
             <p className="text-sm text-gray-500 capitalize mt-0.5">{formatSessionDate(joinSession)}</p>
             <p className="text-sm text-gray-500">📍 {joinSession.location}</p>
             <div className="flex items-center gap-3 mt-2">
-              <span className="text-xs bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+              <span className="text-xs bg-white border border-forest-200 text-forest-800 px-2 py-0.5 rounded-full font-medium">
                 {spotsLeft > 0 ? `${spotsLeft} place${spotsLeft > 1 ? 's' : ''} dispo` : 'Liste d\'attente'}
               </span>
               {joinSession.cost_per_player > 0 && (
@@ -232,7 +232,7 @@ export default function Auth() {
         {/* Brand */}
         {!joinSession && (
           <div className="text-center mb-7">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-forest-900 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <span className="text-3xl">🎾</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">PadelMates</h1>
@@ -257,7 +257,7 @@ export default function Auth() {
                 key={key}
                 onClick={() => { setMode(key); setRegStep(1); setError(''); setSuccess('') }}
                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                  mode === key ? 'bg-white text-blue-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  mode === key ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {label}
@@ -311,7 +311,7 @@ export default function Auth() {
               <PasswordInput name="password" value={form.password} onChange={handleChange} required minLength={6} placeholder="Minimum 6 caractères" />
             </div>
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <div onClick={() => setRememberMe(v => !v)} className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors shrink-0 ${rememberMe ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}>
+              <div onClick={() => setRememberMe(v => !v)} className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors shrink-0 ${rememberMe ? 'bg-forest-900 border-forest-700' : 'bg-white border-gray-300'}`}>
                 {rememberMe && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
               </div>
               <span className="text-sm text-gray-600">Rester connecté</span>
@@ -335,7 +335,7 @@ export default function Auth() {
               <PasswordInput name="password" value={form.password} onChange={handleChange} required minLength={6} placeholder="Minimum 6 caractères" />
             </div>
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <div onClick={() => setRememberMe(v => !v)} className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors shrink-0 ${rememberMe ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}>
+              <div onClick={() => setRememberMe(v => !v)} className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors shrink-0 ${rememberMe ? 'bg-forest-900 border-forest-700' : 'bg-white border-gray-300'}`}>
                 {rememberMe && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
               </div>
               <span className="text-sm text-gray-600">Rester connecté</span>
@@ -375,7 +375,7 @@ export default function Auth() {
             <label className="flex items-start gap-3 cursor-pointer select-none">
               <div
                 onClick={() => setCguAccepted(v => !v)}
-                className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors shrink-0 mt-0.5 ${cguAccepted ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
+                className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors shrink-0 mt-0.5 ${cguAccepted ? 'bg-forest-900 border-forest-700' : 'bg-white border-gray-300'}`}
               >
                 {cguAccepted && (
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -385,9 +385,9 @@ export default function Auth() {
               </div>
               <span className="text-sm text-gray-600 leading-snug">
                 J'accepte les{' '}
-                <a href="/cgu" target="_blank" className="text-blue-600 hover:underline font-medium">CGU</a>
+                <a href="/cgu" target="_blank" className="text-forest-700 hover:underline font-medium">CGU</a>
                 {' '}et la{' '}
-                <a href="/confidentialite" target="_blank" className="text-blue-600 hover:underline font-medium">politique de confidentialité</a>
+                <a href="/confidentialite" target="_blank" className="text-forest-700 hover:underline font-medium">politique de confidentialité</a>
                 {' '}<span className="text-red-500">*</span>
               </span>
             </label>
@@ -414,12 +414,12 @@ export default function Auth() {
         {/* ── Footer links ── */}
         {mode === 'login' && (
           <div className="mt-4 space-y-2 text-center">
-            <button onClick={() => { setMode('forgot'); setError(''); setSuccess('') }} className="text-sm text-blue-600 hover:underline block w-full">
+            <button onClick={() => { setMode('forgot'); setError(''); setSuccess('') }} className="text-sm text-forest-700 hover:underline block w-full">
               Mot de passe oublié ?
             </button>
             <p className="text-sm text-gray-500">
               Pas encore de compte ?{' '}
-              <button onClick={() => { setMode('register'); setRegStep(1); setError('') }} className="text-blue-700 font-medium hover:underline">
+              <button onClick={() => { setMode('register'); setRegStep(1); setError('') }} className="text-forest-800 font-medium hover:underline">
                 S'inscrire
               </button>
             </p>

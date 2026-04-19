@@ -14,7 +14,7 @@ export default function CGU() {
     <div className="max-w-2xl mx-auto space-y-6 py-2">
       {/* Header */}
       <div>
-        <Link to="/" className="text-sm text-blue-600 hover:underline">← Retour</Link>
+        <Link to="/" className="text-sm text-forest-700 hover:underline">← Retour</Link>
         <h1 className="text-2xl font-bold text-gray-900 mt-3">Conditions Générales d'Utilisation</h1>
         <p className="text-sm text-gray-400 mt-1">Dernière mise à jour : {new Date().toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
       </div>
@@ -134,7 +134,7 @@ export default function CGU() {
         <Section title="10. Contact">
           <p>
             Pour toute question relative aux présentes CGU :{' '}
-            <a href="mailto:contact@padelmates.ch" className="text-blue-600 hover:underline">
+            <a href="mailto:contact@padelmates.ch" className="text-forest-700 hover:underline">
               contact@padelmates.ch
             </a>
           </p>
@@ -143,7 +143,7 @@ export default function CGU() {
       </div>
 
       <div className="text-center pb-4">
-        <Link to="/confidentialite" className="text-sm text-blue-600 hover:underline">
+        <Link to="/confidentialite" className="text-sm text-forest-700 hover:underline">
           Lire aussi : Politique de confidentialité →
         </Link>
       </div>

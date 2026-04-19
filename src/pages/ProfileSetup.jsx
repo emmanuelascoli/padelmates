@@ -61,7 +61,7 @@ export default function ProfileSetup() {
               className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-4 border-white shadow-md"
             />
           ) : (
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md">
+            <div className="w-20 h-20 bg-gradient-to-br from-forest-800 to-forest-800 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md">
               <span className="text-3xl font-bold text-white">
                 {form.name?.charAt(0)?.toUpperCase() || '?'}
               </span>
@@ -78,9 +78,9 @@ export default function ProfileSetup() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <div className="flex-1 h-1 bg-blue-600 rounded-full" />
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">2</div>
-          <span className="text-xs text-blue-700 font-semibold">Étape 2 / 2</span>
+          <div className="flex-1 h-1 bg-forest-900 rounded-full" />
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-forest-900 text-white text-xs font-bold">2</div>
+          <span className="text-xs text-forest-800 font-semibold">Étape 2 / 2</span>
         </div>
 
         {error && (
@@ -121,7 +121,7 @@ export default function ProfileSetup() {
           <label className="flex items-start gap-3 cursor-pointer select-none">
             <div
               onClick={() => setCguAccepted(v => !v)}
-              className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors shrink-0 mt-0.5 ${cguAccepted ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
+              className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors shrink-0 mt-0.5 ${cguAccepted ? 'bg-forest-900 border-forest-700' : 'bg-white border-gray-300'}`}
             >
               {cguAccepted && (
                 <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -131,9 +131,9 @@ export default function ProfileSetup() {
             </div>
             <span className="text-sm text-gray-600 leading-snug">
               J'accepte les{' '}
-              <a href="/cgu" target="_blank" className="text-blue-600 hover:underline font-medium">CGU</a>
+              <a href="/cgu" target="_blank" className="text-forest-700 hover:underline font-medium">CGU</a>
               {' '}et la{' '}
-              <a href="/confidentialite" target="_blank" className="text-blue-600 hover:underline font-medium">politique de confidentialité</a>
+              <a href="/confidentialite" target="_blank" className="text-forest-700 hover:underline font-medium">politique de confidentialité</a>
               {' '}<span className="text-red-500">*</span>
             </span>
           </label>

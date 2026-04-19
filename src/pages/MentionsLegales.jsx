@@ -16,7 +16,7 @@ export default function MentionsLegales() {
     <div className="max-w-2xl mx-auto space-y-6 py-2">
       {/* Header */}
       <div>
-        <Link to="/" className="text-sm text-blue-600 hover:underline">← Retour</Link>
+        <Link to="/" className="text-sm text-forest-700 hover:underline">← Retour</Link>
         <h1 className="text-2xl font-bold text-gray-900 mt-3">Mentions légales</h1>
         <p className="text-sm text-gray-400 mt-1">
           Conformément aux exigences du droit suisse applicable aux services en ligne.
@@ -31,12 +31,12 @@ export default function MentionsLegales() {
           <Row label="Statut">Particulier</Row>
           <Row label="Canton">Genève, Suisse</Row>
           <Row label="Email">
-            <a href="mailto:contact@padelmates.ch" className="text-blue-600 hover:underline">
+            <a href="mailto:contact@padelmates.ch" className="text-forest-700 hover:underline">
               contact@padelmates.ch
             </a>
           </Row>
           <Row label="Site web">
-            <a href="https://padelmates.ch" className="text-blue-600 hover:underline">
+            <a href="https://padelmates.ch" className="text-forest-700 hover:underline">
               padelmates.ch
             </a>
           </Row>
@@ -49,13 +49,13 @@ export default function MentionsLegales() {
         <div className="divide-y divide-gray-50">
           <Row label="Hébergeur web">
             Vercel Inc. — 340 Pine Street, Suite 701, San Francisco, CA 94104, USA<br />
-            <a href="https://vercel.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
+            <a href="https://vercel.com" target="_blank" rel="noopener noreferrer" className="text-forest-700 hover:underline text-xs">
               vercel.com
             </a>
           </Row>
           <Row label="Base de données">
             Supabase Inc. — données hébergées dans l'Union Européenne (Frankfurt)<br />
-            <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
+            <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-forest-700 hover:underline text-xs">
               supabase.com
             </a>
           </Row>
@@ -72,13 +72,13 @@ export default function MentionsLegales() {
             en vigueur depuis le 1er septembre 2023
           </Row>
           <Row label="Contact RGPD / nLPD">
-            <a href="mailto:contact@padelmates.ch" className="text-blue-600 hover:underline">
+            <a href="mailto:contact@padelmates.ch" className="text-forest-700 hover:underline">
               contact@padelmates.ch
             </a>
           </Row>
           <Row label="Autorité de contrôle">
             Préposé fédéral à la protection des données (PFPDT) —{' '}
-            <a href="https://www.edoeb.admin.ch" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            <a href="https://www.edoeb.admin.ch" target="_blank" rel="noopener noreferrer" className="text-forest-700 hover:underline">
               edoeb.admin.ch
             </a>
           </Row>
@@ -106,8 +106,8 @@ export default function MentionsLegales() {
 
       {/* Liens */}
       <div className="flex flex-wrap gap-4 justify-center pb-4 text-sm">
-        <Link to="/cgu" className="text-blue-600 hover:underline">CGU →</Link>
-        <Link to="/confidentialite" className="text-blue-600 hover:underline">Politique de confidentialité →</Link>
+        <Link to="/cgu" className="text-forest-700 hover:underline">CGU →</Link>
+        <Link to="/confidentialite" className="text-forest-700 hover:underline">Politique de confidentialité →</Link>
       </div>
     </div>
   )

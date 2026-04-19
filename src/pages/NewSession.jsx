@@ -141,8 +141,8 @@ export default function NewSession() {
                 onClick={() => setForm({ ...form, duration: d.value })}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${
                   form.duration === d.value
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                    ? 'bg-forest-900 text-white border-forest-700'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-forest-500'
                 }`}
               >
                 {d.label}
@@ -176,7 +176,7 @@ export default function NewSession() {
               maxLength={10}
             />
             {form.location && form.court_number.trim() && (
-              <p className="text-xs text-blue-600 mt-1.5">
+              <p className="text-xs text-forest-700 mt-1.5">
                 📍 Affiché comme : <strong>{form.location} — Terrain {form.court_number.trim()}</strong>
               </p>
             )}
@@ -191,9 +191,9 @@ export default function NewSession() {
             min="0" step="0.5" className="input" placeholder="0"
           />
           {costPerPlayer && parseFloat(costPerPlayer) > 0 && (
-            <div className="mt-2 bg-blue-50 rounded-xl px-4 py-2.5 flex items-center gap-2">
-              <span className="text-blue-600 text-lg">÷</span>
-              <p className="text-sm text-blue-800">
+            <div className="mt-2 bg-forest-50 rounded-xl px-4 py-2.5 flex items-center gap-2">
+              <span className="text-forest-700 text-lg">÷</span>
+              <p className="text-sm text-forest-900">
                 Chaque joueur rembourse <strong>{costPerPlayer} CHF</strong>
               </p>
             </div>
@@ -252,7 +252,7 @@ export default function NewSession() {
               onClick={() => setForm({ ...form, isPrivate: false })}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-medium transition-all ${
                 !form.isPrivate
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  ? 'bg-forest-900 text-white border-forest-700 shadow-sm'
                   : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300'
               }`}
             >
@@ -277,7 +277,7 @@ export default function NewSession() {
           )}
         </div>
 
-        <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-900">
+        <div className="bg-forest-50 rounded-xl p-4 text-sm text-forest-900">
           💡 Tu seras automatiquement inscrit comme organisateur.
         </div>
 

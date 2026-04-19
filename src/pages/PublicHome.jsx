@@ -43,7 +43,7 @@ function PublicSessionCard({ session, onJoin }) {
               <span className="font-bold text-gray-900">{session.title}</span>
               {isFull
                 ? <span className="text-xs font-semibold px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full">Complet</span>
-                : <span className="text-xs font-semibold px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Ouvert</span>
+                : <span className="text-xs font-semibold px-2 py-0.5 bg-forest-100 text-forest-800 rounded-full">Ouvert</span>
               }
             </div>
             <p className="text-sm text-gray-500 mt-0.5 capitalize">{dateLabel} · {format(date, 'HH:mm')}</p>
@@ -97,7 +97,7 @@ function PublicSessionCard({ session, onJoin }) {
         {/* CTA */}
         <button
           onClick={() => onJoin(session)}
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-3 rounded-xl transition-colors shadow-sm"
+          className="w-full flex items-center justify-center gap-2 bg-forest-900 hover:bg-forest-800 text-white font-semibold text-sm py-3 rounded-xl transition-colors shadow-sm"
         >
           <span>🔒</span>
           {isFull ? 'Voir la liste d\'attente' : 'Je rejoins cette partie'}
@@ -169,7 +169,7 @@ export default function PublicHome() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Hero */}
       <div className="max-w-lg mx-auto px-4 pt-10 pb-6 text-center">
-        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-lg">
+        <div className="w-20 h-20 bg-gradient-to-br from-forest-800 to-forest-800 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-lg">
           <span className="text-4xl">🎾</span>
         </div>
         <h1 className="text-3xl font-extrabold text-gray-900 mb-3">PadelMates</h1>
@@ -180,7 +180,7 @@ export default function PublicHome() {
         <div className="flex gap-3 justify-center mt-6">
           <button
             onClick={() => navigate('/auth?mode=register')}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-sm transition-colors"
+            className="px-6 py-3 bg-forest-900 hover:bg-forest-800 text-white font-bold text-sm rounded-xl shadow-sm transition-colors"
           >
             Créer mon compte
           </button>
@@ -204,7 +204,7 @@ export default function PublicHome() {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : sessions.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
@@ -213,7 +213,7 @@ export default function PublicHome() {
             <p className="text-sm text-gray-400 mt-1">Inscris-toi pour organiser la prochaine !</p>
             <button
               onClick={() => navigate('/auth?mode=register')}
-              className="mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-colors"
+              className="mt-4 px-5 py-2.5 bg-forest-900 hover:bg-forest-800 text-white font-semibold text-sm rounded-xl transition-colors"
             >
               Rejoindre PadelMates →
             </button>
@@ -225,12 +225,12 @@ export default function PublicHome() {
             ))}
 
             {/* Bottom CTA */}
-            <div className="bg-blue-600 rounded-2xl p-5 text-center text-white mt-2">
+            <div className="bg-forest-900 rounded-2xl p-5 text-center text-white mt-2">
               <p className="font-bold text-lg mb-1">Prêt à jouer ?</p>
               <p className="text-blue-100 text-sm mb-4">Crée ton compte en 30 secondes et rejoins la prochaine partie.</p>
               <button
                 onClick={() => navigate('/auth?mode=register')}
-                className="bg-white text-blue-700 font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-blue-50 transition-colors"
+                className="bg-white text-forest-800 font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-forest-50 transition-colors"
               >
                 Je m'inscris gratuitement →
               </button>

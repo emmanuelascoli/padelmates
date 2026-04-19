@@ -148,14 +148,14 @@ export default function PlayerProfile() {
 
   if (loading) return (
     <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-forest-700 border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
   if (!profile) return (
     <div className="text-center py-20">
       <p className="text-gray-500">Joueur introuvable.</p>
-      <Link to="/leaderboard" className="text-blue-600 hover:underline mt-2 inline-block">← Classement</Link>
+      <Link to="/leaderboard" className="text-forest-700 hover:underline mt-2 inline-block">← Classement</Link>
     </div>
   )
 
@@ -179,13 +179,13 @@ export default function PlayerProfile() {
           <img src={profile.avatar_url} alt="avatar"
             className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-4 border-white ring-2 ring-blue-100 shadow-md" />
         ) : (
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md">
+          <div className="w-20 h-20 bg-gradient-to-br from-forest-800 to-forest-800 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md">
             <span className="text-3xl font-bold text-white">{profile.name?.charAt(0).toUpperCase()}</span>
           </div>
         )}
         <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
         {profile.level && (
-          <span className="badge bg-blue-100 text-blue-800 mt-2">{LEVEL_LABEL[profile.level]}</span>
+          <span className="badge bg-forest-100 text-forest-900 mt-2">{LEVEL_LABEL[profile.level]}</span>
         )}
         {profile.badges?.length > 0 && (
           <div className="mt-3">
@@ -194,7 +194,7 @@ export default function PlayerProfile() {
         )}
         {isOwnProfile && (
           <div className="mt-2">
-            <Link to="/profile" className="text-xs text-blue-600 hover:underline">Modifier mon profil →</Link>
+            <Link to="/profile" className="text-xs text-forest-700 hover:underline">Modifier mon profil →</Link>
           </div>
         )}
 
@@ -205,7 +205,7 @@ export default function PlayerProfile() {
               <button
                 onClick={handleAddFriend}
                 disabled={friendLoading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-forest-900 hover:bg-forest-800 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
               >
                 {friendLoading ? '...' : '+ Ajouter comme ami'}
               </button>
@@ -223,7 +223,7 @@ export default function PlayerProfile() {
                 <button
                   onClick={handleAcceptFriend}
                   disabled={friendLoading}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-forest-900 hover:bg-forest-800 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
                 >
                   {friendLoading ? '...' : '✓ Accepter la demande'}
                 </button>
@@ -234,7 +234,7 @@ export default function PlayerProfile() {
             )}
             {friendship?.status === 'accepted' && (
               <div className="flex items-center gap-2 justify-center">
-                <span className="text-sm text-blue-600 font-medium">✓ Amis</span>
+                <span className="text-sm text-forest-700 font-medium">✓ Amis</span>
                 <button onClick={handleRemoveFriend} disabled={friendLoading} className="text-xs text-gray-400 hover:text-red-500">
                   Retirer
                 </button>
@@ -249,8 +249,8 @@ export default function PlayerProfile() {
         {[
           { label: 'Parties', value: stats.sessionCount, color: 'text-gray-800' },
           { label: 'Matchs', value: stats.matchCount, color: 'text-gray-700' },
-          { label: 'Victoires', value: stats.wins, color: 'text-blue-600' },
-          { label: '% Victoire', value: `${winRate}%`, color: stats.losses === 0 && stats.wins === 0 ? 'text-gray-400' : winRate >= 50 ? 'text-blue-600' : 'text-red-500' },
+          { label: 'Victoires', value: stats.wins, color: 'text-forest-700' },
+          { label: '% Victoire', value: `${winRate}%`, color: stats.losses === 0 && stats.wins === 0 ? 'text-gray-400' : winRate >= 50 ? 'text-forest-700' : 'text-red-500' },
         ].map(s => (
           <div key={s.label} className="card text-center py-3 px-1">
             <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
@@ -268,7 +268,7 @@ export default function PlayerProfile() {
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
             className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
-              tab === key ? 'bg-white text-blue-800 shadow-sm' : 'text-gray-500'
+              tab === key ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
             }`}
           >
             {label}
@@ -293,7 +293,7 @@ export default function PlayerProfile() {
                     {opp.avatar_url ? (
                       <img src={opp.avatar_url} className="w-10 h-10 rounded-full object-cover shrink-0" alt="" />
                     ) : (
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-700 text-sm shrink-0">
+                      <div className="w-10 h-10 bg-forest-100 rounded-full flex items-center justify-center font-bold text-forest-800 text-sm shrink-0">
                         {opp.name?.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -304,13 +304,13 @@ export default function PlayerProfile() {
                     {/* Barre de progression */}
                     <div className="text-right shrink-0 min-w-[80px]">
                       <p className="text-sm font-semibold text-gray-900">
-                        <span className="text-blue-600">{opp.wins}V</span>
+                        <span className="text-forest-700">{opp.wins}V</span>
                         {' · '}
                         <span className="text-red-500">{opp.losses}D</span>
                       </p>
                       <div className="w-full h-1.5 bg-gray-100 rounded-full mt-1 overflow-hidden">
                         <div
-                          className={`h-full rounded-full ${oppWinRate >= 50 ? 'bg-blue-500' : 'bg-red-400'}`}
+                          className={`h-full rounded-full ${oppWinRate >= 50 ? 'bg-forest-700' : 'bg-red-400'}`}
                           style={{ width: `${oppWinRate}%` }}
                         />
                       </div>
@@ -341,7 +341,7 @@ export default function PlayerProfile() {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${won ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-600'}`}>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${won ? 'bg-forest-100 text-forest-800' : 'bg-red-100 text-red-600'}`}>
                           {won ? 'Victoire' : 'Défaite'}
                         </span>
                         <span className="text-xs text-gray-400">
@@ -349,9 +349,9 @@ export default function PlayerProfile() {
                         </span>
                       </div>
                       <p className="text-sm text-gray-700 truncate">
-                        <span className={isTeam1 && won ? 'font-semibold text-blue-700' : ''}>{T1}</span>
+                        <span className={isTeam1 && won ? 'font-semibold text-forest-800' : ''}>{T1}</span>
                         <span className="text-gray-400 mx-1">vs</span>
-                        <span className={!isTeam1 && won ? 'font-semibold text-blue-700' : ''}>{T2}</span>
+                        <span className={!isTeam1 && won ? 'font-semibold text-forest-800' : ''}>{T2}</span>
                       </p>
                     </div>
                     <div className="text-lg font-bold text-gray-900 shrink-0">
@@ -379,9 +379,9 @@ export default function PlayerProfile() {
               return (
                 <Link key={s.id} to={`/sessions/${s.id}`} className="card hover:shadow-md transition-shadow block">
                   <div className="flex items-center gap-3">
-                    <div className="bg-blue-50 rounded-xl p-2 text-center min-w-[44px] shrink-0">
-                      <div className="text-xs text-blue-600 font-medium">{format(date, 'MMM', { locale: fr })}</div>
-                      <div className="text-lg font-bold text-blue-800 leading-none">{format(date, 'd')}</div>
+                    <div className="bg-forest-50 rounded-xl p-2 text-center min-w-[44px] shrink-0">
+                      <div className="text-xs text-forest-700 font-medium">{format(date, 'MMM', { locale: fr })}</div>
+                      <div className="text-lg font-bold text-forest-900 leading-none">{format(date, 'd')}</div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 truncate">{s.title}</p>
@@ -389,7 +389,7 @@ export default function PlayerProfile() {
                     </div>
                     {s.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
                     {past && s.status !== 'cancelled' && <span className="badge bg-gray-100 text-gray-500">Terminée</span>}
-                    {!past && s.status === 'open' && <span className="badge bg-blue-100 text-blue-700">À venir</span>}
+                    {!past && s.status === 'open' && <span className="badge bg-forest-100 text-forest-800">À venir</span>}
                   </div>
                 </Link>
               )

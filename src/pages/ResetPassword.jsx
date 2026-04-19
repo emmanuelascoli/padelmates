@@ -50,7 +50,7 @@ export default function ResetPassword() {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md border border-gray-100">
         {/* Brand */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-forest-900 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-3xl">🎾</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">PadelMates</h1>
@@ -64,11 +64,11 @@ export default function ResetPassword() {
           </div>
         ) : !ready ? (
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-sm text-gray-500">Vérification du lien en cours...</p>
             <p className="text-xs text-gray-400 mt-2">
               Si cette page reste bloquée,{' '}
-              <button onClick={() => navigate('/auth')} className="text-blue-600 hover:underline">
+              <button onClick={() => navigate('/auth')} className="text-forest-700 hover:underline">
                 retourne à la connexion
               </button>
               {' '}et refais une demande.

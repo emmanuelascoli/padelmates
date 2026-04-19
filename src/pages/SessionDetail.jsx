@@ -140,8 +140,8 @@ function MatchForm({ sessionId, participants, onSaved }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">{error}</div>}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-blue-50 rounded-xl p-3 space-y-2">
-          <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Équipe 1</p>
+        <div className="bg-forest-50 rounded-xl p-3 space-y-2">
+          <p className="text-xs font-semibold text-forest-800 uppercase tracking-wide">Équipe 1</p>
           <PlayerSelect name="t1p1" label="Joueur 1" />
           <PlayerSelect name="t1p2" label="Joueur 2" />
           <input type="number" name="t1score" value={form.t1score} onChange={handleChange} required min="0" max="99" className="input text-sm py-2" placeholder="Score" />
@@ -168,15 +168,15 @@ function MatchCard({ match, canDelete, onDelete }) {
   return (
     <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
       <div className="flex items-center gap-3">
-        <div className={`flex-1 text-sm font-medium ${t1Won ? 'text-blue-700' : 'text-gray-500'}`}>
+        <div className={`flex-1 text-sm font-medium ${t1Won ? 'text-forest-800' : 'text-gray-500'}`}>
           {t1Won && <span className="mr-1">🏆</span>}{T1}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-lg font-bold ${t1Won ? 'text-blue-600' : 'text-gray-400'}`}>{match.team1_score}</span>
+          <span className={`text-lg font-bold ${t1Won ? 'text-forest-700' : 'text-gray-400'}`}>{match.team1_score}</span>
           <span className="text-gray-300">—</span>
-          <span className={`text-lg font-bold ${!t1Won ? 'text-blue-600' : 'text-gray-400'}`}>{match.team2_score}</span>
+          <span className={`text-lg font-bold ${!t1Won ? 'text-forest-700' : 'text-gray-400'}`}>{match.team2_score}</span>
         </div>
-        <div className={`flex-1 text-right text-sm font-medium ${!t1Won ? 'text-blue-700' : 'text-gray-500'}`}>
+        <div className={`flex-1 text-right text-sm font-medium ${!t1Won ? 'text-forest-800' : 'text-gray-500'}`}>
           {T2}{!t1Won && <span className="ml-1">🏆</span>}
         </div>
         {canDelete && (
@@ -233,7 +233,7 @@ function PublicSessionTeaser({ session, participantCount }) {
           <div className="shrink-0 text-right">
             {isFull
               ? <span className="badge bg-orange-100 text-orange-600">Complet</span>
-              : <span className="badge bg-blue-100 text-blue-700">Ouvert</span>
+              : <span className="badge bg-forest-100 text-forest-800">Ouvert</span>
             }
           </div>
         </div>
@@ -274,7 +274,7 @@ function PublicSessionTeaser({ session, participantCount }) {
         {/* Join CTA */}
         <button
           onClick={() => navigate(`/auth?join=${session.id}&mode=register`)}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+          className="w-full bg-forest-900 hover:bg-forest-800 text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
         >
           <span>🔒</span>
           {isFull ? 'Rejoindre la liste d\'attente' : 'Je rejoins cette partie'}
@@ -288,10 +288,10 @@ function PublicSessionTeaser({ session, participantCount }) {
       </div>
 
       {/* Value prop */}
-      <div className="card bg-blue-50 border-blue-100">
-        <p className="text-sm font-semibold text-blue-900 mb-1">🎾 Qu'est-ce que PadelMates ?</p>
-        <p className="text-sm text-blue-700">La plateforme de votre groupe padel — organise des parties, suis ton classement, retrouve tes amis.</p>
-        <p className="text-sm text-blue-600 mt-1 font-medium">Inscription gratuite en 30 secondes.</p>
+      <div className="card bg-forest-50 border-forest-100">
+        <p className="text-sm font-semibold text-forest-900 mb-1">🎾 Qu'est-ce que PadelMates ?</p>
+        <p className="text-sm text-forest-800">La plateforme de votre groupe padel — organise des parties, suis ton classement, retrouve tes amis.</p>
+        <p className="text-sm text-forest-700 mt-1 font-medium">Inscription gratuite en 30 secondes.</p>
       </div>
     </div>
   )
@@ -469,14 +469,14 @@ export default function SessionDetail() {
 
   if (loading) return (
     <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-forest-700 border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
   if (!session) return (
     <div className="text-center py-20">
       <p className="text-gray-500">Partie introuvable.</p>
-      <Link to="/sessions" className="text-blue-600 hover:underline mt-2 inline-block">← Retour</Link>
+      <Link to="/sessions" className="text-forest-700 hover:underline mt-2 inline-block">← Retour</Link>
     </div>
   )
 
@@ -543,7 +543,7 @@ export default function SessionDetail() {
               {session.is_private && <span className="badge bg-purple-100 text-purple-700">🔒 Privée</span>}
               {session.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
               {session.status !== 'cancelled' && isPastSession && <span className="badge bg-gray-100 text-gray-500">Terminée</span>}
-              {session.status === 'open' && !isPastSession && !isFull && <span className="badge bg-blue-100 text-blue-800">Ouverte</span>}
+              {session.status === 'open' && !isPastSession && !isFull && <span className="badge bg-forest-100 text-forest-900">Ouverte</span>}
               {session.status === 'open' && !isPastSession && isFull && <span className="badge bg-orange-100 text-orange-600">Complet</span>}
             </div>
             <p className="text-gray-600 font-medium capitalize">
@@ -572,7 +572,7 @@ export default function SessionDetail() {
         <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 flex-wrap">
           {canJoin && (
             <button onClick={handleJoin} disabled={actionLoading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-3 rounded-xl transition-colors disabled:opacity-50 shadow-sm">
+              className="flex-1 bg-forest-900 hover:bg-forest-800 text-white font-semibold text-sm py-3 rounded-xl transition-colors disabled:opacity-50 shadow-sm">
               {actionLoading ? '…' : '✓ S\'inscrire à cette partie'}
             </button>
           )}
@@ -769,7 +769,7 @@ export default function SessionDetail() {
             key={key}
             onClick={() => setTab(key)}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-              tab === key ? 'bg-white text-blue-800 shadow-sm' : 'text-gray-500'
+              tab === key ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
             }`}
           >
             {label}
@@ -786,12 +786,12 @@ export default function SessionDetail() {
             participants.map(p => (
               <div key={p.id} className="card">
                 <div className="flex items-center gap-3">
-                  <Link to={`/players/${p.user_id}`} className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-700 text-sm shrink-0 hover:opacity-80 transition-opacity">
+                  <Link to={`/players/${p.user_id}`} className="w-10 h-10 bg-forest-100 rounded-full flex items-center justify-center font-bold text-forest-800 text-sm shrink-0 hover:opacity-80 transition-opacity">
                     {p.profiles?.name?.charAt(0).toUpperCase()}
                   </Link>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Link to={`/players/${p.user_id}`} className="font-medium text-gray-900 hover:text-blue-700 transition-colors">
+                      <Link to={`/players/${p.user_id}`} className="font-medium text-gray-900 hover:text-forest-800 transition-colors">
                         {p.profiles?.name}
                       </Link>
                       {p.user_id === session.organizer_id && (
@@ -801,7 +801,7 @@ export default function SessionDetail() {
                         <span className="badge bg-purple-100 text-purple-700 text-xs border border-purple-200">👑</span>
                       )}
                       {p.profiles?.role === 'organizer' && (
-                        <span className="badge bg-blue-100 text-blue-700 text-xs border border-blue-200">✓ Vérifié</span>
+                        <span className="badge bg-forest-100 text-forest-800 text-xs border border-forest-200">✓ Vérifié</span>
                       )}
                     </div>
                     <p className="text-xs text-gray-400">{LEVEL_LABEL[p.profiles?.level] ?? '—'}</p>
@@ -851,10 +851,10 @@ export default function SessionDetail() {
 
             /* ── Participant : Régler ma part ── */
             isParticipant && !isOrganizer ? (
-              <div className="card border-blue-100">
+              <div className="card border-forest-100">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-blue-900">💳 Ta part</h4>
-                  <span className="text-lg font-bold text-blue-700">{session.cost_per_player} CHF</span>
+                  <h4 className="text-sm font-semibold text-forest-900">💳 Ta part</h4>
+                  <span className="text-lg font-bold text-forest-800">{session.cost_per_player} CHF</span>
                 </div>
 
                 {/* Status : Confirmé */}
@@ -932,7 +932,7 @@ export default function SessionDetail() {
                     <button
                       onClick={handleDeclarePayment}
                       disabled={actionLoading}
-                      className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-sm font-semibold py-3 rounded-xl transition-colors disabled:opacity-50"
+                      className="w-full bg-forest-50 hover:bg-forest-100 border border-forest-200 text-forest-800 text-sm font-semibold py-3 rounded-xl transition-colors disabled:opacity-50"
                     >
                       {actionLoading ? '…' : '✓ J\'ai payé — en attente de confirmation'}
                     </button>
