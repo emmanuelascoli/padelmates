@@ -317,7 +317,6 @@ export default function SessionDetail() {
   const [showMatchForm, setShowMatchForm] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
   const [tab, setTab] = useState('info')
-  const [twintCopied, setTwintCopied] = useState(false)
 
   useEffect(() => { fetchAll() }, [id])
 
@@ -454,12 +453,12 @@ export default function SessionDetail() {
   async function handleCancelSession() {
     setActionLoading(true)
     setShowCancelConfirm(false)
-    // Hard delete in dependency order (FK constraints)
-    await supabase.from('notification_log').delete().eq('session_id', id)
-    await supabase.from('matches').delete().eq('session_id', id)
-    await supabase.from('session_waitlist').delete().eq('session_id', id)
-    await supabase.from('session_participants').delete().eq('session_id', id)
-    await supabase.from('sessions').delete().eq('id', id)
+    const { error } = await supabase.from('sessions').delete().eq('id', id)
+    if (error) {
+      console.error('Cancel session error:', error.message)
+      setActionLoading(false)
+      return
+    }
     navigate('/sessions', { replace: true })
   }
 
@@ -896,53 +895,24 @@ export default function SessionDetail() {
                       Rembourse <strong>{session.organizer?.name}</strong> via :
                     </p>
 
-                    {/* Boutons de paiement */}
-                    <div className="flex gap-2 flex-wrap">
-                      {/* Revolut */}
-                      {session.organizer?.revolut_tag && (
-                        <a
-                          href={`https://revolut.me/${session.organizer.revolut_tag}/${session.cost_per_player}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-[#191C1F] hover:bg-[#2e3338] text-white text-sm font-semibold py-3 px-4 rounded-xl transition-colors shadow-sm"
-                        >
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M21.507 8.442c-.07-4.715-3.85-8.44-8.507-8.44H3v24l4-4V4h5.674c2.52 0 4.593 1.912 4.826 4.37a4.76 4.76 0 0 1-4.75 5.13H9.5V17h3.5l4 4h4l-4-4.322A8.454 8.454 0 0 0 21.507 8.442z"/>
-                          </svg>
-                          Revolut
-                        </a>
-                      )}
-
-                      {/* Twint — pure deep link, zero JS on the anchor itself.
-                          A separate copy button handles the clipboard to avoid
-                          any clipboard-API / gesture-chain interference on iOS PWA. */}
-                      {session.organizer?.phone && (
-                        <div className="flex-1 min-w-[120px] flex flex-col gap-1.5">
-                          <a
-                            href="twint://"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 bg-[#E7001C] hover:bg-[#c50018] text-white text-sm font-semibold py-3 px-4 rounded-xl transition-colors shadow-sm"
-                          >
-                            <span className="font-black text-base leading-none">T</span>
-                            Ouvrir Twint
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(session.organizer.phone).catch(() => {})
-                              setTwintCopied(true)
-                              setTimeout(() => setTwintCopied(false), 4000)
-                            }}
-                            className="flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 border border-gray-200 py-1.5 px-3 rounded-lg transition-colors"
-                          >
-                            {twintCopied
-                              ? <><span>✓</span> Copié !</>
-                              : <><span>📋</span> Copier le n° ({session.organizer.phone})</>
-                            }
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    {/* Bouton de paiement Revolut */}
+                    {session.organizer?.revolut_tag ? (
+                      <a
+                        href={`https://revolut.me/${session.organizer.revolut_tag}/${session.cost_per_player}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full bg-[#191C1F] hover:bg-[#2e3338] text-white text-sm font-semibold py-3.5 px-4 rounded-xl transition-colors shadow-sm"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M21.507 8.442c-.07-4.715-3.85-8.44-8.507-8.44H3v24l4-4V4h5.674c2.52 0 4.593 1.912 4.826 4.37a4.76 4.76 0 0 1-4.75 5.13H9.5V17h3.5l4 4h4l-4-4.322A8.454 8.454 0 0 0 21.507 8.442z"/>
+                        </svg>
+                        Payer {session.cost_per_player} CHF via Revolut
+                      </a>
+                    ) : (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-500">
+                        L'organisateur n'a pas encore configuré Revolut. Contacte-le directement.
+                      </div>
+                    )}
 
                     {/* Fallback : aucun moyen de paiement configuré */}
                     {!session.organizer?.revolut_tag && !session.organizer?.phone && (

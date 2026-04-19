@@ -610,16 +610,8 @@ export default function Profile() {
         {/* Moyens de paiement */}
         <div className="space-y-3 pt-1">
           <div className="flex items-center gap-2">
-            <h4 className="text-sm font-semibold text-gray-700">💳 Moyens de paiement</h4>
+            <h4 className="text-sm font-semibold text-gray-700">💳 Revolut</h4>
             <span className="text-xs text-gray-400">(pour recevoir les remboursements)</span>
-          </div>
-          <div>
-            <label className="label flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-600 text-xs font-bold shrink-0">T</span>
-              Twint — Numéro de téléphone
-            </label>
-            <input type="tel" name="phone" value={form.phone} onChange={handleChange} className="input" placeholder="+41 79 123 45 67" />
-            <p className="text-xs text-gray-400 mt-1">Les participants copieront ce numéro pour t'envoyer leur part.</p>
           </div>
           <div>
             <label className="label flex items-center gap-2">

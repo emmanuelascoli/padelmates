@@ -45,7 +45,7 @@ export default function NewSession() {
     : null
 
   // Vérification des moyens de paiement configurés
-  const hasPaymentInfo = !!(profile?.revolut_tag || profile?.phone)
+  const hasPaymentInfo = !!profile?.revolut_tag
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -204,7 +204,7 @@ export default function NewSession() {
                 💳 Configure tes moyens de paiement
               </p>
               <p className="text-sm text-orange-700">
-                Pour recevoir les remboursements via Twint ou Revolut, renseigne tes coordonnées dans ton profil.
+                Pour recevoir les remboursements via Revolut, renseigne ton tag dans ton profil.
               </p>
               <button
                 type="button"

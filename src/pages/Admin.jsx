@@ -364,13 +364,12 @@ function TabParties() {
   async function handleCancelSession(sessionId) {
     setConfirmCancelId(null)
     setActionLoading(sessionId)
-    // Hard delete in dependency order (FK constraints)
-    await supabase.from('notification_log').delete().eq('session_id', sessionId)
-    await supabase.from('matches').delete().eq('session_id', sessionId)
-    await supabase.from('session_waitlist').delete().eq('session_id', sessionId)
-    await supabase.from('session_participants').delete().eq('session_id', sessionId)
-    await supabase.from('sessions').delete().eq('id', sessionId)
-    setSessions(prev => prev.filter(s => s.id !== sessionId))
+    const { error } = await supabase.from('sessions').delete().eq('id', sessionId)
+    if (!error) {
+      setSessions(prev => prev.filter(s => s.id !== sessionId))
+    } else {
+      console.error('Cancel session error:', error.message)
+    }
     setActionLoading(null)
   }
 

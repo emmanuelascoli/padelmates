@@ -53,7 +53,7 @@ export default function Confidentialite() {
               <ul className="space-y-1 text-sm text-blue-800">
                 <li>• Adresse email (authentification, notifications)</li>
                 <li>• Prénom et nom (affiché aux autres membres)</li>
-                <li>• Numéro de téléphone (facultatif — visible uniquement des membres connectés, pour les remboursements Twint/Revolut)</li>
+                <li>• Numéro de téléphone (facultatif — visible uniquement des membres connectés)</li>
                 <li>• Photo de profil (facultatif — stockée sur serveur européen)</li>
                 <li>• Niveau de jeu padel (affiché sur le profil)</li>
               </ul>

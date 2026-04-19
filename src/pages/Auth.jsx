@@ -361,9 +361,9 @@ export default function Auth() {
               />
             </div>
             <div>
-              <label className="label">Téléphone <span className="text-gray-400 font-normal">(pour Twint / Revolut)</span></label>
+              <label className="label">Téléphone <span className="text-gray-400 font-normal">(facultatif)</span></label>
               <input type="tel" name="phone" value={form.phone} onChange={handleChange} className="input" placeholder="+41 79 123 45 67" />
-              <p className="text-xs text-gray-400 mt-1">Visible des autres joueurs pour les remboursements.</p>
+              <p className="text-xs text-gray-400 mt-1">Visible des autres joueurs (WhatsApp, appels).</p>
             </div>
             <div>
               <label className="label">Niveau de jeu</label>

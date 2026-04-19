@@ -102,7 +102,7 @@ export default function ProfileSetup() {
           </div>
 
           <div>
-            <label className="label">Téléphone <span className="text-gray-400 font-normal">(pour Twint / Revolut)</span></label>
+            <label className="label">Téléphone <span className="text-gray-400 font-normal">(facultatif)</span></label>
             <input
               type="tel" name="phone" value={form.phone} onChange={handleChange}
               className="input" placeholder="+41 79 123 45 67"
