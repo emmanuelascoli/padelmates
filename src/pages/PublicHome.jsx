@@ -33,7 +33,7 @@ function PublicSessionCard({ session, onJoin }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       {/* Top accent bar */}
-      <div className={`h-1 w-full ${isFull ? 'bg-orange-400' : 'bg-gradient-to-r from-blue-400 to-indigo-500'}`} />
+      <div className={`h-1 w-full ${isFull ? 'bg-orange-400' : 'bg-[#4CAF6F]'}`} />
 
       <div className="p-4">
         {/* Title + lock badge */}
@@ -166,7 +166,7 @@ export default function PublicHome() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-[#EAE0D0]">
       {/* Hero */}
       <div className="max-w-lg mx-auto px-4 pt-10 pb-6 text-center">
         <div className="w-20 h-20 bg-gradient-to-br from-forest-800 to-forest-800 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-lg">
@@ -227,7 +227,7 @@ export default function PublicHome() {
             {/* Bottom CTA */}
             <div className="bg-forest-900 rounded-2xl p-5 text-center text-white mt-2">
               <p className="font-bold text-lg mb-1">Prêt à jouer ?</p>
-              <p className="text-blue-100 text-sm mb-4">Crée ton compte en 30 secondes et rejoins la prochaine partie.</p>
+              <p className="text-[#90C9A0] text-sm mb-4">Crée ton compte en 30 secondes et rejoins la prochaine partie.</p>
               <button
                 onClick={() => navigate('/auth?mode=register')}
                 className="bg-white text-forest-800 font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-forest-50 transition-colors"

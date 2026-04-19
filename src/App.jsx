@@ -27,7 +27,7 @@ function ProtectedRoute({ children }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-forest-900 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -41,7 +41,7 @@ function AppRoutes() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-forest-900 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -53,9 +53,9 @@ function AppRoutes() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#EAE0D0]">
         <Navbar />
-        <main className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-6">
+        <main className="max-w-4xl mx-auto px-4 py-6 pb-28 md:pb-6">
           <Routes>
             {/* Public routes */}
             <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />

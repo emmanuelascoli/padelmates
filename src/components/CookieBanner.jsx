@@ -26,7 +26,7 @@ export default function CookieBanner() {
         <div className="bg-gray-900 text-white rounded-2xl md:rounded-none px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 shadow-xl md:shadow-none">
           <p className="flex-1 text-sm text-gray-200 leading-relaxed">
             🍪 PadelMates utilise uniquement des cookies nécessaires au fonctionnement (authentification, session). Aucun cookie publicitaire ni de traçage.{' '}
-            <a href="/confidentialite" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
+            <a href="/confidentialite" className="text-[#90C9A0] hover:text-[#7BC47B] underline underline-offset-2">
               En savoir plus
             </a>
           </p>

@@ -177,7 +177,7 @@ export default function PlayerProfile() {
       <div className="card text-center py-6">
         {profile.avatar_url ? (
           <img src={profile.avatar_url} alt="avatar"
-            className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-4 border-white ring-2 ring-blue-100 shadow-md" />
+            className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-4 border-white ring-2 ring-forest-100 shadow-md" />
         ) : (
           <div className="w-20 h-20 bg-gradient-to-br from-forest-800 to-forest-800 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md">
             <span className="text-3xl font-bold text-white">{profile.name?.charAt(0).toUpperCase()}</span>
@@ -337,7 +337,7 @@ export default function PlayerProfile() {
               const T1 = [m.t1p1_name, m.t1p2_name].filter(Boolean).join(' & ')
               const T2 = [m.t2p1_name, m.t2p2_name].filter(Boolean).join(' & ')
               return (
-                <div key={m.id} className={`card border-l-4 ${won ? 'border-l-blue-500' : 'border-l-red-400'}`}>
+                <div key={m.id} className={`card border-l-4 ${won ? 'border-l-forest-500' : 'border-l-red-400'}`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">

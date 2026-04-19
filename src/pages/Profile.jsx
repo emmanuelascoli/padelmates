@@ -414,90 +414,94 @@ export default function Profile() {
     : 0
 
   return (
-    <div className="max-w-lg mx-auto space-y-5">
-      <h1 className="text-xl font-bold text-gray-900">Mon Profil</h1>
+    <div className="max-w-lg mx-auto -mx-4 -mt-6">
 
-      {/* Avatar + stats */}
-      <div className="card text-center py-6">
-        {/* Photo */}
-        <div className="relative inline-block mb-3">
-          {profile?.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt="avatar"
-              className="w-24 h-24 rounded-full object-cover mx-auto shadow-md border-4 border-white ring-2 ring-blue-100"
-            />
-          ) : (
-            <div className="w-24 h-24 bg-gradient-to-br from-forest-800 to-forest-800 rounded-full flex items-center justify-center mx-auto shadow-md">
-              <span className="text-4xl font-bold text-white">
-                {profile?.name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? '?'}
-              </span>
-            </div>
-          )}
-          {/* Upload button overlay */}
-          <label className="absolute bottom-0 right-0 w-8 h-8 bg-forest-900 hover:bg-forest-800 rounded-full flex items-center justify-center cursor-pointer shadow-md transition-colors">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-          </label>
-        </div>
-        {photoLoading && <p className="text-xs text-forest-700 mb-1">Upload en cours…</p>}
-        {photoError && <p className="text-xs text-red-500 mb-1">{photoError}</p>}
-
-        <h2 className="text-xl font-bold text-gray-900">{profile?.name || <span className="text-gray-400 italic">Nom non renseigné</span>}</h2>
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <p className="text-sm text-gray-400">{user?.email}</p>
-        </div>
-        {role && role !== 'member' && (() => {
-          const r = ROLES[role]
-          return (
-            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full border mb-2 ${r.color} ${r.border}`}>
-              {r.badge} {r.label}
-            </span>
-          )
-        })()}
-        {/* Badges */}
-        {profile?.badges?.length > 0 && (
-          <div className="mt-2 mb-1">
-            <BadgeList badges={profile.badges} size="lg" className="justify-center" />
+      {/* ── Green banner ── */}
+      <div className="bg-[#1A3528] px-5 pt-7 pb-16">
+        <div className="flex items-center gap-4 mb-5">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt="avatar"
+                className="w-20 h-20 rounded-2xl object-cover border-2 border-[#243D2C] shadow-lg"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-[#243D2C] rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-3xl font-bold text-white">
+                  {profile?.name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? '?'}
+                </span>
+              </div>
+            )}
+            <label className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#4CAF6F] hover:bg-[#3d9e5e] rounded-xl flex items-center justify-center cursor-pointer shadow-md transition-colors">
+              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+            </label>
           </div>
-        )}
+
+          {/* Name + info */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-white text-2xl font-bold leading-tight truncate">
+              {profile?.name || <span className="text-[#6B9B7A] italic text-lg">Nom non renseigné</span>}
+            </h1>
+            <p className="text-[#6B9B7A] text-xs mt-0.5 truncate">{user?.email}</p>
+            {role && role !== 'member' && (() => {
+              const r = ROLES[role]
+              return (
+                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border mt-1.5 ${r.color} ${r.border}`}>
+                  {r.badge} {r.label}
+                </span>
+              )
+            })()}
+            {profile?.badges?.length > 0 && (
+              <div className="mt-1.5">
+                <BadgeList badges={profile.badges} size="sm" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {photoLoading && <p className="text-xs text-[#7BC47B] mb-2">Upload en cours…</p>}
+        {photoError && <p className="text-xs text-red-400 mb-2">{photoError}</p>}
+
+        {/* Level bar */}
         {profile?.level && (
-          <div className="px-4">
+          <div className="mb-4">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-gray-500 font-medium">Niveau</span>
-              <span className="text-xs font-semibold text-forest-800">{LEVEL_LABEL[profile.level] ?? profile.level}</span>
+              <span className="text-[#6B9B7A] text-xs font-medium">Niveau</span>
+              <span className="text-[#7BC47B] text-xs font-semibold">{LEVEL_LABEL[profile.level] ?? profile.level}</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+            <div className="w-full bg-[#243D2C] rounded-full h-2 overflow-hidden">
               <div
-                className="h-2.5 rounded-full bg-gradient-to-r from-blue-400 to-forest-800 transition-all"
+                className="h-2 rounded-full bg-gradient-to-r from-[#4CAF6F] to-[#7BC47B] transition-all"
                 style={{ width: `${(parseInt(profile.level) / 10) * 100}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs text-gray-300 mt-1">
-              <span>1</span>
-              <span>10</span>
-            </div>
           </div>
         )}
+
+        {/* Stats */}
+        <div className="grid grid-cols-4 rounded-2xl overflow-hidden bg-[#243D2C]/50">
+          {[
+            { label: 'Parties', value: stats.sessions },
+            { label: 'Victoires', value: stats.wins },
+            { label: 'Défaites', value: stats.losses },
+            { label: '% Victoire', value: `${winRate}%` },
+          ].map((s, i) => (
+            <div key={s.label} className={`py-3 text-center ${i < 3 ? 'border-r border-[#1A3528]/60' : ''}`}>
+              <div className="text-white text-lg font-bold leading-tight">{s.value}</div>
+              <div className="text-[#6B9B7A] text-[10px] mt-0.5 leading-tight">{s.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-2">
-        {[
-          { label: 'Parties', value: stats.sessions, color: 'text-gray-800' },
-          { label: 'Victoires', value: stats.wins, color: 'text-forest-800' },
-          { label: 'Défaites', value: stats.losses, color: 'text-red-500' },
-          { label: '% Victoire', value: `${winRate}%`, color: 'text-gray-700' },
-        ].map(s => (
-          <div key={s.label} className="card text-center py-3 px-1">
-            <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-            <div className="text-xs text-gray-500 mt-0.5 leading-tight">{s.label}</div>
-          </div>
-        ))}
-      </div>
+      {/* ── White sheet ── */}
+      <div className="bg-white rounded-t-3xl -mt-8 px-4 pt-5 pb-10 min-h-screen space-y-5">
 
       {/* Tabs */}
       <div className="flex bg-gray-100 rounded-xl p-1">
@@ -561,7 +565,7 @@ export default function Profile() {
                   <div className="space-y-1.5 pt-2 border-t border-gray-50">
                     {matches.map((m, i) => (
                       <div key={m.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${m.won ? 'bg-forest-50' : 'bg-red-50'}`}>
-                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ${m.won ? 'bg-blue-200 text-forest-900' : 'bg-red-200 text-red-700'}`}>
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ${m.won ? 'bg-forest-200 text-forest-900' : 'bg-red-200 text-red-700'}`}>
                           {m.won ? 'V' : 'D'}
                         </span>
                         <span className="flex-1 truncate text-gray-700">
@@ -699,6 +703,7 @@ export default function Profile() {
       <DeleteAccountSection userEmail={user?.email} onDeleted={signOut} />
 
       </> /* fin tab === 'info' */}
+      </div>{/* fin white sheet */}
     </div>
   )
 }

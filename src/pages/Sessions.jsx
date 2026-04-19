@@ -56,7 +56,7 @@ function FriendAvatars({ participants, friendIds, friendProfiles }) {
           return p?.avatar_url ? (
             <img key={id} src={p.avatar_url} className="w-5 h-5 rounded-full object-cover border border-white" alt="" />
           ) : (
-            <div key={id} className="w-5 h-5 rounded-full bg-blue-200 border border-white flex items-center justify-center text-forest-800 font-bold text-xs">
+            <div key={id} className="w-5 h-5 rounded-full bg-forest-100 border border-white flex items-center justify-center text-forest-800 font-bold text-xs">
               {p?.name?.charAt(0).toUpperCase() ?? '?'}
             </div>
           )
@@ -71,26 +71,6 @@ function FriendAvatars({ participants, friendIds, friendProfiles }) {
   )
 }
 
-function SlotBar({ current, max }) {
-  const pct = Math.min(100, Math.round((current / max) * 100))
-  const isFull = current >= max
-  return (
-    <div className="mt-2">
-      <div className="flex justify-between text-xs text-gray-400 mb-1">
-        <span>{current} / {max} joueurs</span>
-        {isFull
-          ? <span className="text-orange-500 font-medium">Complet</span>
-          : <span className="text-green-600 font-medium">{max - current} place{max - current > 1 ? 's' : ''} dispo</span>}
-      </div>
-      <div className="w-full bg-gray-100 rounded-full h-1.5">
-        <div
-          className={`h-1.5 rounded-full transition-all ${isFull ? 'bg-orange-400' : pct >= 75 ? 'bg-yellow-400' : 'bg-green-400'}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  )
-}
 
 function SessionRow({ session, userId, friendIds, friendProfiles }) {
   const date = new Date(`${session.date}T${session.time}`)
@@ -98,68 +78,83 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
   const isRegistered = (session.session_participants || []).some(p => p.user_id === userId)
 
   return (
-    <Link to={`/sessions/${session.id}`} className="card hover:shadow-md transition-shadow block">
-      <div className="flex items-start gap-4">
+    <Link to={`/sessions/${session.id}`} className="block bg-white rounded-2xl shadow-sm overflow-hidden active:scale-[0.99] transition-transform">
+      <div className="flex items-stretch">
         {/* Date block */}
-        <div className="bg-forest-50 rounded-xl p-3 text-center min-w-[56px] shrink-0">
-          <div className="text-xs text-forest-800 font-medium uppercase">
-            {format(date, 'MMM', { locale: fr })}
-          </div>
-          <div className="text-2xl font-bold text-forest-900 leading-none">
+        <div className="w-[72px] bg-[#1A3528] flex flex-col items-center justify-center py-4 shrink-0">
+          <span className="text-[#6B9B7A] text-[10px] font-semibold tracking-widest uppercase leading-none">
+            {format(date, 'EEE', { locale: fr }).toUpperCase().replace('.', '')}
+          </span>
+          <span className="text-white text-[26px] font-bold leading-tight mt-0.5">
             {format(date, 'd')}
-          </div>
-          <div className="text-xs text-forest-700 mt-0.5">
+          </span>
+          <span className="text-[#6B9B7A] text-[10px] uppercase tracking-wide leading-none">
+            {format(date, 'MMM', { locale: fr }).toUpperCase().replace('.', '')}
+          </span>
+          <span className="text-[#7BC47B] text-xs font-semibold mt-1.5 leading-none">
             {format(date, 'HH:mm')}
-          </div>
+          </span>
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-gray-900">{session.title}</span>
-            {session.is_private && (
-              <span className="badge bg-purple-100 text-purple-700">🔒 Privée</span>
-            )}
-            {isRegistered && (
-              <span className="badge bg-green-100 text-green-700">✓ Inscrit</span>
-            )}
-            {session.status === 'cancelled' && (
-              <span className="badge bg-red-100 text-red-600">Annulée</span>
-            )}
+        <div className="flex-1 px-4 py-3 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <span className="font-bold text-gray-900 text-[15px] leading-snug">{session.title}</span>
+            <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+              {session.is_private && (
+                <span className="badge bg-purple-100 text-purple-700">🔒</span>
+              )}
+              {isRegistered && (
+                <span className="inline-flex items-center gap-1 bg-[#E8F5EC] text-[#1A6B3A] text-[11px] font-semibold px-2 py-0.5 rounded-full">✓ Inscrit</span>
+              )}
+              {session.status === 'cancelled' && (
+                <span className="badge bg-red-100 text-red-600">Annulée</span>
+              )}
+            </div>
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {format(date, 'EEEE d MMMM', { locale: fr })}
-          </p>
-          <p className="text-sm text-gray-400 truncate">📍 {session.location}</p>
-          {(session.level_min || session.level_max) && (
-            <p className="text-xs text-gray-400 mt-0.5">
-              🎯 Niv. {session.level_min ?? '?'}{session.level_max && session.level_min !== session.level_max ? `–${session.level_max}` : ''}
-            </p>
-          )}
+
+          <div className="flex items-center gap-1 text-gray-400 text-xs mb-1.5">
+            <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {session.location}
+          </div>
+
           {session.organizer?.name && (
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400 mb-1.5">
               👤 {session.organizer.name}
               {session.organizer.badges?.length > 0 && (
                 <span className="ml-1" title={session.organizer.badges.map(b => BADGES[b]?.label).filter(Boolean).join(', ')}>
                   {session.organizer.badges.map(b => BADGES[b]?.emoji).filter(Boolean).join('')}
                 </span>
               )}
+              {session.cost_per_player > 0 && (
+                <span className="ml-1 font-medium text-gray-500">· {session.cost_per_player} CHF</span>
+              )}
             </p>
           )}
+
           <FriendAvatars
             participants={session.session_participants}
             friendIds={friendIds}
             friendProfiles={friendProfiles}
           />
-          <SlotBar current={participantCount} max={session.max_players} />
-        </div>
 
-        {/* Price */}
-        <div className="text-right shrink-0">
-          <div className="font-semibold text-gray-900">
-            {session.cost_per_player > 0 ? `${session.cost_per_player} CHF` : 'Gratuit'}
+          {/* Slot bar */}
+          <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2 mb-1">
+            <div
+              className={`h-1.5 rounded-full ${participantCount >= session.max_players ? 'bg-orange-400' : 'bg-[#4CAF6F]'}`}
+              style={{ width: `${Math.min(100, Math.round((participantCount / session.max_players) * 100))}%` }}
+            />
           </div>
-          <div className="text-xs text-gray-400">par joueur</div>
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-400">{participantCount} / {session.max_players} joueurs</span>
+            {participantCount >= session.max_players
+              ? <span className="text-orange-500 font-semibold">Complet</span>
+              : <span className="text-[#1A6B3A] font-semibold">{session.max_players - participantCount} dispo</span>
+            }
+          </div>
         </div>
       </div>
     </Link>
@@ -169,7 +164,7 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
 // ── Pill toggle helper ───────────────────────────────────────
 function Pill({ active, onClick, children, color = 'blue' }) {
   const colors = {
-    blue:   active ? 'bg-forest-900 text-white border-forest-700'     : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300',
+    blue:   active ? 'bg-forest-900 text-white border-forest-700'     : 'bg-white text-gray-600 border-gray-200 hover:border-forest-300',
     green:  active ? 'bg-green-600 text-white border-green-600'   : 'bg-white text-gray-600 border-gray-200 hover:border-green-300',
     orange: active ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300',
   }

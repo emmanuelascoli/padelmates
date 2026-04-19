@@ -269,7 +269,7 @@ export default function Leaderboard() {
                           <img
                             src={player.avatar_url}
                             alt={player.name}
-                            className={`w-8 h-8 rounded-full object-cover shrink-0 ${isMe ? 'ring-2 ring-blue-400' : ''}`}
+                            className={`w-8 h-8 rounded-full object-cover shrink-0 ${isMe ? 'ring-2 ring-forest-400' : ''}`}
                           />
                         ) : (
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${

@@ -253,7 +253,7 @@ export default function NewSession() {
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-medium transition-all ${
                 !form.isPrivate
                   ? 'bg-forest-900 text-white border-forest-700 shadow-sm'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-forest-300'
               }`}
             >
               <span>🌍</span> Publique
