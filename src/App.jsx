@@ -16,6 +16,11 @@ import ResetPassword from './pages/ResetPassword'
 import Members from './pages/Members'
 import Admin from './pages/Admin'
 import SessionByToken from './pages/SessionByToken'
+import CGU from './pages/CGU'
+import Confidentialite from './pages/Confidentialite'
+import MentionsLegales from './pages/MentionsLegales'
+import Footer from './components/Footer'
+import CookieBanner from './components/CookieBanner'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -65,6 +70,11 @@ function AppRoutes() {
             {/* Private session access via unique token */}
             <Route path="/partie/:token" element={<SessionByToken />} />
 
+            {/* Legal pages — public, no auth required */}
+            <Route path="/cgu" element={<CGU />} />
+            <Route path="/confidentialite" element={<Confidentialite />} />
+            <Route path="/mentions-legales" element={<MentionsLegales />} />
+
             {/* Protected routes */}
             <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
             <Route path="/sessions/new" element={<ProtectedRoute><NewSession /></ProtectedRoute>} />
@@ -77,7 +87,9 @@ function AppRoutes() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
+        <Footer />
       </div>
+      <CookieBanner />
     </BrowserRouter>
   )
 }

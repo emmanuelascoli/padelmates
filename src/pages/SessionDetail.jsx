@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { format, isPast } from 'date-fns'
@@ -301,6 +301,7 @@ function PublicSessionTeaser({ session, participantCount }) {
 export default function SessionDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user, role, isAdmin } = useAuth()
   const [linkCopied, setLinkCopied] = useState(false)
 
@@ -310,11 +311,19 @@ export default function SessionDetail() {
   const [matches, setMatches] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [leaveFromEmail, setLeaveFromEmail] = useState(false)
   const [showMatchForm, setShowMatchForm] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
   const [tab, setTab] = useState('info')
 
   useEffect(() => { fetchAll() }, [id])
+
+  // Désinscription depuis le lien email (?action=leave)
+  useEffect(() => {
+    if (searchParams.get('action') === 'leave' && user && !loading) {
+      setLeaveFromEmail(true)
+    }
+  }, [searchParams, user, loading])
 
   async function fetchAll() {
     setLoading(true)
@@ -390,6 +399,9 @@ export default function SessionDetail() {
     await supabase.from('session_participants').insert({ session_id: id, user_id: user.id, payment_status: 'pending' })
     await fetchParticipants()
     setActionLoading(false)
+    // Email de confirmation (fire-and-forget, ne bloque pas l'UX)
+    supabase.functions.invoke('send-confirmation', { body: { sessionId: id, userId: user.id } })
+      .catch(() => {}) // silencieux si l'envoi échoue
   }
 
   async function handleLeave() {
@@ -457,6 +469,36 @@ export default function SessionDetail() {
 
   return (
     <div className="max-w-lg mx-auto space-y-5">
+
+      {/* Banner désinscription depuis email */}
+      {leaveFromEmail && isParticipant && !isOrganizer && session?.status !== 'cancelled' && !isPastSession && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+          <p className="font-semibold text-orange-900 text-sm mb-1">📧 Demande de désinscription</p>
+          <p className="text-orange-700 text-sm mb-3">Tu souhaites te désinscrire de cette partie ?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                setActionLoading(true)
+                await supabase.from('session_participants').delete().eq('session_id', id).eq('user_id', user.id)
+                await Promise.all([fetchParticipants(), fetchWaitlist()])
+                setLeaveFromEmail(false)
+                setActionLoading(false)
+              }}
+              disabled={actionLoading}
+              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+            >
+              Oui, me désinscrire
+            </button>
+            <button
+              onClick={() => setLeaveFromEmail(false)}
+              className="flex-1 bg-white border border-orange-200 text-orange-700 text-sm font-medium py-2.5 rounded-xl"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Back */}
       <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

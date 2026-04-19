@@ -15,8 +15,9 @@ export default function ProfileSetup() {
     phone: '',
     level: '3',
   })
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
+  const [cguAccepted, setCguAccepted] = useState(false)
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -27,6 +28,10 @@ export default function ProfileSetup() {
     e.preventDefault()
     if (!form.name.trim() || form.name.trim().length < 2) {
       setError('Le prénom et nom sont obligatoires (minimum 2 caractères).')
+      return
+    }
+    if (!cguAccepted) {
+      setError('Tu dois accepter les CGU et la politique de confidentialité pour continuer.')
       return
     }
     setLoading(true); setError('')
@@ -112,7 +117,28 @@ export default function ProfileSetup() {
             </select>
           </div>
 
-          <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
+          {/* Case CGU obligatoire */}
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <div
+              onClick={() => setCguAccepted(v => !v)}
+              className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors shrink-0 mt-0.5 ${cguAccepted ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
+            >
+              {cguAccepted && (
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm text-gray-600 leading-snug">
+              J'accepte les{' '}
+              <a href="/cgu" target="_blank" className="text-blue-600 hover:underline font-medium">CGU</a>
+              {' '}et la{' '}
+              <a href="/confidentialite" target="_blank" className="text-blue-600 hover:underline font-medium">politique de confidentialité</a>
+              {' '}<span className="text-red-500">*</span>
+            </span>
+          </label>
+
+          <button type="submit" disabled={loading || !cguAccepted} className="btn-primary w-full mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? 'Création…' : 'Rejoindre PadelMates →'}
           </button>
         </form>

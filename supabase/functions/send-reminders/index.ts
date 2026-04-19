@@ -1,123 +1,233 @@
-// Edge Function Supabase : envoi des rappels email la veille des parties
+// Edge Function : rappels automatiques et relance organisateur
+// Déclenchée toutes les heures par pg_cron (voir migration12_notifications.sql)
+//
+// Ce qu'elle fait :
+//   1. Rappel 24h avant : email à chaque participant
+//   2. Relance J-2 : email à l'organisateur si la partie n'est pas complète
+//
 // Déploiement : supabase functions deploy send-reminders
-// Variable d'env requise : RESEND_API_KEY (https://resend.com — gratuit jusqu'à 3000 emails/mois)
+// Variables d'env : RESEND_API_KEY, APP_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import {
+  APP_URL,
+  formatDateFr,
+  buildICS,
+  googleCalendarUrl,
+  outlookCalendarUrl,
+  sendEmail,
+  emailWrapper,
+  sessionInfoBlock,
+  playersBlock,
+  ctaButton,
+  calendarButtons,
+} from '../_shared/email-helpers.ts'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
-const APP_URL = Deno.env.get('APP_URL') || 'https://padelmates.ch'
-
 Deno.serve(async () => {
-  try {
-    // Trouver les parties de demain
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowStr = tomorrow.toISOString().split('T')[0]
+  const now = new Date()
+  let totalSent = 0
+  const errors: string[] = []
 
-    const { data: sessions, error: sessionsError } = await supabase
+  // ── 1. RAPPEL 24H AVANT ───────────────────────────────────────────────────
+  // Fenêtre : sessions dont le début est dans 23h30–24h30 à partir de maintenant
+  try {
+    const winStart = new Date(now.getTime() + 23.5 * 3600000)
+    const winEnd   = new Date(now.getTime() + 24.5 * 3600000)
+
+    // On construit deux filtres date+time pour couvrir la fenêtre
+    // Simplification : on filtre par date et on vérifie l'heure en mémoire
+    const tomorrowStr = winStart.toISOString().split('T')[0]
+
+    const { data: sessions24h } = await supabase
       .from('sessions')
       .select('*, organizer:profiles!sessions_organizer_id_fkey(name)')
       .eq('date', tomorrowStr)
       .eq('status', 'open')
 
-    if (sessionsError) throw sessionsError
-    if (!sessions || sessions.length === 0) {
-      return new Response(JSON.stringify({ message: 'Aucune partie demain.' }), { status: 200 })
-    }
+    for (const session of sessions24h ?? []) {
+      const sessionDt = new Date(`${session.date}T${session.time}`)
+      if (sessionDt < winStart || sessionDt > winEnd) continue
 
-    let totalSent = 0
-
-    for (const session of sessions) {
-      // Récupérer les participants avec leur email
+      // Participants
       const { data: participants } = await supabase
         .from('session_participants')
-        .select('profiles(name, id), user_email:auth.users(email)')
+        .select('user_id, profiles(name)')
         .eq('session_id', session.id)
 
-      // Récupérer les emails depuis auth.users
-      const { data: participantProfiles } = await supabase
-        .from('session_participants')
-        .select('user_id')
-        .eq('session_id', session.id)
+      if (!participants?.length) continue
 
-      if (!participantProfiles) continue
+      const firstNames = participants
+        .map((p: Record<string, Record<string, string>>) => p.profiles?.name?.split(' ')[0])
+        .filter(Boolean) as string[]
 
-      const userIds = participantProfiles.map(p => p.user_id)
+      const dateStr  = formatDateFr(session.date, session.time)
+      const gcal     = googleCalendarUrl(session)
+      const outlook  = outlookCalendarUrl(session)
+      const icsB64   = btoa(buildICS(session))
+      const sessionUrl = `${APP_URL}/sessions/${session.id}`
 
-      // Récupérer les profils + emails
-      const { data: { users } } = await supabase.auth.admin.listUsers()
-      const participantUsers = users.filter(u => userIds.includes(u.id))
+      for (const p of participants) {
+        // Anti-doublon
+        const { data: already } = await supabase
+          .from('notification_log')
+          .select('id')
+          .eq('type', 'reminder_24h')
+          .eq('user_id', p.user_id)
+          .eq('session_id', session.id)
+          .maybeSingle()
+        if (already) continue
 
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', userIds)
+        const { data: { user } } = await supabase.auth.admin.getUserById(p.user_id)
+        if (!user?.email) continue
 
-      const nameMap = Object.fromEntries((profiles || []).map(p => [p.id, p.name]))
+        const displayName = (p.profiles as Record<string, string>)?.name?.split(' ')[0] ?? 'Joueur'
 
-      for (const u of participantUsers) {
-        if (!u.email) continue
+        const body = `
+          <p style="color:#374151;margin:0 0 4px 0;">Bonjour <strong>${displayName}</strong> 👋</p>
+          <p style="color:#374151;margin:0 0 20px 0;">Ta partie de padel est <strong>demain</strong> — tout est prêt ?</p>
 
-        const name = nameMap[u.id] || 'Joueur'
-        const sessionUrl = `${APP_URL}/sessions/${session.id}`
+          ${sessionInfoBlock(session, dateStr)}
+          ${playersBlock(firstNames)}
 
-        const emailHtml = `
-          <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #2563eb, #4f46e5); border-radius: 16px; padding: 24px; color: white; text-align: center; margin-bottom: 24px;">
-              <div style="font-size: 40px; margin-bottom: 8px;">🎾</div>
-              <h1 style="margin: 0; font-size: 22px;">Rappel — Partie demain !</h1>
-            </div>
+          ${calendarButtons(gcal, outlook)}
+          ${ctaButton('Voir la partie →', sessionUrl)}
 
-            <p style="color: #374151;">Bonjour <strong>${name}</strong>,</p>
-            <p style="color: #374151;">Tu as une partie de padel demain. Voici les détails :</p>
-
-            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 20px; margin: 20px 0;">
-              <p style="margin: 4px 0; color: #0c4a6e;">📅 <strong>${session.date}</strong> à ${session.time}</p>
-              ${session.duration ? `<p style="margin: 4px 0; color: #0c4a6e;">⏱ Durée : ${session.duration}</p>` : ''}
-              <p style="margin: 4px 0; color: #0c4a6e;">📍 ${session.location}</p>
-              ${session.cost_per_player > 0 ? `<p style="margin: 4px 0; color: #0c4a6e;">💰 ${session.cost_per_player} CHF / joueur</p>` : ''}
-            </div>
-
-            <div style="text-align: center; margin: 24px 0;">
-              <a href="${sessionUrl}" style="background: #2563eb; color: white; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: bold;">
-                Voir la partie →
-              </a>
-            </div>
-
-            <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-              PadelMates — ${APP_URL}
-            </p>
+          <div style="border-top:1px solid #f3f4f6;padding-top:16px;margin-top:8px;text-align:center;">
+            <a href="${sessionUrl}?action=leave" style="font-size:12px;color:#9ca3af;text-decoration:none;">
+              Me désinscrire
+            </a>
           </div>
         `
+        const html = emailWrapper('⏰', 'Ta partie est demain !', body)
 
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'PadelMates <rappels@padelmates.ch>',
-            to: u.email,
-            subject: `🎾 Rappel — Partie demain à ${session.time} · ${session.location}`,
-            html: emailHtml,
-          }),
+        const ok = await sendEmail({
+          to: user.email,
+          subject: `⏰ Demain — Padel à ${(session.time as string).substring(0, 5)} · ${session.location}`,
+          html,
+          attachments: [{ filename: `padel-${session.date}.ics`, content: icsB64 }],
         })
 
+        if (ok) {
+          await supabase.from('notification_log').insert({
+            type: 'reminder_24h',
+            user_id: p.user_id,
+            session_id: session.id,
+          })
+          totalSent++
+        }
+      }
+    }
+  } catch (e) {
+    errors.push(`reminder_24h: ${(e as Error).message}`)
+  }
+
+  // ── 2. RELANCE ORGANISATEUR J-2 ───────────────────────────────────────────
+  // Fenêtre : sessions dans 47h30–48h30 qui ne sont pas complètes
+  try {
+    const win2Start = new Date(now.getTime() + 47.5 * 3600000)
+    const win2End   = new Date(now.getTime() + 48.5 * 3600000)
+    const in2daysStr = win2Start.toISOString().split('T')[0]
+
+    const { data: sessions2d } = await supabase
+      .from('sessions')
+      .select('*, organizer:profiles!sessions_organizer_id_fkey(id, name), session_participants(id)')
+      .eq('date', in2daysStr)
+      .eq('status', 'open')
+
+    for (const session of sessions2d ?? []) {
+      const sessionDt = new Date(`${session.date}T${session.time}`)
+      if (sessionDt < win2Start || sessionDt > win2End) continue
+
+      const participantCount = (session.session_participants as unknown[])?.length ?? 0
+      const spotsLeft = session.max_players - participantCount
+      if (spotsLeft <= 0) continue  // Partie complète, pas de relance
+
+      const organizerId = (session.organizer as Record<string, string>)?.id
+      if (!organizerId) continue
+
+      // Anti-doublon
+      const { data: already } = await supabase
+        .from('notification_log')
+        .select('id')
+        .eq('type', 'organizer_nudge')
+        .eq('user_id', organizerId)
+        .eq('session_id', session.id)
+        .maybeSingle()
+      if (already) continue
+
+      const { data: { user } } = await supabase.auth.admin.getUserById(organizerId)
+      if (!user?.email) continue
+
+      const orgName = (session.organizer as Record<string, string>)?.name?.split(' ')[0] ?? 'Organisateur'
+      const dateStr    = formatDateFr(session.date, session.time)
+      const sessionUrl = `${APP_URL}/sessions/${session.id}`
+      const privateToken = session.private_token
+      const shareUrl = privateToken
+        ? `${APP_URL}/partie/${privateToken}`
+        : sessionUrl
+
+      // Message WhatsApp pré-rempli
+      const waText = encodeURIComponent(
+        `🎾 Il reste ${spotsLeft} place${spotsLeft > 1 ? 's' : ''} pour notre partie !\n📅 ${dateStr}\n📍 ${session.location}\n\n➡️ Rejoins-nous : ${shareUrl}`
+      )
+      const waUrl = `https://wa.me/?text=${waText}`
+
+      const body = `
+        <p style="color:#374151;margin:0 0 4px 0;">Bonjour <strong>${orgName}</strong> 👋</p>
+        <p style="color:#374151;margin:0 0 20px 0;">
+          Ta partie est dans <strong>2 jours</strong> et il manque encore
+          <strong>${spotsLeft} joueur${spotsLeft > 1 ? 's' : ''}</strong> pour la compléter.
+        </p>
+
+        ${sessionInfoBlock(session, dateStr)}
+
+        <div style="background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:12px 16px;margin:16px 0;">
+          <p style="margin:0;color:#854d0e;font-size:14px;">
+            🟡 <strong>${participantCount}/${session.max_players} joueurs</strong> inscrits — encore ${spotsLeft} place${spotsLeft > 1 ? 's' : ''} à remplir.
+          </p>
+        </div>
+
+        <div style="text-align:center;margin:20px 0;">
+          <a href="${waUrl}" style="display:inline-block;background:#25D366;color:#ffffff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">
+            📲 Partager sur WhatsApp
+          </a>
+        </div>
+
+        ${ctaButton('Voir la partie →', sessionUrl, '#2563eb')}
+
+        <p style="color:#9ca3af;font-size:12px;text-align:center;margin-top:4px;">
+          Tu peux aussi copier le lien et l'envoyer directement :
+          <a href="${shareUrl}" style="color:#6b7280;">${shareUrl}</a>
+        </p>
+      `
+      const html = emailWrapper('🔔', `Il manque ${spotsLeft} joueur${spotsLeft > 1 ? 's' : ''} !`, body)
+
+      const ok = await sendEmail({
+        to: user.email,
+        subject: `🔔 Il manque ${spotsLeft} joueur${spotsLeft > 1 ? 's' : ''} — ta partie dans 2 jours · ${session.location}`,
+        html,
+      })
+
+      if (ok) {
+        await supabase.from('notification_log').insert({
+          type: 'organizer_nudge',
+          user_id: organizerId,
+          session_id: session.id,
+        })
         totalSent++
       }
     }
-
-    return new Response(
-      JSON.stringify({ message: `${totalSent} rappel(s) envoyé(s) pour ${sessions.length} partie(s).` }),
-      { status: 200 }
-    )
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
+  } catch (e) {
+    errors.push(`organizer_nudge: ${(e as Error).message}`)
   }
+
+  return new Response(
+    JSON.stringify({ sent: totalSent, errors }),
+    { status: errors.length ? 207 : 200, headers: { 'Content-Type': 'application/json' } }
+  )
 })
