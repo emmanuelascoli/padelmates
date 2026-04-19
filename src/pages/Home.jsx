@@ -33,49 +33,63 @@ function SessionCard({ session, userId }) {
   const isPastSession = isPast(date)
   const isRegistered = (session.session_participants || []).some(p => p.user_id === userId)
 
-  let dateLabel = format(date, 'EEEE d MMMM', { locale: fr })
-  if (isToday(date)) dateLabel = "Aujourd'hui"
-  if (isTomorrow(date)) dateLabel = 'Demain'
+  // Special day label for today/tomorrow
+  let dayLabel = format(date, 'EEE', { locale: fr })
+  if (isToday(date)) dayLabel = "Auj."
+  if (isTomorrow(date)) dayLabel = 'Dem.'
 
   return (
     <Link to={`/sessions/${session.id}`} className="card hover:shadow-md transition-shadow block">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="font-semibold text-gray-900 truncate">{session.title}</span>
-            {isRegistered && (
-              <span className="badge bg-green-100 text-green-700">✓ Inscrit</span>
-            )}
-            {!isPastSession && isFull && !isRegistered && (
-              <span className="badge bg-orange-100 text-orange-600">Complet</span>
-            )}
-            {!isPastSession && !isFull && !isRegistered && (
-              <span className="badge bg-blue-100 text-blue-700">Ouvert</span>
-            )}
-            {isPastSession && (
-              <span className="badge bg-gray-100 text-gray-500">Terminée</span>
-            )}
-          </div>
-          <p className="text-sm text-gray-500 capitalize">{dateLabel} à {format(date, 'HH:mm')}</p>
-          <p className="text-sm text-gray-500 truncate">📍 {session.location}</p>
-          {session.organizer?.name && (
-            <p className="text-xs text-gray-400 mt-0.5">
-              👤 {session.organizer.name}
-              {session.organizer.badges?.length > 0 && (
-                <span className="ml-1" title={session.organizer.badges.map(b => BADGES[b]?.label).filter(Boolean).join(', ')}>
-                  {session.organizer.badges.map(b => BADGES[b]?.emoji).filter(Boolean).join('')}
-                </span>
-              )}
-            </p>
-          )}
+      <div className="flex items-stretch gap-3">
+        {/* Date column */}
+        <div className="shrink-0 w-12 flex flex-col items-center justify-center text-center py-1">
+          <span className={`text-xs font-semibold uppercase tracking-wide ${isToday(date) ? 'text-blue-600' : 'text-gray-400'}`}>
+            {dayLabel}
+          </span>
+          <span className="text-2xl font-bold text-gray-900 leading-tight">
+            {format(date, 'd')}
+          </span>
+          <span className="text-xs text-gray-400 capitalize">
+            {format(date, 'MMM', { locale: fr })}
+          </span>
+          <span className="text-xs font-medium text-blue-600 mt-0.5">
+            {format(date, 'HH:mm')}
+          </span>
         </div>
-        <div className="text-right shrink-0">
-          <div className="text-sm font-semibold text-gray-900">
-            {session.cost_per_player > 0 ? `${session.cost_per_player} CHF` : 'Gratuit'}
+
+        {/* Divider */}
+        <div className="w-px bg-gray-100 self-stretch shrink-0" />
+
+        {/* Main content */}
+        <div className="flex-1 min-w-0 py-0.5">
+          <div className="flex items-start justify-between gap-2 mb-0.5">
+            <span className="font-semibold text-gray-900 leading-snug">{session.title}</span>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              {isRegistered && <span className="badge bg-green-100 text-green-700">✓ Inscrit</span>}
+              {!isPastSession && isFull && !isRegistered && <span className="badge bg-orange-100 text-orange-600">Complet</span>}
+              {!isPastSession && !isFull && !isRegistered && <span className="badge bg-blue-100 text-blue-700">Ouvert</span>}
+              {isPastSession && <span className="badge bg-gray-100 text-gray-500">Terminée</span>}
+            </div>
           </div>
+          <p className="text-xs text-gray-400 truncate">📍 {session.location}</p>
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            {session.organizer?.name && (
+              <p className="text-xs text-gray-400">
+                👤 {session.organizer.name}
+                {session.organizer.badges?.length > 0 && (
+                  <span className="ml-1" title={session.organizer.badges.map(b => BADGES[b]?.label).filter(Boolean).join(', ')}>
+                    {session.organizer.badges.map(b => BADGES[b]?.emoji).filter(Boolean).join('')}
+                  </span>
+                )}
+              </p>
+            )}
+            {session.cost_per_player > 0 && (
+              <span className="text-xs font-semibold text-gray-600 shrink-0">{session.cost_per_player} CHF</span>
+            )}
+          </div>
+          <SlotBar current={participantCount} max={session.max_players} />
         </div>
       </div>
-      <SlotBar current={participantCount} max={session.max_players} />
     </Link>
   )
 }

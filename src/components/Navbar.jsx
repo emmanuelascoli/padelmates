@@ -74,13 +74,18 @@ export default function Navbar() {
   return (
     <>
       {/* Desktop top navbar */}
-      <header className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-2xl">🎾</span>
-            <span className="font-bold text-gray-900 text-lg">PadelMates</span>
+      <header className="hidden md:block bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-4xl mx-auto px-6 flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5 mr-6">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm shadow-blue-500/30">
+              <span className="text-lg">🎾</span>
+            </div>
+            <span className="font-bold text-gray-900 text-lg tracking-tight">PadelMates</span>
           </Link>
-          <nav className="flex items-center gap-1">
+
+          {/* Nav items */}
+          <nav className="flex items-center gap-0.5 flex-1">
             {NAV_ITEMS.map(item => {
               const active = isActive(item)
               const isProfile = item.to === '/profile'
@@ -88,12 +93,17 @@ export default function Navbar() {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    active ? 'bg-blue-50 text-blue-800' : 'text-gray-600 hover:bg-gray-100'
+                  className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
+                    active
+                      ? 'text-blue-700 bg-blue-50'
+                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
                   }`}
                 >
                   {item.icon(active)}
                   {item.label}
+                  {active && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-blue-600 rounded-full" />
+                  )}
                   {isProfile && pendingCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                       {pendingCount > 9 ? '9+' : pendingCount}
@@ -105,11 +115,13 @@ export default function Navbar() {
             {isAdmin && (
               <Link
                 to="/admin"
-                className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                  location.pathname === '/admin' ? 'bg-purple-50 text-purple-800' : 'text-gray-600 hover:bg-gray-100'
+                className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
+                  location.pathname === '/admin'
+                    ? 'text-purple-700 bg-purple-50'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
                 }`}
               >
-                <svg className={`w-5 h-5 ${location.pathname === '/admin' ? 'text-purple-700' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <svg className={`w-5 h-5 ${location.pathname === '/admin' ? 'text-purple-600' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
@@ -117,14 +129,24 @@ export default function Navbar() {
               </Link>
             )}
           </nav>
+
+          {/* CTA */}
+          <Link to="/sessions/new" className="btn-primary text-sm py-2 px-4 gap-1.5 ml-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Créer
+          </Link>
         </div>
       </header>
 
       {/* Mobile top bar */}
-      <header className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-50">
+      <header className="md:hidden bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
         <div className="px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🎾</span>
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+              <span className="text-sm">🎾</span>
+            </div>
             <span className="font-bold text-gray-900">PadelMates</span>
           </div>
           <div className="flex items-center gap-2">
@@ -137,7 +159,7 @@ export default function Navbar() {
               </Link>
             )}
             {isAdmin && (
-              <Link to="/admin" className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border ${
+              <Link to="/admin" className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
                 location.pathname === '/admin'
                   ? 'bg-purple-100 border-purple-200 text-purple-700'
                   : 'bg-white border-gray-200 text-gray-600'
@@ -145,12 +167,15 @@ export default function Navbar() {
                 👑 Admin
               </Link>
             )}
+            <Link to="/sessions/new" className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white">
+              + Créer
+            </Link>
           </div>
         </div>
       </header>
 
       {/* Mobile bottom navbar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 shadow-[0_-1px_8px_rgba(0,0,0,0.06)]">
         <div className="flex">
           {NAV_ITEMS.map(item => {
             const active = isActive(item)
@@ -159,14 +184,18 @@ export default function Navbar() {
               <Link
                 key={item.to}
                 to={item.to}
-                className="relative flex-1 flex flex-col items-center py-2 gap-0.5"
+                className="relative flex-1 flex flex-col items-center pt-3 pb-2 gap-0.5"
               >
+                {/* Active top indicator */}
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" />
+                )}
                 {item.icon(active)}
-                <span className={`text-xs ${active ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
+                <span className={`text-xs ${active ? 'text-blue-700 font-semibold' : 'text-gray-400'}`}>
                   {item.label}
                 </span>
                 {isProfile && pendingCount > 0 && (
-                  <span className="absolute top-1 right-1/4 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  <span className="absolute top-2 right-1/4 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                     {pendingCount > 9 ? '9+' : pendingCount}
                   </span>
                 )}
