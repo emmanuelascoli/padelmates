@@ -312,6 +312,8 @@ export default function SessionDetail() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [leaveFromEmail, setLeaveFromEmail] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [showMatchForm, setShowMatchForm] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
   const [tab, setTab] = useState('info')
@@ -406,8 +408,8 @@ export default function SessionDetail() {
   }
 
   async function handleLeave() {
-    if (!confirm('Quitter cette partie ?')) return
     setActionLoading(true)
+    setShowLeaveConfirm(false)
     await supabase.from('session_participants').delete().eq('session_id', id).eq('user_id', user.id)
     await Promise.all([fetchParticipants(), fetchWaitlist()])
     setActionLoading(false)
@@ -450,25 +452,28 @@ export default function SessionDetail() {
   }
 
   // Twint payment: copy phone + open app + show toast
-  async function handleTwintPay() {
+  // Must stay synchronous — browsers block custom URL schemes if called after async/await
+  function handleTwintPay() {
     if (session?.organizer?.phone) {
-      try { await navigator.clipboard.writeText(session.organizer.phone) } catch (_) { /* ignore */ }
+      // Fire-and-forget clipboard write (no await — keeps user gesture active)
+      navigator.clipboard.writeText(session.organizer.phone).catch(() => {})
     }
     setTwintCopied(true)
     setTimeout(() => setTwintCopied(false), 5000)
-    setTimeout(() => { window.location.href = 'twint://' }, 200)
+    // Navigate synchronously within user gesture — Safari/Chrome will honour twint://
+    window.location.href = 'twint://'
   }
 
   async function handleCancelSession() {
-    if (!confirm('Annuler cette partie ?')) return
     setActionLoading(true)
-    await supabase.from('sessions').update({ status: 'cancelled' }).eq('id', id)
+    setShowCancelConfirm(false)
+    const { error: cancelErr } = await supabase.from('sessions').update({ status: 'cancelled' }).eq('id', id)
+    if (cancelErr) console.error('Cancel error:', cancelErr)
     await fetchSession()
     setActionLoading(false)
   }
 
   async function handleDeleteMatch(matchId) {
-    if (!confirm('Supprimer ce match ?')) return
     await supabase.from('matches').delete().eq('id', matchId)
     await fetchMatches()
   }
@@ -594,22 +599,63 @@ export default function SessionDetail() {
               {actionLoading ? '…' : 'Quitter la liste d\'attente'}
             </button>
           )}
-          {canLeave && (
-            <button onClick={handleLeave} disabled={actionLoading}
+          {canLeave && !showLeaveConfirm && (
+            <button onClick={() => setShowLeaveConfirm(true)} disabled={actionLoading}
               className="flex-1 bg-white hover:bg-red-50 text-red-500 font-medium text-sm py-2.5 rounded-xl border border-red-200 transition-colors disabled:opacity-50">
-              {actionLoading ? '…' : 'Se désinscrire'}
+              Se désinscrire
             </button>
+          )}
+          {canLeave && showLeaveConfirm && (
+            <div className="w-full bg-red-50 border border-red-200 rounded-xl p-3 space-y-2">
+              <p className="text-sm font-semibold text-red-800">Confirmer la désinscription ?</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleLeave}
+                  disabled={actionLoading}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {actionLoading ? '…' : 'Oui, me désinscrire'}
+                </button>
+                <button
+                  onClick={() => setShowLeaveConfirm(false)}
+                  className="flex-1 bg-white border border-red-200 text-red-600 text-sm font-medium py-2 rounded-xl"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
           )}
           {leaveBlockedReason && (
             <div className="w-full bg-orange-50 border border-orange-200 text-orange-700 text-xs px-3 py-2 rounded-xl">
               ⏱ {leaveBlockedReason}
             </div>
           )}
-          {canCancelSession && (
-            <button onClick={handleCancelSession} disabled={actionLoading}
+          {canCancelSession && !showCancelConfirm && (
+            <button onClick={() => setShowCancelConfirm(true)} disabled={actionLoading}
               className="bg-white hover:bg-red-50 text-red-500 font-medium text-xs py-2 px-3 rounded-xl border border-red-200 transition-colors disabled:opacity-50">
               {isAdmin && !isOrganizer ? '👑 Annuler (admin)' : 'Annuler la partie'}
             </button>
+          )}
+          {canCancelSession && showCancelConfirm && (
+            <div className="w-full bg-red-50 border border-red-200 rounded-xl p-3 space-y-2">
+              <p className="text-sm font-semibold text-red-800">Annuler définitivement cette partie ?</p>
+              <p className="text-xs text-red-600">Tous les joueurs inscrits seront notifiés.</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCancelSession}
+                  disabled={actionLoading}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {actionLoading ? '…' : 'Oui, annuler la partie'}
+                </button>
+                <button
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="flex-1 bg-white border border-red-200 text-red-600 text-sm font-medium py-2 rounded-xl"
+                >
+                  Garder
+                </button>
+              </div>
+            </div>
           )}
         </div>
 

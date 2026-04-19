@@ -346,6 +346,7 @@ function TabParties() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('upcoming')
   const [actionLoading, setActionLoading] = useState(null)
+  const [confirmCancelId, setConfirmCancelId] = useState(null)
 
   useEffect(() => { fetchSessions() }, [])
 
@@ -361,7 +362,7 @@ function TabParties() {
   }
 
   async function handleCancelSession(sessionId) {
-    if (!confirm('Annuler cette partie ? (action admin)')) return
+    setConfirmCancelId(null)
     setActionLoading(sessionId)
     await supabase.from('sessions').update({ status: 'cancelled' }).eq('id', sessionId)
     setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'cancelled' } : s))
@@ -369,7 +370,6 @@ function TabParties() {
   }
 
   async function handleReopenSession(sessionId) {
-    if (!confirm('Réouvrir cette partie ?')) return
     setActionLoading(sessionId)
     await supabase.from('sessions').update({ status: 'open' }).eq('id', sessionId)
     setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'open' } : s))
@@ -444,14 +444,31 @@ function TabParties() {
                     <p className="text-xs text-gray-400">👤 {s.organizer?.name}</p>
                   </div>
                   <div className="shrink-0 flex flex-col items-end gap-1.5">
-                    {s.status !== 'cancelled' && !past && (
+                    {s.status !== 'cancelled' && !past && confirmCancelId !== s.id && (
                       <button
-                        onClick={() => handleCancelSession(s.id)}
+                        onClick={() => setConfirmCancelId(s.id)}
                         disabled={actionLoading === s.id}
                         className="text-xs px-2.5 py-1 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
                       >
                         {actionLoading === s.id ? '…' : 'Annuler'}
                       </button>
+                    )}
+                    {s.status !== 'cancelled' && !past && confirmCancelId === s.id && (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleCancelSession(s.id)}
+                          disabled={actionLoading === s.id}
+                          className="text-xs px-2 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50"
+                        >
+                          {actionLoading === s.id ? '…' : 'Confirmer'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmCancelId(null)}
+                          className="text-xs px-2 py-1 bg-white text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                          Non
+                        </button>
+                      </div>
                     )}
                     {s.status === 'cancelled' && (
                       <button
