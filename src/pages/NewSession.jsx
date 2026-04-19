@@ -14,7 +14,7 @@ const DURATIONS = [
 
 export default function NewSession() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -43,6 +43,9 @@ export default function NewSession() {
   const costPerPlayer = form.total_cost
     ? (parseFloat(form.total_cost) / 4).toFixed(2)
     : null
+
+  // Vérification des moyens de paiement configurés
+  const hasPaymentInfo = !!(profile?.revolut_tag || profile?.phone)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -193,6 +196,23 @@ export default function NewSession() {
               <p className="text-sm text-blue-800">
                 Chaque joueur rembourse <strong>{costPerPlayer} CHF</strong>
               </p>
+            </div>
+          )}
+          {costPerPlayer && parseFloat(costPerPlayer) > 0 && !hasPaymentInfo && (
+            <div className="mt-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+              <p className="text-sm font-semibold text-orange-800 mb-1">
+                💳 Configure tes moyens de paiement
+              </p>
+              <p className="text-sm text-orange-700">
+                Pour recevoir les remboursements via Twint ou Revolut, renseigne tes coordonnées dans ton profil.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/profile')}
+                className="mt-2 text-xs font-semibold text-orange-700 underline hover:text-orange-900 transition-colors"
+              >
+                Configurer maintenant →
+              </button>
             </div>
           )}
         </div>

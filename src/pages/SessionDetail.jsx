@@ -315,6 +315,7 @@ export default function SessionDetail() {
   const [showMatchForm, setShowMatchForm] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
   const [tab, setTab] = useState('info')
+  const [twintCopied, setTwintCopied] = useState(false)
 
   useEffect(() => { fetchAll() }, [id])
 
@@ -334,7 +335,7 @@ export default function SessionDetail() {
   async function fetchSession() {
     const { data } = await supabase
       .from('sessions')
-      .select('*, organizer:profiles!sessions_organizer_id_fkey(id, name, phone, level), is_private, private_token')
+      .select('*, organizer:profiles!sessions_organizer_id_fkey(id, name, phone, revolut_tag, level), is_private, private_token')
       .eq('id', id).single()
     setSession(data)
   }
@@ -426,10 +427,36 @@ export default function SessionDetail() {
     setActionLoading(false)
   }
 
+  // Organizer confirms a player's payment (or cycles back)
   async function togglePayment(participantId, currentStatus) {
+    const now = new Date().toISOString()
     const next = currentStatus === 'confirmed' ? 'pending' : currentStatus === 'paid' ? 'confirmed' : 'paid'
-    await supabase.from('session_participants').update({ payment_status: next }).eq('id', participantId)
+    const extra = next === 'confirmed' ? { payment_confirmed_at: now } : next === 'paid' ? { payment_declared_at: now } : {}
+    await supabase.from('session_participants').update({ payment_status: next, ...extra }).eq('id', participantId)
     await fetchParticipants()
+  }
+
+  // Participant declares they have paid
+  async function handleDeclarePayment() {
+    const me = participants.find(p => p.user_id === user?.id)
+    if (!me) return
+    setActionLoading(true)
+    await supabase.from('session_participants').update({
+      payment_status: 'paid',
+      payment_declared_at: new Date().toISOString(),
+    }).eq('id', me.id)
+    await fetchParticipants()
+    setActionLoading(false)
+  }
+
+  // Twint payment: copy phone + open app + show toast
+  async function handleTwintPay() {
+    if (session?.organizer?.phone) {
+      try { await navigator.clipboard.writeText(session.organizer.phone) } catch (_) { /* ignore */ }
+    }
+    setTwintCopied(true)
+    setTimeout(() => setTwintCopied(false), 5000)
+    setTimeout(() => { window.location.href = 'twint://' }, 200)
   }
 
   async function handleCancelSession() {
@@ -464,8 +491,14 @@ export default function SessionDetail() {
     return <PublicSessionTeaser session={session} participantCount={participants.length} />
   }
 
-  const paymentStatusLabel = { pending: 'En attente', paid: 'Payé', confirmed: 'Confirmé' }
-  const paymentStatusColor = { pending: 'bg-yellow-100 text-yellow-700', paid: 'bg-blue-100 text-blue-700', confirmed: 'bg-blue-100 text-blue-800' }
+  const myParticipant = participants.find(p => p.user_id === user?.id)
+
+  const paymentStatusLabel  = { pending: '⏳ En attente', paid: '💸 Déclaré', confirmed: '✅ Confirmé' }
+  const paymentStatusColor  = {
+    pending:   'bg-yellow-50 text-yellow-700 border border-yellow-200',
+    paid:      'bg-orange-50 text-orange-700 border border-orange-200',
+    confirmed: 'bg-green-50  text-green-700  border border-green-200',
+  }
 
   return (
     <div className="max-w-lg mx-auto space-y-5">
@@ -778,42 +811,148 @@ export default function SessionDetail() {
             ))
           )}
 
-          {/* Remboursement info */}
-          {session.cost_per_player > 0 && participants.length > 0 && (
-            <div className="card bg-blue-50 border-blue-100">
-              <h4 className="text-sm font-semibold text-blue-800 mb-2">💳 Remboursement</h4>
-              <p className="text-sm text-blue-700 mb-3">
-                Chaque joueur doit <strong>{session.cost_per_player} CHF</strong> à{' '}
-                <strong>{session.organizer?.name}</strong>.
-              </p>
-              {session.organizer?.phone && !isOrganizer && (
-                <div className="flex gap-2">
-                  <a
-                    href={`https://wa.me/${session.organizer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour, je t'envoie ${session.cost_per_player} CHF pour la partie de padel du ${session.date}.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white text-xs font-semibold py-2 px-3 rounded-xl transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                    Payer via WhatsApp
-                  </a>
-                  <a
-                    href={`tel:${session.organizer.phone}`}
-                    className="flex items-center justify-center gap-1.5 bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-semibold py-2 px-3 rounded-xl transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 7V5z" />
-                    </svg>
-                    Appeler
-                  </a>
+          {/* ── PAYMENT SECTION ───────────────────────────────── */}
+          {session.cost_per_player > 0 && (
+
+            /* ── Participant : Régler ma part ── */
+            isParticipant && !isOrganizer ? (
+              <div className="card border-blue-100">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-blue-900">💳 Ta part</h4>
+                  <span className="text-lg font-bold text-blue-700">{session.cost_per_player} CHF</span>
                 </div>
-              )}
-              {isOrganizer && (
-                <p className="text-xs text-blue-500 mt-1">Clique sur le badge de paiement d'un joueur pour confirmer la réception.</p>
-              )}
-            </div>
+
+                {/* Status : Confirmé */}
+                {myParticipant?.payment_status === 'confirmed' && (
+                  <div className="flex items-center gap-2.5 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                    <span className="text-2xl">✅</span>
+                    <div>
+                      <p className="text-sm font-semibold text-green-800">Paiement confirmé !</p>
+                      <p className="text-xs text-green-600">{session.organizer?.name} a bien reçu ta part.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Status : Déclaré — en attente de confirmation */}
+                {myParticipant?.payment_status === 'paid' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2.5 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+                      <span className="text-2xl">⏳</span>
+                      <div>
+                        <p className="text-sm font-semibold text-orange-800">En attente de confirmation</p>
+                        <p className="text-xs text-orange-600">{session.organizer?.name} doit valider la réception.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleDeclarePayment}
+                      disabled={actionLoading}
+                      className="w-full text-xs text-gray-400 hover:text-gray-600 underline text-center py-1 transition-colors"
+                    >
+                      Annuler — je n'ai pas encore payé
+                    </button>
+                  </div>
+                )}
+
+                {/* Status : En attente — afficher les boutons de paiement */}
+                {myParticipant?.payment_status === 'pending' && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Rembourse <strong>{session.organizer?.name}</strong> via :
+                    </p>
+
+                    {/* Boutons de paiement */}
+                    <div className="flex gap-2 flex-wrap">
+                      {/* Revolut */}
+                      {session.organizer?.revolut_tag && (
+                        <a
+                          href={`https://revolut.me/${session.organizer.revolut_tag}/${session.cost_per_player}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-[#191C1F] hover:bg-[#2e3338] text-white text-sm font-semibold py-3 px-4 rounded-xl transition-colors shadow-sm"
+                        >
+                          {/* Revolut logo approximation */}
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M21.507 8.442c-.07-4.715-3.85-8.44-8.507-8.44H3v24l4-4V4h5.674c2.52 0 4.593 1.912 4.826 4.37a4.76 4.76 0 0 1-4.75 5.13H9.5V17h3.5l4 4h4l-4-4.322A8.454 8.454 0 0 0 21.507 8.442z"/>
+                          </svg>
+                          Revolut
+                        </a>
+                      )}
+                      {/* Twint */}
+                      {session.organizer?.phone && (
+                        <button
+                          onClick={handleTwintPay}
+                          className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-[#E7001C] hover:bg-[#c50018] text-white text-sm font-semibold py-3 px-4 rounded-xl transition-colors shadow-sm"
+                        >
+                          <span className="font-black text-base leading-none">T</span>
+                          Twint
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Twint toast */}
+                    {twintCopied && (
+                      <div className="flex items-center gap-2 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-xl animate-fade-in">
+                        <span>📋</span>
+                        <span>Numéro copié ! Colle-le dans Twint pour finaliser.</span>
+                      </div>
+                    )}
+
+                    {/* Fallback : aucun moyen de paiement configuré */}
+                    {!session.organizer?.revolut_tag && !session.organizer?.phone && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-500">
+                        L'organisateur n'a pas encore configuré ses moyens de paiement. Contacte-le directement.
+                      </div>
+                    )}
+
+                    {/* Séparateur */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-px bg-gray-100" />
+                      <span className="text-xs text-gray-400">une fois le paiement effectué</span>
+                      <div className="flex-1 h-px bg-gray-100" />
+                    </div>
+
+                    {/* Bouton "J'ai payé" */}
+                    <button
+                      onClick={handleDeclarePayment}
+                      disabled={actionLoading}
+                      className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-sm font-semibold py-3 rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading ? '…' : '✓ J\'ai payé — en attente de confirmation'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+            ) : isOrganizer && participants.length > 1 ? (
+              /* ── Organisateur : récapitulatif des paiements ── */
+              <div className="card border-gray-100 bg-gray-50">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-semibold text-gray-800">💳 Paiements reçus</h4>
+                  <span className="text-xs text-gray-400">
+                    {participants.filter(p => p.payment_status === 'confirmed').length}/{participants.length} confirmés
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mb-3">
+                  Clique sur <strong>💸 Déclaré</strong> pour confirmer la réception d'un paiement.
+                </p>
+                <div className="space-y-2">
+                  {participants.filter(p => p.user_id !== session.organizer_id).map(p => (
+                    <div key={p.id} className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-gray-700 font-medium truncate">{p.profiles?.name}</span>
+                      <button
+                        onClick={() => togglePayment(p.id, p.payment_status)}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all hover:opacity-80 ${paymentStatusColor[p.payment_status]}`}
+                      >
+                        {paymentStatusLabel[p.payment_status]}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-3">
+                  Total attendu : <strong>{((participants.length - 1) * session.cost_per_player).toFixed(2)} CHF</strong>
+                </p>
+              </div>
+            ) : null
           )}
 
           {/* Liste d'attente */}

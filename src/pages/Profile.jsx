@@ -217,7 +217,7 @@ function DeleteAccountSection({ userEmail, onDeleted }) {
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut, role } = useAuth()
-  const [form, setForm] = useState({ name: '', phone: '', level: '3' })
+  const [form, setForm] = useState({ name: '', phone: '', revolut_tag: '', level: '3' })
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -242,6 +242,7 @@ export default function Profile() {
       setForm({
         name: profile.name || '',
         phone: profile.phone || '',
+        revolut_tag: profile.revolut_tag || '',
         level: profile.level || '3',
       })
     }
@@ -343,6 +344,7 @@ export default function Profile() {
         id: user.id,
         name: form.name.trim(),
         phone: form.phone.trim() || null,
+        revolut_tag: form.revolut_tag.trim().replace(/^@/, '') || null,
         level: form.level,
       })
       if (insertError) { setError(insertError.message); setLoading(false); return }
@@ -350,6 +352,7 @@ export default function Profile() {
       const { error: updateError } = await supabase.from('profiles').update({
         name: form.name.trim(),
         phone: form.phone.trim() || null,
+        revolut_tag: form.revolut_tag.trim().replace(/^@/, '') || null,
         level: form.level,
       }).eq('id', user.id)
       if (updateError) { setError(updateError.message); setLoading(false); return }
@@ -601,10 +604,42 @@ export default function Profile() {
           <label className="label">Prénom et Nom *</label>
           <input type="text" name="name" value={form.name} onChange={handleChange} required className="input" placeholder="Marie Dupont" />
         </div>
-        <div>
-          <label className="label">Téléphone (Twint / Revolut)</label>
-          <input type="tel" name="phone" value={form.phone} onChange={handleChange} className="input" placeholder="+41 79 123 45 67" />
-          <p className="text-xs text-gray-400 mt-1">Visible des autres membres pour les remboursements.</p>
+        {/* Moyens de paiement */}
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center gap-2">
+            <h4 className="text-sm font-semibold text-gray-700">💳 Moyens de paiement</h4>
+            <span className="text-xs text-gray-400">(pour recevoir les remboursements)</span>
+          </div>
+          <div>
+            <label className="label flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-600 text-xs font-bold shrink-0">T</span>
+              Twint — Numéro de téléphone
+            </label>
+            <input type="tel" name="phone" value={form.phone} onChange={handleChange} className="input" placeholder="+41 79 123 45 67" />
+            <p className="text-xs text-gray-400 mt-1">Les participants copieront ce numéro pour t'envoyer leur part.</p>
+          </div>
+          <div>
+            <label className="label flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#191C1F] text-white text-xs font-bold shrink-0">R</span>
+              Revolut — Ton tag
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium select-none">@</span>
+              <input
+                type="text"
+                name="revolut_tag"
+                value={form.revolut_tag}
+                onChange={e => {
+                  setForm({ ...form, revolut_tag: e.target.value.replace(/^@/, '') })
+                  setSaved(false); setError('')
+                }}
+                className="input pl-7"
+                placeholder="ton-tag-revolut"
+                autoComplete="off"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Trouvable dans Revolut → Profil → Partager. Sans le @.</p>
+          </div>
         </div>
         <div>
           <label className="label">Niveau de jeu (officiel padel)</label>
