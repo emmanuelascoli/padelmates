@@ -927,7 +927,7 @@ export default function SessionDetail() {
                     {/* Bouton de paiement Revolut */}
                     {session.organizer?.revolut_tag ? (
                       <a
-                        href={`https://revolut.me/${session.organizer.revolut_tag.replace(/^@/, '')}/${session.cost_per_player}CHF`}
+                        href={`https://revolut.me/${session.organizer.revolut_tag.replace(/^@/, '')}?amount=${session.cost_per_player}&currency=CHF`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 w-full bg-[#191C1F] hover:bg-[#2e3338] text-white text-sm font-semibold py-3.5 px-4 rounded-xl transition-colors shadow-sm"
