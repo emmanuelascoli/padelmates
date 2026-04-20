@@ -31,9 +31,23 @@ function matchesTime(session, active) {
   return [...active].some(key => slots[key])
 }
 
+// Extrait le nom du lieu sans le numéro de terrain
+// "Padel Club - Court 2" → "Padel Club"
+// "Centre Sportif Terrain 3" → "Centre Sportif"
+// "Club du Lac - 4" → "Club du Lac"
+function extractVenue(location) {
+  if (!location) return location
+  return location
+    .replace(/\s*[-–—]\s*(court|terrain|piste|field|salle)\s*\d+\s*$/i, '')
+    .replace(/\s+(court|terrain|piste|field|salle)\s*\d+\s*$/i, '')
+    .replace(/\s*[-–—]\s*\d+\s*$/i, '')
+    .replace(/\s+\d+\s*$/i, '')
+    .trim()
+}
+
 function matchesLocation(session, active) {
   if (active.size === 0) return true
-  return active.has(session.location)
+  return active.has(extractVenue(session.location))
 }
 
 function matchesOpen(session, openOnly) {
@@ -293,8 +307,8 @@ export default function Sessions() {
     matchesOpen(s, openOnly)
   )
 
-  // Lieux uniques dans les sessions chargées (triés alphabétiquement)
-  const uniqueLocations = [...new Set(sessions.map(s => s.location).filter(Boolean))].sort()
+  // Lieux uniques (nom du club uniquement, sans numéro de terrain)
+  const uniqueLocations = [...new Set(sessions.map(s => extractVenue(s.location)).filter(Boolean))].sort()
 
   const showFilters = tab === 'upcoming' || tab === 'past' || tab === 'mine'
 
