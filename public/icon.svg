@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fond vert forêt avec coins arrondis -->
+  <rect width="512" height="512" rx="112" fill="#1A3528"/>
+
+  <!-- Raquette de padel stylisée -->
+  <!-- Tête de raquette (ovale) -->
+  <ellipse cx="248" cy="210" rx="110" ry="130" fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round"/>
+
+  <!-- Cordage horizontal -->
+  <line x1="148" y1="175" x2="348" y2="175" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.6"/>
+  <line x1="140" y1="210" x2="356" y2="210" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.6"/>
+  <line x1="148" y1="245" x2="348" y2="245" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Cordage vertical -->
+  <line x1="210" y1="83" x2="210" y2="337" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.6"/>
+  <line x1="248" y1="80" x2="248" y2="340" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.6"/>
+  <line x1="286" y1="83" x2="286" y2="337" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Manche -->
+  <rect x="228" y="326" width="40" height="110" rx="20" fill="#ffffff"/>
+
+  <!-- Grip (poignée) -->
+  <rect x="232" y="390" width="32" height="46" rx="10" fill="#4CAF6F"/>
+
+  <!-- Balle -->
+  <circle cx="370" cy="355" r="36" fill="#4CAF6F"/>
+  <path d="M348 337 Q370 358 392 337" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+  <path d="M348 373 Q370 352 392 373" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+</svg>
