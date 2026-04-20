@@ -64,25 +64,44 @@ function formatICSDate(date) {
 function buildGoogleCalendarUrl(session) {
   const start = new Date(`${session.date}T${session.time}`)
   const end = new Date(start.getTime() + getDurationMinutes(session.duration) * 60000)
-  const title = encodeURIComponent(`Padel - ${session.location}`)
-  const details = encodeURIComponent('Partie de padel PadelMates')
+  const title = encodeURIComponent(`🎾 Padel - ${session.location}`)
+  const details = encodeURIComponent(
+    `Partie de padel PadelMates\nhttps://padelmates.ch/sessions/${session.id}\n\n⏰ Pense à activer les rappels dans Google Calendar !`
+  )
   const loc = encodeURIComponent(session.location)
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatICSDate(start)}/${formatICSDate(end)}&details=${details}&location=${loc}`
+  // &ctz pour le fuseau horaire suisse
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatICSDate(start)}/${formatICSDate(end)}&details=${details}&location=${loc}&ctz=Europe/Zurich`
 }
 
 function downloadICS(session) {
   const start = new Date(`${session.date}T${session.time}`)
   const end = new Date(start.getTime() + getDurationMinutes(session.duration) * 60000)
+  const uid = `padel-${session.id}-${Date.now()}@padelmates.ch`
   const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//PadelMates//FR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
     'BEGIN:VEVENT',
+    `UID:${uid}`,
     `DTSTART:${formatICSDate(start)}`,
     `DTEND:${formatICSDate(end)}`,
-    `SUMMARY:Padel - ${session.location}`,
-    `DESCRIPTION:Partie de padel PadelMates`,
+    `SUMMARY:🎾 Padel - ${session.location}`,
+    `DESCRIPTION:Partie de padel PadelMates\\nhttps://padelmates.ch/sessions/${session.id}`,
     `LOCATION:${session.location}`,
+    // Rappel 24h avant
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Rappel — ta partie de padel est demain !',
+    'TRIGGER:-P1D',
+    'END:VALARM',
+    // Rappel 3h avant
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Rappel — ta partie de padel commence dans 3h !',
+    'TRIGGER:-PT3H',
+    'END:VALARM',
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n')
@@ -344,7 +363,7 @@ export default function SessionDetail() {
   async function fetchParticipants() {
     const { data } = await supabase
       .from('session_participants')
-      .select('*, profiles(id, name, phone, level, role)')
+      .select('*, profiles(id, name, phone, level, role, avatar_url)')
       .eq('session_id', id).order('joined_at')
     setParticipants(data || [])
   }
@@ -732,7 +751,7 @@ export default function SessionDetail() {
                   <span className="text-xl">📅</span>
                   <div>
                     <p className="text-sm font-medium text-gray-900">Google Calendar</p>
-                    <p className="text-xs text-gray-400">Ouvrir dans Google Calendar</p>
+                    <p className="text-xs text-gray-400">S'ouvre dans ton calendrier principal</p>
                   </div>
                 </a>
                 <div className="border-t border-gray-100" />
@@ -743,7 +762,7 @@ export default function SessionDetail() {
                   <span className="text-xl">🍎</span>
                   <div>
                     <p className="text-sm font-medium text-gray-900">Apple Calendar / Outlook</p>
-                    <p className="text-xs text-gray-400">Télécharger le fichier .ics</p>
+                    <p className="text-xs text-gray-400">Avec rappels 24h et 3h avant ⏰</p>
                   </div>
                 </button>
               </div>
@@ -786,8 +805,18 @@ export default function SessionDetail() {
             participants.map(p => (
               <div key={p.id} className="card">
                 <div className="flex items-center gap-3">
-                  <Link to={`/players/${p.user_id}`} className="w-10 h-10 bg-forest-100 rounded-full flex items-center justify-center font-bold text-forest-800 text-sm shrink-0 hover:opacity-80 transition-opacity">
-                    {p.profiles?.name?.charAt(0).toUpperCase()}
+                  <Link to={`/players/${p.user_id}`} className="shrink-0 hover:opacity-80 transition-opacity">
+                    {p.profiles?.avatar_url ? (
+                      <img
+                        src={p.profiles.avatar_url}
+                        alt={p.profiles.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-forest-100 rounded-full flex items-center justify-center font-bold text-forest-800 text-sm">
+                        {p.profiles?.name?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                   </Link>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -898,7 +927,7 @@ export default function SessionDetail() {
                     {/* Bouton de paiement Revolut */}
                     {session.organizer?.revolut_tag ? (
                       <a
-                        href={`https://revolut.me/${session.organizer.revolut_tag}/${session.cost_per_player}`}
+                        href={`https://revolut.me/${session.organizer.revolut_tag.replace(/^@/, '')}/${session.cost_per_player}CHF`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 w-full bg-[#191C1F] hover:bg-[#2e3338] text-white text-sm font-semibold py-3.5 px-4 rounded-xl transition-colors shadow-sm"

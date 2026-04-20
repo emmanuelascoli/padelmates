@@ -13,7 +13,7 @@ export default function ProfileSetup() {
   const [form, setForm] = useState({
     name:  oauthMeta?.name  || '',
     phone: '',
-    level: '3',
+    level: '',   // vide → choix obligatoire
   })
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
@@ -28,6 +28,10 @@ export default function ProfileSetup() {
     e.preventDefault()
     if (!form.name.trim() || form.name.trim().length < 2) {
       setError('Le prénom et nom sont obligatoires (minimum 2 caractères).')
+      return
+    }
+    if (!form.level) {
+      setError('Merci de choisir ton niveau de jeu.')
       return
     }
     if (!cguAccepted) {
@@ -110,11 +114,30 @@ export default function ProfileSetup() {
             <p className="text-xs text-gray-400 mt-1">Visible des autres joueurs pour les remboursements.</p>
           </div>
 
-          <div>
-            <label className="label">Niveau de jeu</label>
-            <select name="level" value={form.level} onChange={handleChange} className="input">
+          <div className={`rounded-xl p-4 border-2 transition-colors ${form.level ? 'border-forest-200 bg-forest-50' : 'border-orange-200 bg-orange-50'}`}>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              Ton niveau de padel <span className="text-red-500">*</span>
+            </label>
+            {!form.level && (
+              <p className="text-xs text-orange-600 font-medium mb-2">
+                ⚠️ Obligatoire — ce niveau sera affiché sur ton profil et utilisé pour les filtres de parties.
+              </p>
+            )}
+            <select
+              name="level"
+              value={form.level}
+              onChange={handleChange}
+              required
+              className={`w-full border rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-forest-900/15 focus:border-forest-700 text-gray-900 transition-all duration-150 ${
+                form.level ? 'bg-white border-forest-200' : 'bg-white border-orange-300 text-gray-400'
+              }`}
+            >
+              <option value="" disabled>— Choisir mon niveau —</option>
               {LEVEL_OPTIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
+            {form.level && (
+              <p className="text-xs text-forest-700 mt-1.5 font-medium">✓ Niveau sélectionné</p>
+            )}
           </div>
 
           {/* Case CGU obligatoire */}
@@ -138,7 +161,7 @@ export default function ProfileSetup() {
             </span>
           </label>
 
-          <button type="submit" disabled={loading || !cguAccepted} className="btn-primary w-full mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button type="submit" disabled={loading || !cguAccepted || !form.level} className="btn-primary w-full mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? 'Création…' : 'Rejoindre PadelMates →'}
           </button>
         </form>

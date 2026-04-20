@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { BADGES } from '../lib/constants'
 
-// ── Helpers filtre niveau ────────────────────────────────────
+// ── Helpers filtres ──────────────────────────────────────────
 const LEVEL_RANGES = {
   '1-3':  [1, 3],
   '4-6':  [4, 6],
@@ -15,33 +15,34 @@ const LEVEL_RANGES = {
 
 function matchesLevel(session, active) {
   if (active.size === 0) return true
-  // Pas de contrainte de niveau → ouvert à tous les niveaux
   if (!session.level_min && !session.level_max) return true
   const sMin = session.level_min ? parseInt(session.level_min) : 1
   const sMax = session.level_max ? parseInt(session.level_max) : 10
   return [...active].some(key => {
     const [fMin, fMax] = LEVEL_RANGES[key]
-    return sMin <= fMax && sMax >= fMin   // chevauchement des plages
+    return sMin <= fMax && sMax >= fMin
   })
 }
 
 function matchesTime(session, active) {
   if (active.size === 0) return true
   const h = parseInt((session.time || '00:00').split(':')[0])
-  const slots = {
-    morning: h >= 6  && h < 12,
-    noon:    h >= 12 && h < 17,
-    evening: h >= 17,
-  }
+  const slots = { morning: h >= 6 && h < 12, noon: h >= 12 && h < 17, evening: h >= 17 }
   return [...active].some(key => slots[key])
 }
 
-function matchesFriends(session, active, friendIds) {
-  if (!active) return true
-  return (session.session_participants || []).some(p => friendIds.includes(p.user_id))
+function matchesLocation(session, active) {
+  if (active.size === 0) return true
+  return active.has(session.location)
 }
 
-// ── Sous-composants ──────────────────────────────────────────
+function matchesOpen(session, openOnly) {
+  if (!openOnly) return true
+  const count = session.session_participants?.length ?? 0
+  return count < session.max_players
+}
+
+// ── FriendAvatars (toujours affiché sur les cartes) ──────────
 function FriendAvatars({ participants, friendIds, friendProfiles }) {
   const friendsIn = (participants || [])
     .map(p => p.user_id)
@@ -71,7 +72,7 @@ function FriendAvatars({ participants, friendIds, friendProfiles }) {
   )
 }
 
-
+// ── Session card ─────────────────────────────────────────────
 function SessionRow({ session, userId, friendIds, friendProfiles }) {
   const date = new Date(`${session.date}T${session.time}`)
   const participantCount = session.session_participants?.length ?? 0
@@ -101,15 +102,11 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
           <div className="flex items-start justify-between gap-2 mb-1">
             <span className="font-bold text-gray-900 text-[15px] leading-snug">{session.title}</span>
             <div className="flex gap-1 shrink-0 flex-wrap justify-end">
-              {session.is_private && (
-                <span className="badge bg-purple-100 text-purple-700">🔒</span>
-              )}
+              {session.is_private && <span className="badge bg-purple-100 text-purple-700">🔒</span>}
               {isRegistered && (
                 <span className="inline-flex items-center gap-1 bg-[#E8F5EC] text-[#1A6B3A] text-[11px] font-semibold px-2 py-0.5 rounded-full">✓ Inscrit</span>
               )}
-              {session.status === 'cancelled' && (
-                <span className="badge bg-red-100 text-red-600">Annulée</span>
-              )}
+              {session.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
             </div>
           </div>
 
@@ -161,11 +158,11 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
   )
 }
 
-// ── Pill toggle helper ───────────────────────────────────────
-function Pill({ active, onClick, children, color = 'blue' }) {
+// ── Pill helper ──────────────────────────────────────────────
+function Pill({ active, onClick, children, color = 'forest' }) {
   const colors = {
-    blue:   active ? 'bg-forest-900 text-white border-forest-700'     : 'bg-white text-gray-600 border-gray-200 hover:border-forest-300',
-    green:  active ? 'bg-green-600 text-white border-green-600'   : 'bg-white text-gray-600 border-gray-200 hover:border-green-300',
+    forest: active ? 'bg-forest-900 text-white border-forest-700' : 'bg-white text-gray-600 border-gray-200 hover:border-forest-300',
+    green:  active ? 'bg-[#1A6B3A] text-white border-[#1A6B3A]'  : 'bg-white text-gray-600 border-gray-200 hover:border-green-300',
     orange: active ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300',
   }
   return (
@@ -182,29 +179,30 @@ function Pill({ active, onClick, children, color = 'blue' }) {
 const TABS = [
   { key: 'upcoming', label: 'À venir' },
   { key: 'past',     label: 'Passées' },
-  { key: 'friends',  label: '👥 Amis' },
-  { key: 'mine',     label: '🔒 Mes parties' },
+  { key: 'mine',     label: 'Mes parties' },
 ]
 
 export default function Sessions() {
   const { user } = useAuth()
-  const [sessions, setSessions]         = useState([])
-  const [tab, setTab]                   = useState('upcoming')
-  const [loading, setLoading]           = useState(true)
-  const [friendIds, setFriendIds]       = useState([])
+  const [sessions, setSessions]     = useState([])
+  const [tab, setTab]               = useState('upcoming')
+  const [loading, setLoading]       = useState(true)
+  const [friendIds, setFriendIds]   = useState([])
   const [friendProfiles, setFriendProfiles] = useState({})
 
-  // ── Filtres secondaires (client-side) ──────────────────────
-  const [levelActive, setLevelActive]   = useState(new Set())   // '1-3' | '4-6' | '7-10'
-  const [timeActive, setTimeActive]     = useState(new Set())   // 'morning' | 'noon' | 'evening'
-  const [friendsOnly, setFriendsOnly]   = useState(false)
+  // ── Filtres ──────────────────────────────────────────────────
+  const [levelActive, setLevelActive]       = useState(new Set())
+  const [timeActive, setTimeActive]         = useState(new Set())
+  const [locationActive, setLocationActive] = useState(new Set())
+  const [openOnly, setOpenOnly]             = useState(false)
 
-  const hasActiveFilters = levelActive.size > 0 || timeActive.size > 0 || friendsOnly
+  const hasActiveFilters = levelActive.size > 0 || timeActive.size > 0 || locationActive.size > 0 || openOnly
 
   function resetFilters() {
     setLevelActive(new Set())
     setTimeActive(new Set())
-    setFriendsOnly(false)
+    setLocationActive(new Set())
+    setOpenOnly(false)
   }
 
   function toggleSet(setter, key) {
@@ -215,7 +213,6 @@ export default function Sessions() {
     })
   }
 
-  // Reset filtres quand on change d'onglet
   useEffect(() => { resetFilters() }, [tab])
 
   useEffect(() => {
@@ -242,22 +239,6 @@ export default function Sessions() {
     setFriendProfiles(Object.fromEntries((profiles || []).map(p => [p.id, p])))
   }
 
-  async function getFriendSessionIds() {
-    if (!user) return []
-    const { data: friendships } = await supabase
-      .from('friendships')
-      .select('requester_id, addressee_id')
-      .eq('status', 'accepted')
-      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
-    if (!friendships?.length) return []
-    const fIds = friendships.map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id)
-    const { data: participations } = await supabase
-      .from('session_participants')
-      .select('session_id')
-      .in('user_id', fIds)
-    return [...new Set((participations || []).map(p => p.session_id))]
-  }
-
   async function fetchSessions() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
@@ -276,26 +257,11 @@ export default function Sessions() {
         .from('sessions')
         .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name, badges)')
         .in('id', myIds)
-        .order('date', { ascending: true })
-        .order('time', { ascending: true })
-        .limit(50)
-      setSessions(data || [])
-      setLoading(false)
-      return
-    }
-
-    if (tab === 'friends') {
-      const sessionIds = await getFriendSessionIds()
-      if (sessionIds.length === 0) { setSessions([]); setLoading(false); return }
-      const { data } = await supabase
-        .from('sessions')
-        .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name, badges)')
-        .in('id', sessionIds)
-        .gte('date', today)
+        .gte('date', today)               // uniquement futures
         .neq('status', 'cancelled')
         .order('date', { ascending: true })
         .order('time', { ascending: true })
-        .limit(30)
+        .limit(50)
       setSessions(data || [])
       setLoading(false)
       return
@@ -323,11 +289,14 @@ export default function Sessions() {
   const filteredSessions = sessions.filter(s =>
     matchesLevel(s, levelActive) &&
     matchesTime(s, timeActive) &&
-    matchesFriends(s, friendsOnly, friendIds)
+    matchesLocation(s, locationActive) &&
+    matchesOpen(s, openOnly)
   )
 
-  // Afficher les filtres secondaires seulement sur ces onglets
-  const showSecondaryFilters = tab === 'upcoming' || tab === 'past' || tab === 'friends'
+  // Lieux uniques dans les sessions chargées (triés alphabétiquement)
+  const uniqueLocations = [...new Set(sessions.map(s => s.location).filter(Boolean))].sort()
+
+  const showFilters = tab === 'upcoming' || tab === 'past' || tab === 'mine'
 
   return (
     <div className="space-y-4">
@@ -339,7 +308,7 @@ export default function Sessions() {
         </Link>
       </div>
 
-      {/* Onglets principaux */}
+      {/* Onglets */}
       <div className="flex bg-gray-100 rounded-xl p-1">
         {TABS.map(({ key, label }) => (
           <button
@@ -354,18 +323,19 @@ export default function Sessions() {
         ))}
       </div>
 
-      {/* Filtres secondaires */}
-      {showSecondaryFilters && (
+      {/* Filtres */}
+      {showFilters && (
         <div className="card py-3 space-y-3">
+
           {/* Niveau */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Niveau</span>
-            <Pill active={levelActive.has('1-3')}  onClick={() => toggleSet(setLevelActive, '1-3')}  color="blue">1–3</Pill>
-            <Pill active={levelActive.has('4-6')}  onClick={() => toggleSet(setLevelActive, '4-6')}  color="blue">4–6</Pill>
-            <Pill active={levelActive.has('7-10')} onClick={() => toggleSet(setLevelActive, '7-10')} color="blue">7–10</Pill>
+            <Pill active={levelActive.has('1-3')}  onClick={() => toggleSet(setLevelActive, '1-3')}>1–3</Pill>
+            <Pill active={levelActive.has('4-6')}  onClick={() => toggleSet(setLevelActive, '4-6')}>4–6</Pill>
+            <Pill active={levelActive.has('7-10')} onClick={() => toggleSet(setLevelActive, '7-10')}>7–10</Pill>
           </div>
 
-          {/* Créneau + Amis */}
+          {/* Créneau */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Créneau</span>
             <Pill active={timeActive.has('morning')} onClick={() => toggleSet(setTimeActive, 'morning')} color="orange">🌅 Matin</Pill>
@@ -373,26 +343,42 @@ export default function Sessions() {
             <Pill active={timeActive.has('evening')} onClick={() => toggleSet(setTimeActive, 'evening')} color="orange">🌆 Soir</Pill>
           </div>
 
-          {/* Amis (masqué dans l'onglet Amis qui filtre déjà) */}
-          {tab !== 'friends' && friendIds.length > 0 && (
+          {/* Lieux (dynamique) */}
+          {uniqueLocations.length > 1 && (
+            <div className="flex items-start gap-2 flex-wrap">
+              <span className="text-xs text-gray-500 font-medium w-12 shrink-0 pt-1">Lieu</span>
+              <div className="flex gap-1.5 flex-wrap">
+                {uniqueLocations.map(loc => (
+                  <Pill
+                    key={loc}
+                    active={locationActive.has(loc)}
+                    onClick={() => toggleSet(setLocationActive, loc)}
+                    color="forest"
+                  >
+                    📍 {loc}
+                  </Pill>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Places disponibles (seulement sur À venir et Mes parties) */}
+          {(tab === 'upcoming' || tab === 'mine') && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Amis</span>
-              <Pill active={friendsOnly} onClick={() => setFriendsOnly(v => !v)} color="green">
-                👥 Avec des amis
+              <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Dispo</span>
+              <Pill active={openOnly} onClick={() => setOpenOnly(v => !v)} color="green">
+                ✅ Places disponibles
               </Pill>
             </div>
           )}
 
-          {/* Bouton reset */}
+          {/* Reset */}
           {hasActiveFilters && (
             <div className="pt-1 border-t border-gray-100 flex items-center justify-between">
               <span className="text-xs text-gray-400">
                 {filteredSessions.length} résultat{filteredSessions.length !== 1 ? 's' : ''}
               </span>
-              <button
-                onClick={resetFilters}
-                className="text-xs text-forest-700 hover:underline font-medium"
-              >
+              <button onClick={resetFilters} className="text-xs text-forest-700 hover:underline font-medium">
                 Effacer les filtres ✕
               </button>
             </div>
@@ -407,9 +393,7 @@ export default function Sessions() {
         </div>
       ) : filteredSessions.length === 0 ? (
         <div className="card text-center py-12 text-gray-400">
-          <div className="text-5xl mb-3">
-            {hasActiveFilters ? '🔍' : '📅'}
-          </div>
+          <div className="text-5xl mb-3">{hasActiveFilters ? '🔍' : '📅'}</div>
           {hasActiveFilters ? (
             <>
               <p className="font-medium text-gray-600">Aucune partie pour ces filtres</p>
@@ -425,15 +409,13 @@ export default function Sessions() {
                 Organiser une partie
               </Link>
             </>
-          ) : tab === 'friends' ? (
-            <>
-              <p className="font-medium text-gray-600">Aucune partie avec tes amis</p>
-              <p className="text-sm mt-1">Ajoute des amis depuis leur profil pour voir leurs parties ici.</p>
-            </>
           ) : tab === 'mine' ? (
             <>
-              <p className="font-medium text-gray-600">Aucune partie pour toi</p>
+              <p className="font-medium text-gray-600">Aucune partie à venir</p>
               <p className="text-sm mt-1">Inscris-toi à une partie ou organises-en une !</p>
+              <Link to="/sessions/new" className="btn-primary inline-block mt-4 text-sm">
+                Organiser une partie
+              </Link>
             </>
           ) : (
             <p className="font-medium text-gray-600">Aucune partie passée</p>
