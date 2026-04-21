@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { LEVEL_LABEL, ROLES } from '../lib/constants'
+import { LEVEL_LABEL, ROLES, BADGES } from '../lib/constants'
 import { BadgeList } from '../components/BadgeList'
 
 // Couleur de l'avatar selon le niveau
@@ -104,6 +104,22 @@ export default function Members() {
   return (
     <div className="max-w-lg mx-auto space-y-5">
       <h1 className="text-xl font-bold text-gray-900">Membres</h1>
+
+      {/* Légende des badges */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2.5">Badges</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          {Object.entries(BADGES).map(([key, badge]) => (
+            <div key={key} className="flex items-center gap-2 min-w-0">
+              <span className="text-base shrink-0">{badge.emoji}</span>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-gray-800 leading-tight truncate">{badge.label}</p>
+                <p className="text-[10px] text-gray-400 leading-tight">{badge.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Demandes reçues */}
       {pendingRequests.length > 0 && (
