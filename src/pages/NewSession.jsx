@@ -157,11 +157,14 @@ export default function NewSession() {
             <label className="label">Lieu *</label>
             <select name="location" value={form.location} onChange={handleChange} required className="input">
               <option value="">-- Choisir un lieu --</option>
+              <option value="Bernex">Bernex</option>
+              <option value="Cologny">Cologny</option>
               <option value="David Lloyd's Club">David Lloyd's Club</option>
+              <option value="Jonction">Jonction</option>
               <option value="La Praille">La Praille</option>
               <option value="Les Acacias">Les Acacias</option>
-              <option value="Cologny">Cologny</option>
-              <option value="Jonction">Jonction</option>
+              <option value="Parc des Evaux">Parc des Evaux</option>
+              <option value="TC International Chambesy">TC International Chambesy</option>
             </select>
           </div>
           <div>
