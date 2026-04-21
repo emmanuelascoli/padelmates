@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
+import { useNotifications } from '../contexts/NotificationsContext'
 
-// Icons
+// ── Icons ─────────────────────────────────────────────────────────────────────
 const IconHome = ({ active }) => (
   <svg className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -24,40 +23,56 @@ const IconProfile = ({ active }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
   </svg>
 )
+const IconBell = ({ active, className = '' }) => (
+  <svg
+    className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'} ${className}`}
+    fill={active ? 'currentColor' : 'none'}
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={active ? 0 : 1.8}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+  </svg>
+)
 
 const LEFT_ITEMS = [
-  { to: '/', label: 'Accueil', icon: IconHome },
-  { to: '/sessions', label: 'Parties', icon: IconCalendar },
+  { to: '/',        label: 'Accueil',  icon: IconHome },
+  { to: '/sessions',label: 'Parties',  icon: IconCalendar },
 ]
 const RIGHT_ITEMS = [
   { to: '/community', label: 'Communauté', icon: IconCommunity, matchPaths: ['/community', '/leaderboard', '/members'] },
-  { to: '/profile', label: 'Profil', icon: IconProfile },
+  { to: '/profile',   label: 'Profil',     icon: IconProfile },
 ]
 const ALL_DESKTOP_ITEMS = [...LEFT_ITEMS, ...RIGHT_ITEMS]
 
+// ── Badge helper ──────────────────────────────────────────────────────────────
+function Badge({ count }) {
+  if (!count || count === 0) return null
+  return (
+    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none ring-2 ring-white">
+      {count > 9 ? '9+' : count}
+    </span>
+  )
+}
+
 export default function Navbar() {
-  const location = useLocation()
+  const location  = useLocation()
+  const navigate  = useNavigate()
   const { user, isAdmin } = useAuth()
-  const [pendingCount, setPendingCount] = useState(0)
-
-  useEffect(() => {
-    if (user) fetchPendingCount()
-  }, [location.pathname, user])
-
-  async function fetchPendingCount() {
-    const { count } = await supabase
-      .from('friendships')
-      .select('*', { count: 'exact', head: true })
-      .eq('addressee_id', user.id)
-      .eq('status', 'pending')
-    setPendingCount(count || 0)
-  }
+  const { unreadCount, markAllRead } = useNotifications()
 
   function isActive(item) {
     if (item.matchPaths) {
       return item.matchPaths.some(p => location.pathname === p || (p !== '/' && location.pathname.startsWith(p)))
     }
     return location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to))
+  }
+
+  const bellActive = location.pathname === '/notifications'
+
+  function handleBellClick() {
+    markAllRead()
+    navigate('/notifications')
   }
 
   if (!user) return null
@@ -79,7 +94,6 @@ export default function Navbar() {
           <nav className="flex items-center gap-0.5 flex-1">
             {ALL_DESKTOP_ITEMS.map(item => {
               const active = isActive(item)
-              const isProfile = item.to === '/profile'
               return (
                 <Link
                   key={item.to}
@@ -92,11 +106,6 @@ export default function Navbar() {
                   {item.label}
                   {active && (
                     <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-forest-900 rounded-full" />
-                  )}
-                  {isProfile && pendingCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                      {pendingCount > 9 ? '9+' : pendingCount}
-                    </span>
                   )}
                 </Link>
               )
@@ -117,13 +126,28 @@ export default function Navbar() {
             )}
           </nav>
 
-          {/* CTA desktop */}
-          <Link to="/sessions/new" className="btn-primary text-sm py-2 px-4 gap-1.5 ml-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Créer
-          </Link>
+          {/* Cloche + CTA desktop */}
+          <div className="flex items-center gap-2 ml-2">
+            {/* Cloche */}
+            <button
+              onClick={handleBellClick}
+              className={`relative p-2 rounded-xl transition-all ${
+                bellActive ? 'bg-forest-50 text-forest-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+              }`}
+              aria-label="Notifications"
+            >
+              <IconBell active={bellActive} />
+              <Badge count={unreadCount} />
+            </button>
+
+            {/* CTA */}
+            <Link to="/sessions/new" className="btn-primary text-sm py-2 px-4 gap-1.5">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Créer
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -136,15 +160,7 @@ export default function Navbar() {
             </div>
             <span className="font-bold text-gray-900">PadelMates</span>
           </div>
-          <div className="flex items-center gap-2">
-            {pendingCount > 0 && (
-              <Link to="/profile" className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-full">
-                <span className="w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                  {pendingCount > 9 ? '9+' : pendingCount}
-                </span>
-                demande{pendingCount > 1 ? 's' : ''}
-              </Link>
-            )}
+          <div className="flex items-center gap-1.5">
             {isAdmin && (
               <Link to="/admin" className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
                 location.pathname === '/admin'
@@ -154,6 +170,17 @@ export default function Navbar() {
                 👑 Admin
               </Link>
             )}
+            {/* Cloche mobile */}
+            <button
+              onClick={handleBellClick}
+              className={`relative p-2 rounded-xl transition-all ${
+                bellActive ? 'bg-forest-50' : 'hover:bg-gray-50'
+              }`}
+              aria-label="Notifications"
+            >
+              <IconBell active={bellActive} />
+              <Badge count={unreadCount} />
+            </button>
           </div>
         </div>
       </header>
@@ -190,7 +217,6 @@ export default function Navbar() {
           {/* Right items */}
           {RIGHT_ITEMS.map(item => {
             const active = isActive(item)
-            const isProfile = item.to === '/profile'
             return (
               <Link key={item.to} to={item.to} className="relative flex-1 flex flex-col items-center pt-2.5 pb-2 gap-0.5">
                 {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-forest-900 rounded-full" />}
@@ -198,11 +224,6 @@ export default function Navbar() {
                 <span className={`text-xs ${active ? 'text-forest-900 font-semibold' : 'text-gray-400'}`}>
                   {item.label}
                 </span>
-                {isProfile && pendingCount > 0 && (
-                  <span className="absolute top-2 right-1/4 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {pendingCount > 9 ? '9+' : pendingCount}
-                  </span>
-                )}
               </Link>
             )
           })}

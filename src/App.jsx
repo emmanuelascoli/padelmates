@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { NotificationsProvider } from './contexts/NotificationsContext'
 import Navbar from './components/Navbar'
 import Auth from './pages/Auth'
 import Home from './pages/Home'
@@ -15,6 +16,7 @@ import PlayerProfile from './pages/PlayerProfile'
 import ResetPassword from './pages/ResetPassword'
 import Members from './pages/Members'
 import Admin from './pages/Admin'
+import Notifications from './pages/Notifications'
 import SessionByToken from './pages/SessionByToken'
 import CGU from './pages/CGU'
 import Confidentialite from './pages/Confidentialite'
@@ -84,6 +86,7 @@ function AppRoutes() {
             <Route path="/players/:id" element={<ProtectedRoute><PlayerProfile /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
@@ -97,7 +100,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <NotificationsProvider>
+        <AppRoutes />
+      </NotificationsProvider>
     </AuthProvider>
   )
 }
