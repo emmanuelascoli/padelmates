@@ -89,6 +89,7 @@ function SessionCard({ session, userId }) {
 export default function Home() {
   const { user, profile, signOut } = useAuth()
   const [upcomingSessions, setUpcomingSessions] = useState([])
+  const [totalUpcoming, setTotalUpcoming]       = useState(0)
   const [myStats, setMyStats]  = useState({ wins: 0, played: 0, friends: 0 })
   const [loading, setLoading]  = useState(true)
 
@@ -98,17 +99,26 @@ export default function Home() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
 
-    const { data: sessions } = await supabase
-      .from('sessions')
-      .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name, badges)')
-      .gte('date', today)
-      .neq('status', 'cancelled')
-      .eq('is_private', false)
-      .order('date', { ascending: true })
-      .order('time', { ascending: true })
-      .limit(5)
+    const [{ data: sessions }, { count: total }] = await Promise.all([
+      supabase
+        .from('sessions')
+        .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name, badges)')
+        .gte('date', today)
+        .neq('status', 'cancelled')
+        .eq('is_private', false)
+        .order('date', { ascending: true })
+        .order('time', { ascending: true })
+        .limit(5),
+      supabase
+        .from('sessions')
+        .select('*', { count: 'exact', head: true })
+        .gte('date', today)
+        .neq('status', 'cancelled')
+        .eq('is_private', false),
+    ])
 
     setUpcomingSessions(sessions || [])
+    setTotalUpcoming(total ?? 0)
 
     if (profile) {
       const { data: matches } = await supabase
@@ -223,7 +233,20 @@ export default function Home() {
             </Link>
           </div>
         ) : (
-          upcomingSessions.map(s => <SessionCard key={s.id} session={s} userId={user?.id} />)
+          <>
+            {upcomingSessions.map(s => <SessionCard key={s.id} session={s} userId={user?.id} />)}
+            {totalUpcoming > 5 && (
+              <Link
+                to="/sessions"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-dashed border-gray-200 text-sm text-gray-500 hover:border-forest-300 hover:text-forest-700 hover:bg-forest-50 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+                {totalUpcoming - 5} autre{totalUpcoming - 5 > 1 ? 's' : ''} partie{totalUpcoming - 5 > 1 ? 's' : ''} à venir
+              </Link>
+            )}
+          </>
         )}
 
         {/* Sign out */}

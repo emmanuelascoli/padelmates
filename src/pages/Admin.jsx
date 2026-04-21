@@ -378,9 +378,9 @@ function TabParties() {
                       <Link to={`/sessions/${s.id}`} className="font-semibold text-gray-900 hover:text-forest-800 transition-colors truncate">
                         {s.title}
                       </Link>
+                      {s.is_private && <span className="badge bg-purple-100 text-purple-700">🔒 Privée</span>}
                       {s.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
                       {s.status === 'open' && past && <span className="badge bg-gray-100 text-gray-500">Terminée</span>}
-                      {s.status === 'open' && !past && <span className="badge bg-forest-100 text-forest-800">Ouverte</span>}
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">📍 {s.location} · {format(date, 'HH:mm')}</p>
                     <p className="text-xs text-gray-400">👤 {s.organizer?.name}</p>

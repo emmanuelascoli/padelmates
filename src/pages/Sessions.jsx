@@ -135,13 +135,17 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
           {session.organizer?.name && (
             <p className="text-xs text-gray-400 mb-1.5">
               👤 {session.organizer.name}
-              {session.organizer.badges?.length > 0 && (
-                <span className="ml-1" title={session.organizer.badges.map(b => BADGES[b]?.label).filter(Boolean).join(', ')}>
-                  {session.organizer.badges.map(b => BADGES[b]?.emoji).filter(Boolean).join('')}
-                </span>
-              )}
               {session.cost_per_player > 0 && (
                 <span className="ml-1 font-medium text-gray-500">· {session.cost_per_player} CHF</span>
+              )}
+              {(session.level_min || session.level_max) && (
+                <span className="ml-1 text-gray-400">
+                  · Niv.{session.level_min && session.level_max
+                    ? ` ${session.level_min}–${session.level_max}`
+                    : session.level_min
+                      ? ` ${session.level_min}+`
+                      : ` ≤${session.level_max}`}
+                </span>
               )}
             </p>
           )}

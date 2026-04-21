@@ -117,16 +117,16 @@ export default function NewSession() {
 
         {/* Date + Heure */}
         <div className="grid grid-cols-2 gap-4">
-          <div>
+          <div className="min-w-0">
             <label className="label">Date *</label>
             <input
               type="date" name="date" value={form.date} onChange={handleChange} required
               min={new Date().toISOString().split('T')[0]} className="input"
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="label">Heure *</label>
-            <input type="time" name="time" value={form.time} onChange={handleChange} required className="input" />
+            <input type="time" name="time" value={form.time} onChange={handleChange} required className="input w-full" />
           </div>
         </div>
 
