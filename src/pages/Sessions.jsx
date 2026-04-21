@@ -190,6 +190,13 @@ function Pill({ active, onClick, children, color = 'forest' }) {
   )
 }
 
+// Lieux connus — toujours affichés dans le filtre même sans partie
+const KNOWN_VENUES = [
+  'Bernex',
+  'Parc des Evaux',
+  'TC International Chambesy',
+]
+
 const TABS = [
   { key: 'upcoming', label: 'À venir' },
   { key: 'past',     label: 'Passées' },
@@ -307,8 +314,11 @@ export default function Sessions() {
     matchesOpen(s, openOnly)
   )
 
-  // Lieux uniques (nom du club uniquement, sans numéro de terrain)
-  const uniqueLocations = [...new Set(sessions.map(s => extractVenue(s.location)).filter(Boolean))].sort()
+  // Lieux uniques : lieux connus + lieux des parties (sans doublons, triés)
+  const uniqueLocations = [...new Set([
+    ...KNOWN_VENUES,
+    ...sessions.map(s => extractVenue(s.location)).filter(Boolean),
+  ])].sort()
 
   const showFilters = tab === 'upcoming' || tab === 'past' || tab === 'mine'
 
