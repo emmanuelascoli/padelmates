@@ -1,24 +1,24 @@
 // ── Badges ───────────────────────────────────────────────────
 export const BADGES = {
-  organizer_active: {
-    emoji:       '🏅',
-    label:       'Organisateur actif',
-    description: 'A créé au moins 5 parties',
-  },
-  loyal_player: {
+  habitue: {
     emoji:       '🎾',
-    label:       'Joueur fidèle',
+    label:       'Habitué',
     description: 'A participé à au moins 10 parties',
   },
-  verified_organizer: {
-    emoji:       '⭐',
-    label:       'Organisateur vérifié',
-    description: 'Badge attribué par l\'administration',
+  organizer_active: {
+    emoji:       '🏅',
+    label:       'Organisateur Actif',
+    description: 'A créé au moins 5 parties',
   },
   on_fire: {
     emoji:       '🔥',
     label:       'En forme',
-    description: 'A joué 3 parties ou plus ce mois-ci',
+    description: 'A joué 3 parties ou plus dans le même mois',
+  },
+  veteran: {
+    emoji:       '🏆',
+    label:       'Vétéran',
+    description: 'A participé à au moins 50 parties',
   },
 }
 

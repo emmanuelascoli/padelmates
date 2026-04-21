@@ -53,42 +53,6 @@ function RoleSelector({ memberId, currentRole, onChanged }) {
   )
 }
 
-// ── Verified organizer badge toggle ─────────────────────────
-function VerifiedBadgeToggle({ memberId, currentBadges, onChanged }) {
-  const hasIt = (currentBadges || []).includes('verified_organizer')
-  const [loading, setLoading] = useState(false)
-
-  async function toggle() {
-    setLoading(true)
-    const { error } = await supabase.rpc('admin_toggle_verified_organizer', {
-      uid: memberId,
-      grant_badge: !hasIt,
-    })
-    if (!error) {
-      const next = hasIt
-        ? (currentBadges || []).filter(b => b !== 'verified_organizer')
-        : [...(currentBadges || []), 'verified_organizer']
-      onChanged(memberId, next)
-    }
-    setLoading(false)
-  }
-
-  return (
-    <button
-      onClick={toggle}
-      disabled={loading}
-      className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border font-medium transition-all disabled:opacity-50 ${
-        hasIt
-          ? 'bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100'
-          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
-      }`}
-    >
-      <span>{BADGES.verified_organizer.emoji}</span>
-      {hasIt ? 'Retirer badge' : 'Badge org.'}
-    </button>
-  )
-}
-
 // ── Delete user modal ────────────────────────────────────────
 function DeleteUserModal({ member, onConfirm, onCancel }) {
   const [input, setInput] = useState('')
@@ -293,8 +257,6 @@ function TabMembres() {
               {/* Ligne contrôles */}
               <div className="flex items-center gap-1.5 flex-wrap pl-9">
                 <RoleSelector memberId={m.id} currentRole={m.role ?? 'member'} onChanged={handleRoleChange} />
-                <div className="w-px h-3 bg-gray-200 mx-0.5" />
-                <VerifiedBadgeToggle memberId={m.id} currentBadges={m.badges} onChanged={handleBadgesChange} />
               </div>
             </div>
           ))}
