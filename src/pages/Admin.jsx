@@ -727,17 +727,40 @@ function TabStats() {
 function TabElo() {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [matchCount, setMatchCount] = useState(null)
+  const [recalculating, setRecalculating] = useState(false)
+  const [recalcResult, setRecalcResult] = useState(null)
 
   useEffect(() => { fetchRanking() }, [])
 
   async function fetchRanking() {
     setLoading(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, name, avatar_url, level, rank_score, role')
-      .order('rank_score', { ascending: false })
-    setPlayers(data || [])
+    const [{ data: profiles }, { count }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, name, avatar_url, level, rank_score, role')
+        .order('rank_score', { ascending: false }),
+      supabase
+        .from('matches')
+        .select('*', { count: 'exact', head: true })
+        .not('winner_team', 'is', null),
+    ])
+    setPlayers(profiles || [])
+    setMatchCount(count ?? 0)
     setLoading(false)
+  }
+
+  async function handleRecalculate() {
+    setRecalculating(true)
+    setRecalcResult(null)
+    const { data, error } = await supabase.rpc('recalculate_all_elo')
+    if (error) {
+      setRecalcResult({ ok: false, msg: error.message })
+    } else {
+      setRecalcResult({ ok: true, msg: `${data} match${data > 1 ? 's' : ''} traité${data > 1 ? 's' : ''}.` })
+      await fetchRanking()
+    }
+    setRecalculating(false)
   }
 
   const medalColor = i =>
@@ -749,14 +772,30 @@ function TabElo() {
 
   return (
     <div className="space-y-4">
-      {/* Header info */}
-      <div className="card bg-forest-50 border-forest-100">
-        <p className="text-sm font-semibold text-forest-900 mb-1">🏆 Classement ELO — Aperçu Admin</p>
-        <p className="text-xs text-forest-700">
-          Score de départ : <strong>1000</strong> pts · Plancher : <strong>100</strong> pts ·
-          Points échangés selon la force des équipes et l'écart de jeux.
-          Ce classement n'est pas encore visible par les membres.
-        </p>
+      {/* Header info + recalculate */}
+      <div className="card flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-gray-900 text-sm">🏆 Classement ELO — Aperçu Admin</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Départ : <strong>1000</strong> pts · Plancher : <strong>100</strong> pts ·
+            {matchCount !== null && <> <strong>{matchCount}</strong> match{matchCount > 1 ? 's' : ''} pris en compte.</>}
+          </p>
+          <p className="text-xs text-orange-500 mt-0.5">Non visible par les membres pour l'instant.</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <button
+            onClick={handleRecalculate}
+            disabled={recalculating}
+            className="text-xs px-3 py-2 bg-forest-900 hover:bg-forest-800 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+          >
+            {recalculating ? 'Calcul…' : 'Recalculer'}
+          </button>
+          {recalcResult && (
+            <p className={`text-xs mt-1 ${recalcResult.ok ? 'text-green-600' : 'text-red-500'}`}>
+              {recalcResult.ok ? '✓' : '✗'} {recalcResult.msg}
+            </p>
+          )}
+        </div>
       </div>
 
       {loading ? (
