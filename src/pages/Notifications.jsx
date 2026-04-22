@@ -31,11 +31,13 @@ function timeAgo(ts) {
 function NotifIcon({ type }) {
   const base = 'w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-lg'
   switch (type) {
-    case 'friend_request':   return <div className={`${base} bg-blue-100`}>🤝</div>
-    case 'player_joined':    return <div className={`${base} bg-green-100`}>🎾</div>
-    case 'game_created':     return <div className={`${base} bg-forest-50`}>📅</div>
-    case 'result_recorded':  return <div className={`${base} bg-orange-100`}>🏆</div>
-    default:                 return <div className={`${base} bg-gray-100`}>🔔</div>
+    case 'friend_request':          return <div className={`${base} bg-blue-100`}>🤝</div>
+    case 'friend_request_accepted': return <div className={`${base} bg-green-100`}>✅</div>
+    case 'player_joined':           return <div className={`${base} bg-green-100`}>🎾</div>
+    case 'game_created':            return <div className={`${base} bg-forest-50`}>📅</div>
+    case 'game_cancelled':          return <div className={`${base} bg-red-100`}>❌</div>
+    case 'result_recorded':         return <div className={`${base} bg-orange-100`}>🏆</div>
+    default:                        return <div className={`${base} bg-gray-100`}>🔔</div>
   }
 }
 
@@ -58,6 +60,16 @@ function notifContent(notif) {
       return {
         text:  `${data.organizer_name} a créé une partie${data.session_date ? ` le ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''}`,
         href:  `/sessions/${data.session_id}`,
+      }
+    case 'friend_request_accepted':
+      return {
+        text: `${data.acceptor_name} a accepté votre demande d'ami`,
+        href: `/players/${data.acceptor_id}`,
+      }
+    case 'game_cancelled':
+      return {
+        text: `La partie${data.session_date ? ` du ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''} a été annulée`,
+        href: `/sessions/${data.session_id}`,
       }
     case 'result_recorded':
       return {
