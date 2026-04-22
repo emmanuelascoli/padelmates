@@ -473,9 +473,10 @@ export default function SessionDetail() {
   async function handleCancelSession() {
     setActionLoading(true)
     setShowCancelConfirm(false)
-    const { error } = await supabase.from('sessions').delete().eq('id', id)
+    const { error } = await supabase.rpc('delete_session', { p_session_id: id })
     if (error) {
       console.error('Cancel session error:', error.message)
+      alert(`Erreur : ${error.message}`)
       setActionLoading(false)
       return
     }

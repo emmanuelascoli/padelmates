@@ -302,11 +302,15 @@ function TabParties() {
   async function handleCancelSession(sessionId) {
     setConfirmCancelId(null)
     setActionLoading(sessionId)
-    const { error } = await supabase.from('sessions').delete().eq('id', sessionId)
+    const { error } = await supabase
+      .from('sessions')
+      .update({ status: 'cancelled' })
+      .eq('id', sessionId)
     if (!error) {
-      setSessions(prev => prev.filter(s => s.id !== sessionId))
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'cancelled' } : s))
     } else {
       console.error('Cancel session error:', error.message)
+      alert(`Erreur : ${error.message}`)
     }
     setActionLoading(null)
   }
