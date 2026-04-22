@@ -31,51 +31,96 @@ function timeAgo(ts) {
 function NotifIcon({ type }) {
   const base = 'w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-lg'
   switch (type) {
-    case 'friend_request':          return <div className={`${base} bg-blue-100`}>🤝</div>
-    case 'friend_request_accepted': return <div className={`${base} bg-green-100`}>✅</div>
-    case 'player_joined':           return <div className={`${base} bg-green-100`}>🎾</div>
-    case 'game_created':            return <div className={`${base} bg-forest-50`}>📅</div>
-    case 'game_cancelled':          return <div className={`${base} bg-red-100`}>❌</div>
-    case 'result_recorded':         return <div className={`${base} bg-orange-100`}>🏆</div>
-    default:                        return <div className={`${base} bg-gray-100`}>🔔</div>
+    case 'friend_request':            return <div className={`${base} bg-blue-100`}>🤝</div>
+    case 'friend_request_accepted':   return <div className={`${base} bg-green-100`}>✅</div>
+    case 'player_joined':             return <div className={`${base} bg-green-100`}>🎾</div>
+    case 'player_promoted':           return <div className={`${base} bg-green-100`}>🎉</div>
+    case 'game_created':              return <div className={`${base} bg-forest-50`}>📅</div>
+    case 'game_cancelled':            return <div className={`${base} bg-red-100`}>❌</div>
+    case 'result_recorded':           return <div className={`${base} bg-orange-100`}>🏆</div>
+    case 'payment_reminder':          return <div className={`${base} bg-yellow-100`}>💳</div>
+    case 'missing_players_reminder':  return <div className={`${base} bg-orange-100`}>👥</div>
+    default:                          return <div className={`${base} bg-gray-100`}>🔔</div>
   }
 }
 
 // ── Texte + lien par type ─────────────────────────────────────────────────────
 
+// Formate une liste de noms en français : "Jean", "Jean et Marie",
+// "Jean, Marie et 2 autres"
+function formatNames(names = []) {
+  if (names.length === 0) return 'Quelqu\'un'
+  if (names.length === 1) return names[0]
+  if (names.length === 2) return `${names[0]} et ${names[1]}`
+  const rest = names.length - 2
+  return `${names[0]}, ${names[1]} et ${rest} autre${rest > 1 ? 's' : ''}`
+}
+
 function notifContent(notif) {
   const { type, data } = notif
+  const sessionSuffix = `${data.session_date ? ` du ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''}`
+
   switch (type) {
     case 'friend_request':
       return {
-        text:  `${data.from_user_name} veut vous ajouter en ami`,
-        href:  `/players/${data.from_user_id}`,
+        text: `${data.from_user_name} veut vous ajouter en ami`,
+        href: `/players/${data.from_user_id}`,
       }
-    case 'player_joined':
-      return {
-        text:  `${data.player_name} a rejoint votre partie${data.session_date ? ` du ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''}`,
-        href:  `/sessions/${data.session_id}`,
-      }
-    case 'game_created':
-      return {
-        text:  `${data.organizer_name} a créé une partie${data.session_date ? ` le ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''}`,
-        href:  `/sessions/${data.session_id}`,
-      }
+
     case 'friend_request_accepted':
       return {
         text: `${data.acceptor_name} a accepté votre demande d'ami`,
         href: `/players/${data.acceptor_id}`,
       }
-    case 'game_cancelled':
+
+    case 'player_joined': {
+      // Compatibilité avec l'ancien format (player_name) et le nouveau (player_names[])
+      const names = data.player_names ?? (data.player_name ? [data.player_name] : [])
+      const plural = names.length > 1
       return {
-        text: `La partie${data.session_date ? ` du ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''} a été annulée`,
+        text: `${formatNames(names)} ${plural ? 'ont' : 'a'} rejoint votre partie${sessionSuffix}`,
         href: `/sessions/${data.session_id}`,
       }
+    }
+
+    case 'player_promoted':
+      return {
+        text: `🎉 Une place s'est libérée ! Tu as été inscrit à la partie${sessionSuffix}`,
+        href: `/sessions/${data.session_id}`,
+      }
+
+    case 'game_created':
+      return {
+        text: `${data.organizer_name} a créé une partie${data.session_date ? ` le ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''}`,
+        href: `/sessions/${data.session_id}`,
+      }
+
+    case 'game_cancelled':
+      return {
+        text: `La partie${sessionSuffix} a été annulée`,
+        href: `/sessions/${data.session_id}`,
+      }
+
     case 'result_recorded':
       return {
-        text:  `${data.recorder_name} a enregistré le score de votre partie${data.session_date ? ` du ${formatDate(data.session_date)}` : ''}`,
-        href:  `/sessions/${data.session_id}`,
+        text: `${data.recorder_name} a enregistré le score de votre partie${data.session_date ? ` du ${formatDate(data.session_date)}` : ''}`,
+        href: `/sessions/${data.session_id}`,
       }
+
+    case 'payment_reminder':
+      return {
+        text: `💳 Rappel — ta partie de demain${data.location ? ` à ${data.location}` : ''} : pense à régler ta part${data.amount ? ` (${data.amount} CHF)` : ''} avant la partie.`,
+        href: `/sessions/${data.session_id}`,
+      }
+
+    case 'missing_players_reminder': {
+      const spots = data.spots_remaining ?? (data.max_players - data.current_players)
+      return {
+        text: `⚠️ Ta partie de demain${data.location ? ` à ${data.location}` : ''} n'est pas complète — il manque encore ${spots} joueur${spots > 1 ? 's' : ''}.`,
+        href: `/sessions/${data.session_id}`,
+      }
+    }
+
     default:
       return { text: 'Nouvelle notification', href: '/' }
   }

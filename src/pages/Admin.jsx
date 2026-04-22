@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { ROLES, LEVEL_LABEL, BADGES } from '../lib/constants'
-import { format, isPast } from 'date-fns'
+import { format, isPast, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
 // ── Role Badge ───────────────────────────────────────────────
@@ -442,6 +442,7 @@ function TabStats() {
   const [loading, setLoading] = useState(true)
   const [topPlayers, setTopPlayers] = useState([])
   const [recentSessions, setRecentSessions] = useState([])
+  const [recentMembers, setRecentMembers] = useState([])
   const [refreshing, setRefreshing] = useState(false)
   const [refreshResult, setRefreshResult] = useState(null)
 
@@ -537,6 +538,14 @@ function TabStats() {
       .order('time', { ascending: false })
       .limit(5)
     setRecentSessions(sessions || [])
+
+    // 8 most recent members
+    const { data: newMembers } = await supabase
+      .from('profiles')
+      .select('id, name, level, avatar_url, role, created_at')
+      .order('created_at', { ascending: false })
+      .limit(8)
+    setRecentMembers(newMembers || [])
 
     setLoading(false)
   }
@@ -666,6 +675,47 @@ function TabStats() {
                 </Link>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Recent new members */}
+      {recentMembers.length > 0 && (
+        <div className="card">
+          <h3 className="font-semibold text-gray-900 mb-3">🆕 Derniers membres inscrits</h3>
+          <div className="space-y-2">
+            {recentMembers.map(m => (
+              <Link
+                key={m.id}
+                to={`/players/${m.id}`}
+                className="flex items-center gap-3 py-2 hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors"
+              >
+                {/* Avatar */}
+                {m.avatar_url ? (
+                  <img src={m.avatar_url} className="w-8 h-8 rounded-full object-cover shrink-0" alt="" />
+                ) : (
+                  <div className="w-8 h-8 bg-forest-100 text-forest-800 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                    {m.name?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+
+                {/* Name + role */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-medium text-gray-900 truncate">{m.name}</span>
+                    {m.role && m.role !== 'member' && <RoleBadge role={m.role} />}
+                    {m.level && (
+                      <span className="text-xs text-gray-400">{LEVEL_LABEL[m.level] ?? m.level}</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {m.created_at
+                      ? formatDistanceToNow(new Date(m.created_at), { addSuffix: true, locale: fr })
+                      : ''}
+                  </p>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       )}
