@@ -723,6 +723,146 @@ function TabStats() {
   )
 }
 
+// ── Tab ELO ──────────────────────────────────────────────────
+function TabElo() {
+  const [players, setPlayers] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { fetchRanking() }, [])
+
+  async function fetchRanking() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url, level, rank_score, role')
+      .order('rank_score', { ascending: false })
+    setPlayers(data || [])
+    setLoading(false)
+  }
+
+  const medalColor = i =>
+    i === 0 ? 'text-yellow-400' :
+    i === 1 ? 'text-gray-400'   :
+    i === 2 ? 'text-orange-400' : 'text-gray-300'
+
+  const medalEmoji = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
+
+  return (
+    <div className="space-y-4">
+      {/* Header info */}
+      <div className="card bg-forest-50 border-forest-100">
+        <p className="text-sm font-semibold text-forest-900 mb-1">🏆 Classement ELO — Aperçu Admin</p>
+        <p className="text-xs text-forest-700">
+          Score de départ : <strong>1000</strong> pts · Plancher : <strong>100</strong> pts ·
+          Points échangés selon la force des équipes et l'écart de jeux.
+          Ce classement n'est pas encore visible par les membres.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* Top 3 podium */}
+          {players.length >= 3 && (
+            <div className="grid grid-cols-3 gap-px bg-gray-100 border-b border-gray-100">
+              {[players[1], players[0], players[2]].map((p, podiumIdx) => {
+                const rankIdx = podiumIdx === 0 ? 1 : podiumIdx === 1 ? 0 : 2
+                const heights = ['pt-6 pb-4', 'pt-4 pb-4', 'pt-8 pb-4']
+                return (
+                  <div
+                    key={p.id}
+                    className={`bg-white flex flex-col items-center ${heights[podiumIdx]} px-2`}
+                  >
+                    <div className="text-2xl mb-1">{medalEmoji(rankIdx)}</div>
+                    {p.avatar_url ? (
+                      <img src={p.avatar_url} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" alt="" />
+                    ) : (
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm
+                        ${rankIdx === 0 ? 'bg-yellow-100 text-yellow-700' : rankIdx === 1 ? 'bg-gray-100 text-gray-600' : 'bg-orange-100 text-orange-600'}`}>
+                        {p.name?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <p className="text-xs font-semibold text-gray-900 mt-1.5 text-center truncate w-full">{p.name}</p>
+                    <p className={`text-base font-bold mt-0.5 ${medalColor(rankIdx)}`}>{p.rank_score}</p>
+                    <p className="text-xs text-gray-400">pts</p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Full ranking list */}
+          <div className="divide-y divide-gray-50">
+            {players.map((p, i) => (
+              <Link
+                key={p.id}
+                to={`/players/${p.id}`}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                {/* Position */}
+                <div className="w-7 text-center shrink-0">
+                  {medalEmoji(i)
+                    ? <span className="text-lg">{medalEmoji(i)}</span>
+                    : <span className={`text-sm font-bold ${medalColor(i)}`}>{i + 1}</span>
+                  }
+                </div>
+
+                {/* Avatar */}
+                {p.avatar_url ? (
+                  <img src={p.avatar_url} className="w-9 h-9 rounded-full object-cover shrink-0" alt="" />
+                ) : (
+                  <div className="w-9 h-9 bg-forest-100 text-forest-800 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+                    {p.name?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+
+                {/* Name + level */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-medium text-gray-900 truncate">{p.name}</span>
+                    {p.role !== 'member' && <RoleBadge role={p.role} />}
+                  </div>
+                  {p.level && (
+                    <p className="text-xs text-gray-400">{LEVEL_LABEL[p.level] ?? p.level}</p>
+                  )}
+                </div>
+
+                {/* Score */}
+                <div className="shrink-0 text-right">
+                  <span className={`text-base font-bold ${i < 3 ? medalColor(i) : 'text-gray-700'}`}>
+                    {p.rank_score}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-1">pts</span>
+                </div>
+              </Link>
+            ))}
+            {players.length === 0 && (
+              <div className="py-12 text-center text-gray-400 text-sm">Aucun joueur</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div className="card bg-gray-50 border-gray-100">
+        <p className="text-xs font-semibold text-gray-700 mb-2">📐 Barème des points échangés</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
+          <span>⚖️ Match équilibré (diff &lt; 50)</span>       <span className="font-medium text-gray-700">±20 pts</span>
+          <span>😤 Favori gagne (diff 50–149)</span>           <span className="font-medium text-gray-700">±15 pts</span>
+          <span>😤 Favori gagne (diff 150+)</span>             <span className="font-medium text-gray-700">±10 pts</span>
+          <span>🔥 Outsider gagne (diff 50–149)</span>         <span className="font-medium text-gray-700">±25 pts</span>
+          <span>🔥 Outsider gagne (diff 150+)</span>           <span className="font-medium text-gray-700">±40 pts</span>
+          <span>🤏 Match serré (écart ≤ 4 jeux)</span>         <span className="font-medium text-gray-700">−2 pts</span>
+          <span>💥 Victoire écrasante (écart ≥ 9 jeux)</span>  <span className="font-medium text-gray-700">+5 pts</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Admin Page ──────────────────────────────────────────
 export default function Admin() {
   const { isAdmin, loading: authLoading } = useAuth()
@@ -754,16 +894,17 @@ export default function Admin() {
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-gray-100 rounded-xl p-1">
+      <div className="grid grid-cols-4 bg-gray-100 rounded-xl p-1 gap-0.5">
         {[
-          { key: 'members', label: '👥 Membres' },
+          { key: 'members',  label: '👥 Membres' },
           { key: 'sessions', label: '📅 Parties' },
-          { key: 'stats', label: '📊 Statistiques' },
+          { key: 'stats',    label: '📊 Stats' },
+          { key: 'elo',      label: '🏆 ELO' },
         ].map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+            className={`py-2 text-xs font-medium rounded-lg transition-all ${
               tab === key ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
             }`}
           >
@@ -775,6 +916,7 @@ export default function Admin() {
       {tab === 'members'  && <TabMembres />}
       {tab === 'sessions' && <TabParties />}
       {tab === 'stats'    && <TabStats />}
+      {tab === 'elo'      && <TabElo />}
     </div>
   )
 }
