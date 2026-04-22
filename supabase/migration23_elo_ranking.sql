@@ -115,19 +115,21 @@ BEGIN
     v_base_pts := CASE WHEN v_is_favorite THEN 10 ELSE 40 END;
   END IF;
 
-  -- ── Bonus précision du score ──────────────────────────────
-  --   game_diff = jeux_gagnant - jeux_perdant
-  --   ≤ 4  : match serré    → -2
-  --   5–8  : normal         →  0
-  --   ≥ 9  : écrasant       → +5
+  -- ── Bonus précision du score (adapté matchs 6/7 jeux) ───────
+  --   Diff = 1 (7-6, 6-5) → Très serré   : -3 pts
+  --   Diff = 2 (6-4)       → Standard     :  0 pts
+  --   Diff = 3-4 (6-3,6-2) → Dominant     : +3 pts
+  --   Diff ≥ 5  (6-1, 6-0) → Écrasant     : +6 pts
   v_game_diff := v_w_score - v_l_score;
 
-  IF v_game_diff <= 4 THEN
-    v_final_pts := v_base_pts - 2;
-  ELSIF v_game_diff >= 9 THEN
-    v_final_pts := v_base_pts + 5;
-  ELSE
+  IF v_game_diff = 1 THEN
+    v_final_pts := v_base_pts - 3;
+  ELSIF v_game_diff = 2 THEN
     v_final_pts := v_base_pts;
+  ELSIF v_game_diff <= 4 THEN
+    v_final_pts := v_base_pts + 3;
+  ELSE
+    v_final_pts := v_base_pts + 6;
   END IF;
 
   -- Minimum 1 point échangé

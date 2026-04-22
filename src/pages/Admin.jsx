@@ -886,16 +886,25 @@ function TabElo() {
       )}
 
       {/* Legend */}
-      <div className="card bg-gray-50 border-gray-100">
-        <p className="text-xs font-semibold text-gray-700 mb-2">📐 Barème des points échangés</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
-          <span>⚖️ Match équilibré (diff &lt; 50)</span>       <span className="font-medium text-gray-700">±20 pts</span>
-          <span>😤 Favori gagne (diff 50–149)</span>           <span className="font-medium text-gray-700">±15 pts</span>
-          <span>😤 Favori gagne (diff 150+)</span>             <span className="font-medium text-gray-700">±10 pts</span>
-          <span>🔥 Outsider gagne (diff 50–149)</span>         <span className="font-medium text-gray-700">±25 pts</span>
-          <span>🔥 Outsider gagne (diff 150+)</span>           <span className="font-medium text-gray-700">±40 pts</span>
-          <span>🤏 Match serré (écart ≤ 4 jeux)</span>         <span className="font-medium text-gray-700">−2 pts</span>
-          <span>💥 Victoire écrasante (écart ≥ 9 jeux)</span>  <span className="font-medium text-gray-700">+5 pts</span>
+      <div className="card bg-gray-50 border-gray-100 space-y-3">
+        <div>
+          <p className="text-xs font-semibold text-gray-700 mb-1.5">⚖️ Points de base (selon l'écart de force)</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
+            <span>Match équilibré (diff 0–49)</span>        <span className="font-medium text-gray-700">±20 pts</span>
+            <span>Favori gagne (diff 50–149)</span>          <span className="font-medium text-gray-700">±15 pts</span>
+            <span>Favori gagne (diff 150+)</span>            <span className="font-medium text-gray-700">±10 pts</span>
+            <span>Outsider gagne (diff 50–149)</span>        <span className="font-medium text-gray-700">±25 pts</span>
+            <span>Outsider gagne (diff 150+)</span>          <span className="font-medium text-gray-700">±40 pts</span>
+          </div>
+        </div>
+        <div className="border-t border-gray-200 pt-2">
+          <p className="text-xs font-semibold text-gray-700 mb-1.5">🎯 Bonus précision du score</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
+            <span>Très serré — écart 1 jeu (7-6, 6-5)</span>   <span className="font-medium text-red-500">−3 pts</span>
+            <span>Standard — écart 2 jeux (6-4)</span>          <span className="font-medium text-gray-400">0 pts</span>
+            <span>Dominant — écart 3–4 jeux (6-3, 6-2)</span>   <span className="font-medium text-green-600">+3 pts</span>
+            <span>Écrasant — écart ≥ 5 jeux (6-1, 6-0)</span>   <span className="font-medium text-green-700">+6 pts</span>
+          </div>
         </div>
       </div>
     </div>
