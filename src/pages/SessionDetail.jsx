@@ -25,8 +25,16 @@ function buildShareMessage(session, participantCount) {
   if (session.duration) msg += `⏱ Durée : ${session.duration}\n`
   msg += `📍 ${session.location}\n`
   if (session.cost_per_player > 0) msg += `💰 ${session.cost_per_player} CHF / joueur\n`
-  if (session.level_min && session.level_max) {
-    msg += `🎯 Niveau : ${session.level_min} → ${session.level_max}\n`
+  if (session.level_min || session.level_max) {
+    const minLabel = session.level_min ? LEVEL_LABEL[session.level_min] ?? session.level_min : null
+    const maxLabel = session.level_max ? LEVEL_LABEL[session.level_max] ?? session.level_max : null
+    if (minLabel && maxLabel) {
+      msg += `🎯 Niveau : ${minLabel} → ${maxLabel}\n`
+    } else if (minLabel) {
+      msg += `🎯 Niveau : ${minLabel} ou plus\n`
+    } else if (maxLabel) {
+      msg += `🎯 Niveau : jusqu'à ${maxLabel}\n`
+    }
   }
   msg += `\n👥 ${spotsLeft} place${spotsLeft > 1 ? 's' : ''} disponible${spotsLeft > 1 ? 's' : ''}\n`
   msg += `\n➡️ Inscris-toi ici : ${url}`
