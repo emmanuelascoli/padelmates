@@ -185,7 +185,7 @@ export default function Leaderboard() {
               : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
           }`}
         >
-          🌍 Tous les joueurs
+          Tous les joueurs
         </button>
         <button
           onClick={() => setFriendsOnly(true)}
@@ -195,17 +195,20 @@ export default function Leaderboard() {
               : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
           }`}
         >
-          👥 Mes amis
+          Mes amis
         </button>
       </div>
 
       {/* My rank highlight */}
       {myRank >= 0 && (
-        <div className="bg-forest-50 border border-forest-200 rounded-xl px-4 py-3 flex items-center gap-3">
+        <div
+          className="flex items-center gap-3 px-4 py-3"
+          style={{ background: 'var(--color-primary)', borderRadius: 16 }}
+        >
           <span className="text-2xl">{myRank < 3 ? MEDAL[myRank] : `#${myRank + 1}`}</span>
           <div>
-            <p className="text-sm font-semibold text-forest-900">Ta position : {myRank + 1}ème</p>
-            <p className="text-xs text-forest-800">
+            <p className="text-sm font-semibold text-white">Ta position : {myRank + 1}ème</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
               {visibleRankings[myRank].points} pts · {visibleRankings[myRank].wins}V / {visibleRankings[myRank].losses}D
             </p>
           </div>
@@ -244,7 +247,7 @@ export default function Leaderboard() {
                 <th className="text-center text-xs text-gray-500 font-medium py-3 px-2">Pts</th>
                 <th className="text-center text-xs text-gray-500 font-medium py-3 px-2">V</th>
                 <th className="text-center text-xs text-gray-500 font-medium py-3 px-2">D</th>
-                <th className="text-center text-xs text-gray-500 font-medium py-3 px-2">%</th>
+                <th className="text-center text-xs text-gray-500 font-medium py-3 px-4 pr-4">%</th>
               </tr>
             </thead>
             <tbody>
@@ -253,28 +256,33 @@ export default function Leaderboard() {
                 return (
                   <tr
                     key={player.id}
+                    style={{ minHeight: 64 }}
                     className={`border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors ${isMe ? 'bg-forest-50 hover:bg-forest-50' : ''}`}
                     onClick={() => navigate(`/players/${player.id}`)}
                   >
-                    <td className="py-3 px-4">
+                    <td style={{ padding: '12px 16px' }}>
                       {i < 3 ? (
                         <span className="text-lg">{MEDAL[i]}</span>
                       ) : (
                         <span className="text-sm font-semibold text-gray-400">{i + 1}</span>
                       )}
                     </td>
-                    <td className="py-3 px-2">
+                    <td style={{ padding: '12px 8px' }}>
                       <div className="flex items-center gap-2">
                         {player.avatar_url ? (
                           <img
                             src={player.avatar_url}
                             alt={player.name}
-                            className={`w-8 h-8 rounded-full object-cover shrink-0 ${isMe ? 'ring-2 ring-forest-400' : ''}`}
+                            className={`object-cover shrink-0 ${isMe ? 'ring-2 ring-forest-400' : ''}`}
+                            style={{ width: 40, height: 40, borderRadius: 12 }}
                           />
                         ) : (
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                            isMe ? 'bg-forest-700 text-white' : 'bg-gray-100 text-gray-600'
-                          }`}>
+                          <div
+                            className={`flex items-center justify-center text-sm font-bold shrink-0 ${
+                              isMe ? 'bg-forest-700 text-white' : 'bg-gray-100 text-gray-600'
+                            }`}
+                            style={{ width: 40, height: 40, borderRadius: 12 }}
+                          >
                             {player.name?.charAt(0).toUpperCase()}
                           </div>
                         )}
@@ -293,16 +301,16 @@ export default function Leaderboard() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-2 text-center">
+                    <td style={{ padding: '12px 8px' }} className="text-center">
                       <span className="font-bold text-gray-900">{player.points}</span>
                     </td>
-                    <td className="py-3 px-2 text-center">
+                    <td style={{ padding: '12px 8px' }} className="text-center">
                       <span className="text-forest-800 font-medium">{player.wins}</span>
                     </td>
-                    <td className="py-3 px-2 text-center">
+                    <td style={{ padding: '12px 8px' }} className="text-center">
                       <span className="text-red-500 font-medium">{player.losses}</span>
                     </td>
-                    <td className="py-3 px-2 text-center">
+                    <td style={{ padding: '12px 16px' }} className="text-center">
                       <span className="text-gray-500 text-sm">{player.winRate}%</span>
                     </td>
                   </tr>
