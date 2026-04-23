@@ -178,7 +178,7 @@ function TabMembres() {
           { key: 'member', label: 'Membres', color: 'text-gray-700' },
         ].map(s => (
           <div key={s.key} className="card text-center py-3">
-            <div className={`text-2xl font-bold ${s.color}`}>{counts[s.key]}</div>
+            <div className={`stat-number ${s.color}`}>{counts[s.key]}</div>
             <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
           </div>
         ))}
@@ -592,7 +592,7 @@ function TabStats() {
         ].map(s => (
           <div key={s.label} className="card text-center py-4">
             <div className="text-2xl mb-1">{s.icon}</div>
-            <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+            <div className={`stat-number ${s.color}`}>{s.value}</div>
             <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
           </div>
         ))}
@@ -600,7 +600,7 @@ function TabStats() {
 
       {/* Role distribution */}
       <div className="card">
-        <h3 className="font-semibold text-gray-900 mb-3">Répartition des rôles</h3>
+        <h3 className="section-title text-gray-900 mb-3">Répartition des rôles</h3>
         <div className="space-y-2">
           {[
             { label: '👑 Administrateurs', count: stats?.adminCount ?? 0, color: 'bg-purple-500', total: stats?.memberCount || 1 },
@@ -626,7 +626,7 @@ function TabStats() {
       {/* Top players */}
       {topPlayers.length > 0 && (
         <div className="card">
-          <h3 className="font-semibold text-gray-900 mb-3">🏆 Top 5 joueurs (victoires)</h3>
+          <h3 className="section-title text-gray-900 mb-3">🏆 Top 5 joueurs (victoires)</h3>
           <div className="space-y-2">
             {topPlayers.map((p, i) => (
               <div key={p.id} className="flex items-center gap-3">
@@ -654,7 +654,7 @@ function TabStats() {
       {/* Recent sessions */}
       {recentSessions.length > 0 && (
         <div className="card">
-          <h3 className="font-semibold text-gray-900 mb-3">Dernières parties créées</h3>
+          <h3 className="section-title text-gray-900 mb-3">Dernières parties créées</h3>
           <div className="space-y-1.5">
             {recentSessions.map(s => {
               const date = new Date(`${s.date}T${s.time}`)
@@ -682,7 +682,7 @@ function TabStats() {
       {/* Recent new members */}
       {recentMembers.length > 0 && (
         <div className="card">
-          <h3 className="font-semibold text-gray-900 mb-3">🆕 Derniers membres inscrits</h3>
+          <h3 className="section-title text-gray-900 mb-3">🆕 Derniers membres inscrits</h3>
           <div className="space-y-2">
             {recentMembers.map(m => (
               <Link

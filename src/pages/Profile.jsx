@@ -98,7 +98,7 @@ function FriendsSection({ userId }) {
 
       {/* Liste des amis */}
       <div className="card">
-        <h3 className="font-semibold text-gray-900 mb-3">
+        <h3 className="section-title text-gray-900 mb-3">
           Mes amis ({friends.length})
         </h3>
         {friends.length === 0 ? (
@@ -417,7 +417,7 @@ export default function Profile() {
     <div className="max-w-lg mx-auto -mx-4 -mt-6">
 
       {/* ── Green banner ── */}
-      <div className="bg-[#1A3528] px-5 pt-7 pb-16">
+      <div className="bg-primary px-5 pt-7 pb-16">
         <div className="flex items-center gap-4 mb-5">
           {/* Avatar */}
           <div className="relative shrink-0">
@@ -425,16 +425,16 @@ export default function Profile() {
               <img
                 src={profile.avatar_url}
                 alt="avatar"
-                className="w-20 h-20 rounded-2xl object-cover border-2 border-[#243D2C] shadow-lg"
+                className="w-20 h-20 rounded-2xl object-cover border-2 border-primary-hover shadow-lg"
               />
             ) : (
-              <div className="w-20 h-20 bg-[#243D2C] rounded-2xl flex items-center justify-center shadow-lg">
+              <div className="w-20 h-20 bg-primary-hover rounded-2xl flex items-center justify-center shadow-lg">
                 <span className="text-3xl font-bold text-white">
                   {profile?.name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? '?'}
                 </span>
               </div>
             )}
-            <label className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#4CAF6F] hover:bg-[#3d9e5e] rounded-xl flex items-center justify-center cursor-pointer shadow-md transition-colors">
+            <label className="absolute -bottom-1 -right-1 w-7 h-7 bg-accent hover:bg-accent/80 rounded-xl flex items-center justify-center cursor-pointer shadow-md transition-colors">
               <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -475,9 +475,9 @@ export default function Profile() {
               <span className="text-[#6B9B7A] text-xs font-medium">Niveau</span>
               <span className="text-[#7BC47B] text-xs font-semibold">{LEVEL_LABEL[profile.level] ?? profile.level}</span>
             </div>
-            <div className="w-full bg-[#243D2C] rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-primary-hover rounded-full h-2 overflow-hidden">
               <div
-                className="h-2 rounded-full bg-gradient-to-r from-[#4CAF6F] to-[#7BC47B] transition-all"
+                className="h-2 rounded-full bg-gradient-to-r from-accent to-[#7BC47B] transition-all"
                 style={{ width: `${(parseInt(profile.level) / 10) * 100}%` }}
               />
             </div>
@@ -485,15 +485,15 @@ export default function Profile() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-4 rounded-2xl overflow-hidden bg-[#243D2C]/50">
+        <div className="grid grid-cols-4 rounded-2xl overflow-hidden bg-primary-hover/50">
           {[
             { label: 'Parties', value: stats.sessions },
             { label: 'Victoires', value: stats.wins },
             { label: 'Défaites', value: stats.losses },
             { label: '% Victoire', value: `${winRate}%` },
           ].map((s, i) => (
-            <div key={s.label} className={`py-3 text-center ${i < 3 ? 'border-r border-[#1A3528]/60' : ''}`}>
-              <div className="text-white text-lg font-bold leading-tight">{s.value}</div>
+            <div key={s.label} className={`py-3 text-center ${i < 3 ? 'border-r border-primary/60' : ''}`}>
+              <div className="stat-number text-white leading-tight">{s.value}</div>
               <div className="text-[#6B9B7A] text-[10px] mt-0.5 leading-tight">{s.label}</div>
             </div>
           ))}

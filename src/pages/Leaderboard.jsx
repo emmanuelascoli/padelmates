@@ -152,7 +152,7 @@ export default function Leaderboard() {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <h1 className="text-xl font-bold text-gray-900">Classement</h1>
+        <h1 className="section-title text-gray-900">Classement</h1>
         <PointsTooltip />
       </div>
 

@@ -46,11 +46,11 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-[#EAE0D0] flex items-center justify-center p-4 -mt-6">
+    <div className="min-h-screen bg-app-bg flex items-center justify-center p-4 -mt-6">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md border border-gray-100">
         {/* Brand */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#1A3528] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-3xl">🎾</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">PadelMates</h1>

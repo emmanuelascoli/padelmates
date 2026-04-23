@@ -53,7 +53,7 @@ export default function ProfileSetup() {
   }
 
   return (
-    <div className="min-h-screen bg-[#EAE0D0] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-app-bg flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md border border-gray-100">
 
         {/* Header */}

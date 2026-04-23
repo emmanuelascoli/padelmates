@@ -260,7 +260,7 @@ export default function PlayerProfile() {
           { label: '% Victoire', value: `${winRate}%`, color: stats.losses === 0 && stats.wins === 0 ? 'text-gray-400' : winRate >= 50 ? 'text-forest-700' : 'text-red-500' },
         ].map(s => (
           <div key={s.label} className="card text-center py-3 px-1">
-            <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+            <div className={`stat-number ${s.color}`}>{s.value}</div>
             <div className="text-xs text-gray-500 mt-0.5 leading-tight">{s.label}</div>
           </div>
         ))}

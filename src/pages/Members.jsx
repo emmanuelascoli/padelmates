@@ -103,7 +103,7 @@ export default function Members() {
 
   return (
     <div className="max-w-lg mx-auto space-y-5">
-      <h1 className="text-xl font-bold text-gray-900">Membres</h1>
+      <h1 className="section-title text-gray-900">Membres</h1>
 
       {/* Légende des badges */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">

@@ -109,7 +109,7 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
     <Link to={`/sessions/${session.id}`} className="block bg-white rounded-2xl shadow-sm overflow-hidden active:scale-[0.99] transition-transform">
       <div className="flex items-stretch">
         {/* Date block */}
-        <div className="w-[72px] bg-[#1A3528] flex flex-col items-center justify-center py-4 shrink-0">
+        <div className="w-[72px] bg-primary flex flex-col items-center justify-center py-4 shrink-0">
           <span className="text-[#6B9B7A] text-[10px] font-semibold tracking-widest uppercase leading-none">
             {format(date, 'EEE', { locale: fr }).toUpperCase().replace('.', '')}
           </span>
@@ -131,7 +131,7 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
             <div className="flex gap-1 shrink-0 flex-wrap justify-end">
               {session.is_private && <span className="badge bg-purple-100 text-purple-700">🔒</span>}
               {isRegistered && (
-                <span className="inline-flex items-center gap-1 bg-[#E8F5EC] text-[#1A6B3A] text-[11px] font-semibold px-2 py-0.5 rounded-full">✓ Inscrit</span>
+                <span className="inline-flex items-center gap-1 bg-accent-bg text-forest-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">✓ Inscrit</span>
               )}
               {session.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
             </div>
@@ -172,7 +172,7 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
           {/* Slot bar */}
           <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2 mb-1">
             <div
-              className={`h-1.5 rounded-full ${participantCount >= session.max_players ? 'bg-orange-400' : 'bg-[#4CAF6F]'}`}
+              className={`h-1.5 rounded-full ${participantCount >= session.max_players ? 'bg-orange-400' : 'bg-accent'}`}
               style={{ width: `${Math.min(100, Math.round((participantCount / session.max_players) * 100))}%` }}
             />
           </div>
@@ -180,7 +180,7 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
             <span className="text-gray-400">{participantCount} / {session.max_players} joueurs</span>
             {participantCount >= session.max_players
               ? <span className="text-orange-500 font-semibold">Complet</span>
-              : <span className="text-[#1A6B3A] font-semibold">{session.max_players - participantCount} dispo</span>
+              : <span className="text-forest-700 font-semibold">{session.max_players - participantCount} dispo</span>
             }
           </div>
         </div>
@@ -193,7 +193,7 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
 function Pill({ active, onClick, children, color = 'forest' }) {
   const colors = {
     forest: active ? 'bg-forest-900 text-white border-forest-700' : 'bg-white text-gray-600 border-gray-200 hover:border-forest-300',
-    green:  active ? 'bg-[#1A6B3A] text-white border-[#1A6B3A]'  : 'bg-white text-gray-600 border-gray-200 hover:border-green-300',
+    green:  active ? 'bg-forest-700 text-white border-forest-700'  : 'bg-white text-gray-600 border-gray-200 hover:border-green-300',
     orange: active ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300',
   }
   return (
@@ -333,7 +333,7 @@ export default function Sessions() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Parties</h1>
+        <h1 className="section-title text-gray-900">Parties</h1>
         <Link to="/sessions/new" className="btn-primary text-sm py-2">
           + Organiser
         </Link>

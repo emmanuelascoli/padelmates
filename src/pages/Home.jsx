@@ -25,7 +25,7 @@ function SessionCard({ session, userId }) {
       <div className="flex items-stretch">
 
         {/* ── Date column ── */}
-        <div className="w-[72px] bg-[#1A3528] flex flex-col items-center justify-center py-4 shrink-0">
+        <div className="w-[72px] bg-primary flex flex-col items-center justify-center py-4 shrink-0">
           <span className="text-[#6B9B7A] text-[10px] font-semibold tracking-widest uppercase leading-none">
             {dayLabel}
           </span>
@@ -45,7 +45,7 @@ function SessionCard({ session, userId }) {
           <div className="flex items-start justify-between gap-2 mb-1">
             <span className="font-bold text-gray-900 text-[15px] leading-snug">{session.title}</span>
             {registered && (
-              <span className="shrink-0 inline-flex items-center gap-1 bg-[#E8F5EC] text-[#1A6B3A] text-[11px] font-semibold px-2 py-0.5 rounded-full">
+              <span className="shrink-0 inline-flex items-center gap-1 bg-accent-bg text-forest-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">
                 ✓ Inscrit
               </span>
             )}
@@ -67,7 +67,7 @@ function SessionCard({ session, userId }) {
           {/* Slot bar */}
           <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1.5">
             <div
-              className={`h-1.5 rounded-full ${isFull ? 'bg-orange-400' : 'bg-[#4CAF6F]'}`}
+              className={`h-1.5 rounded-full ${isFull ? 'bg-orange-400' : 'bg-accent'}`}
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -75,7 +75,7 @@ function SessionCard({ session, userId }) {
             <span className="text-gray-400">{count} / {max} joueurs</span>
             {isFull
               ? <span className="text-orange-500 font-semibold">Complet</span>
-              : <span className="text-[#1A6B3A] font-semibold">{max - count} place{max - count > 1 ? 's' : ''} dispo</span>
+              : <span className="text-forest-700 font-semibold">{max - count} place{max - count > 1 ? 's' : ''} dispo</span>
             }
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function Home() {
     <div className="-mx-4 -mt-6">
 
       {/* ── Green banner ────────────────────────────────── */}
-      <div className="bg-[#1A3528] px-5 pt-7 pb-16">
+      <div className="bg-primary px-5 pt-7 pb-16">
 
         {/* Greeting row */}
         <div className="flex items-start justify-between mb-6">
@@ -163,26 +163,26 @@ export default function Home() {
               {firstName}
             </h1>
             {levelLabel && (
-              <span className="inline-flex items-center gap-2 mt-2.5 bg-[#243D2C] text-[#90C9A0] text-xs font-medium px-3 py-1.5 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF6F]" />
+              <span className="inline-flex items-center gap-2 mt-2.5 bg-primary-hover text-[#90C9A0] text-xs font-medium px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
                 {levelLabel}
               </span>
             )}
           </div>
-          <div className="w-12 h-12 bg-[#243D2C]/60 rounded-2xl flex items-center justify-center text-2xl mt-1">
+          <div className="w-12 h-12 bg-primary-hover/60 rounded-2xl flex items-center justify-center text-2xl mt-1">
             🎾
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 rounded-2xl overflow-hidden bg-[#243D2C]/50">
+        <div className="grid grid-cols-3 rounded-2xl overflow-hidden bg-primary-hover/50">
           {[
             { value: myStats.played, label: 'Parties' },
             { value: myStats.wins,   label: 'Victoires' },
             { value: myStats.friends, label: 'Amis actifs' },
           ].map((s, i) => (
-            <div key={s.label} className={`py-3.5 text-center ${i < 2 ? 'border-r border-[#1A3528]/60' : ''}`}>
-              <div className="text-white text-2xl font-bold">{s.value}</div>
+            <div key={s.label} className={`py-3.5 text-center ${i < 2 ? 'border-r border-primary/60' : ''}`}>
+              <div className="stat-number text-white">{s.value}</div>
               <div className="text-[#6B9B7A] text-xs mt-0.5">{s.label}</div>
             </div>
           ))}
@@ -196,7 +196,7 @@ export default function Home() {
         <div className="flex gap-3 mb-6">
           <Link
             to="/sessions/new"
-            className="flex-1 flex items-center justify-center gap-2 bg-[#1A3528] hover:bg-[#243D2C] text-white font-semibold text-sm py-3.5 rounded-2xl transition-colors shadow-sm"
+            className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-sm py-3.5 rounded-2xl transition-colors shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -213,8 +213,8 @@ export default function Home() {
 
         {/* Section header */}
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-gray-900 text-base">Prochaines parties</h3>
-          <Link to="/sessions" className="text-sm text-[#1A6B3A] font-medium hover:underline">
+          <h3 className="section-title text-gray-900">Prochaines parties</h3>
+          <Link to="/sessions" className="text-sm text-forest-700 font-medium hover:underline">
             Tout voir →
           </Link>
         </div>
@@ -222,13 +222,13 @@ export default function Home() {
         {/* Sessions */}
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-[3px] border-[#1A3528] border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : upcomingSessions.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <div className="text-4xl mb-3">📅</div>
             <p className="text-sm font-medium text-gray-500">Aucune partie prévue</p>
-            <Link to="/sessions/new" className="text-sm text-[#1A6B3A] hover:underline mt-2 inline-block font-medium">
+            <Link to="/sessions/new" className="text-sm text-forest-700 hover:underline mt-2 inline-block font-medium">
               Organiser la première →
             </Link>
           </div>

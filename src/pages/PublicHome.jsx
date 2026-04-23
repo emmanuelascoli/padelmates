@@ -33,7 +33,7 @@ function PublicSessionCard({ session, onJoin }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       {/* Top accent bar */}
-      <div className={`h-1 w-full ${isFull ? 'bg-orange-400' : 'bg-[#4CAF6F]'}`} />
+      <div className={`h-1 w-full ${isFull ? 'bg-orange-400' : 'bg-accent'}`} />
 
       <div className="p-4">
         {/* Title + lock badge */}
@@ -166,7 +166,7 @@ export default function PublicHome() {
   }
 
   return (
-    <div className="min-h-screen bg-[#EAE0D0]">
+    <div className="min-h-screen bg-app-bg">
       {/* Hero */}
       <div className="max-w-lg mx-auto px-4 pt-10 pb-6 text-center">
         <div className="w-20 h-20 bg-gradient-to-br from-forest-800 to-forest-800 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-lg">
