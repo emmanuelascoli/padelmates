@@ -128,9 +128,7 @@ export default function ProfileSetup() {
               value={form.level}
               onChange={handleChange}
               required
-              className={`w-full border rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-forest-900/15 focus:border-forest-700 text-gray-900 transition-all duration-150 ${
-                form.level ? 'bg-white border-forest-200' : 'bg-white border-orange-300 text-gray-400'
-              }`}
+              className={`input${!form.level ? ' border-orange-300' : ''}`}
             >
               <option value="" disabled>— Choisir mon niveau —</option>
               {LEVEL_OPTIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
