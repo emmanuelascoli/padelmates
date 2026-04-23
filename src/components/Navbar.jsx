@@ -166,12 +166,19 @@ export default function Navbar() {
           </div>
           <div className="flex items-center gap-1.5">
             {isAdmin && (
-              <Link to="/admin" className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-                location.pathname === '/admin'
-                  ? 'bg-purple-100 border-purple-200 text-purple-700'
-                  : 'bg-white border-gray-200 text-gray-600'
-              }`}>
-                👑 Admin
+              <Link
+                to="/admin"
+                style={{
+                  background: '#E8F5EE',
+                  color: '#2D6A4F',
+                  border: '1px solid rgba(82,183,136,0.25)',
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: '4px 10px',
+                }}
+              >
+                Admin
               </Link>
             )}
             {/* Cloche mobile */}
