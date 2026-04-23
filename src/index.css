@@ -2,6 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens PadelMates — v2 ───────────────────────── */
+:root {
+  /* Couleurs principales */
+  --color-primary:        #1B4332;  /* forest green — boutons, header */
+  --color-primary-hover:  #2D6A4F;  /* hover state */
+  --color-accent:         #52B788;  /* progress bars, badges actifs */
+  --color-accent-bg:      #E8F5EE;  /* fond vert très clair */
+
+  /* Fond & surfaces */
+  --color-bg:             #F2EFE9;  /* fond app — légèrement plus chaud */
+  --color-surface:        #FFFFFF;  /* cards, modales */
+  --color-surface-2:      #F7F5F1;  /* inputs, sections secondaires */
+
+  /* Texte */
+  --color-text:           #0D1F14;  /* texte principal */
+  --color-text-2:         #6B7C72;  /* labels, sous-titres */
+  --color-text-3:         #9CA3AF;  /* placeholders, hints */
+
+  /* Erreur / états */
+  --color-red:            #DC2626;  /* "Complet", erreurs */
+  --color-red-bg:         #FEF2F2;  /* fond badge rouge */
+
+  /* Bordures & ombres */
+  --border:               rgba(0,0,0,0.08);
+  --shadow-sm:            0 2px 10px rgba(0,0,0,0.07);
+  --shadow-md:            0 4px 16px rgba(0,0,0,0.09);
+
+  /* Typographie */
+  --font:                 'DM Sans', sans-serif;
+  --font-xs:              11px;
+  --font-sm:              13px;
+  --font-base:            15px;
+  --font-lg:              17px;
+  --font-xl:              22px;
+
+  /* Border radius */
+  --radius-sm:            8px;
+  --radius-md:            12px;
+  --radius-lg:            16px;
+  --radius-xl:            20px;
+  --radius-pill:          999px;
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900 antialiased;
