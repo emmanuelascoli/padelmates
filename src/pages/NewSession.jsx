@@ -163,6 +163,7 @@ export default function NewSession() {
               <option value="Jonction">Jonction</option>
               <option value="La Praille">La Praille</option>
               <option value="Les Acacias">Les Acacias</option>
+              <option value="Padel Station">Padel Station</option>
               <option value="Parc des Evaux">Parc des Evaux</option>
               <option value="TC International Chambesy">TC International Chambesy</option>
             </select>
