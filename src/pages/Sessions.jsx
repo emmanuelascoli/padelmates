@@ -198,17 +198,16 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
 }
 
 // ── Pill helper ──────────────────────────────────────────────
-function Pill({ active, onClick, children, color = 'forest' }) {
-  const colors = {
-    forest: active ? 'bg-forest-900 text-white border-forest-700' : 'bg-white text-gray-600 border-gray-200 hover:border-forest-300',
-    green:  active ? 'bg-forest-700 text-white border-forest-700'  : 'bg-white text-gray-600 border-gray-200 hover:border-green-300',
-    orange: active ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300',
-  }
+function Pill({ active, onClick, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${colors[color]}`}
+      className="h-8 px-3 rounded-[999px] text-xs font-medium transition-all shrink-0 whitespace-nowrap"
+      style={active
+        ? { background: 'var(--color-primary)', color: '#fff', border: '1.5px solid var(--color-primary)' }
+        : { background: '#fff', border: '1.5px solid rgba(0,0,0,0.08)', color: 'var(--color-text-2)' }
+      }
     >
       {children}
     </button>
@@ -378,25 +377,27 @@ export default function Sessions() {
           {tab === 'upcoming' && (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Créneau</span>
-              <Pill active={timeActive.has('morning')} onClick={() => toggleSet(setTimeActive, 'morning')} color="orange">🌅 Matin</Pill>
-              <Pill active={timeActive.has('noon')}    onClick={() => toggleSet(setTimeActive, 'noon')}    color="orange">☀️ Midi</Pill>
-              <Pill active={timeActive.has('evening')} onClick={() => toggleSet(setTimeActive, 'evening')} color="orange">🌆 Soir</Pill>
+              <Pill active={timeActive.has('morning')} onClick={() => toggleSet(setTimeActive, 'morning')}>Matin</Pill>
+              <Pill active={timeActive.has('noon')}    onClick={() => toggleSet(setTimeActive, 'noon')}>☀️ Midi</Pill>
+              <Pill active={timeActive.has('evening')} onClick={() => toggleSet(setTimeActive, 'evening')}>Soir</Pill>
             </div>
           )}
 
-          {/* Lieux — uniquement sur À venir */}
+          {/* Lieux — uniquement sur À venir, scroll horizontal */}
           {tab === 'upcoming' && (
-            <div className="flex items-start gap-2 flex-wrap">
-              <span className="text-xs text-gray-500 font-medium w-12 shrink-0 pt-1">Lieu</span>
-              <div className="flex gap-1.5 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Lieu</span>
+              <div
+                className="no-scrollbar min-w-0"
+                style={{ display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', gap: '6px', paddingBottom: '4px' }}
+              >
                 {uniqueLocations.map(loc => (
                   <Pill
                     key={loc}
                     active={locationActive.has(loc)}
                     onClick={() => toggleSet(setLocationActive, loc)}
-                    color="forest"
                   >
-                    📍 {loc}
+                    {loc}
                   </Pill>
                 ))}
               </div>
@@ -407,8 +408,8 @@ export default function Sessions() {
           {(tab === 'upcoming' || tab === 'mine') && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Dispo</span>
-              <Pill active={openOnly} onClick={() => setOpenOnly(v => !v)} color="green">
-                ✅ Places disponibles
+              <Pill active={openOnly} onClick={() => setOpenOnly(v => !v)}>
+                Places disponibles
               </Pill>
             </div>
           )}
