@@ -3,29 +3,33 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationsContext'
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
+const ICON_COLOR_ACTIVE   = 'var(--color-primary)'   // #1B4332
+const ICON_COLOR_INACTIVE = '#9CA3AF'
+
 const IconHome = ({ active }) => (
-  <svg className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+  <svg className="w-5 h-5" style={{ color: active ? ICON_COLOR_ACTIVE : ICON_COLOR_INACTIVE }} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
   </svg>
 )
 const IconCalendar = ({ active }) => (
-  <svg className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+  <svg className="w-5 h-5" style={{ color: active ? ICON_COLOR_ACTIVE : ICON_COLOR_INACTIVE }} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
   </svg>
 )
 const IconCommunity = ({ active }) => (
-  <svg className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+  <svg className="w-5 h-5" style={{ color: active ? ICON_COLOR_ACTIVE : ICON_COLOR_INACTIVE }} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
   </svg>
 )
 const IconProfile = ({ active }) => (
-  <svg className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'}`} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+  <svg className="w-5 h-5" style={{ color: active ? ICON_COLOR_ACTIVE : ICON_COLOR_INACTIVE }} fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
   </svg>
 )
 const IconBell = ({ active, className = '' }) => (
   <svg
-    className={`w-5 h-5 ${active ? 'text-forest-900' : 'text-gray-400'} ${className}`}
+    className={`w-5 h-5 ${className}`}
+    style={{ color: active ? ICON_COLOR_ACTIVE : ICON_COLOR_INACTIVE }}
     fill={active ? 'currentColor' : 'none'}
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -186,18 +190,28 @@ export default function Navbar() {
       </header>
 
       {/* ── Mobile bottom navbar with FAB ────────────────── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 shadow-[0_-1px_12px_rgba(0,0,0,0.08)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50"
+        style={{ boxShadow: '0 -2px 12px rgba(0,0,0,0.05)' }}>
         <div className="flex items-end">
           {/* Left items */}
           {LEFT_ITEMS.map(item => {
             const active = isActive(item)
             return (
-              <Link key={item.to} to={item.to} className="relative flex-1 flex flex-col items-center pt-2.5 pb-2 gap-0.5">
-                {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-forest-900 rounded-full" />}
+              <Link key={item.to} to={item.to} className="flex-1 flex flex-col items-center pt-2.5 pb-2 gap-0.5">
                 <item.icon active={active} />
-                <span className={`text-xs ${active ? 'text-forest-900 font-semibold' : 'text-gray-400'}`}>
+                <span
+                  className="font-semibold"
+                  style={{
+                    fontSize: '10px',
+                    color: active ? 'var(--color-primary)' : '#9CA3AF',
+                  }}
+                >
                   {item.label}
                 </span>
+                {active
+                  ? <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--color-primary)', display: 'block' }} />
+                  : <span style={{ width: 4, height: 4, display: 'block' }} />
+                }
               </Link>
             )
           })}
@@ -206,9 +220,16 @@ export default function Navbar() {
           <div className="flex-1 flex justify-center pb-2">
             <Link
               to="/sessions/new"
-              className="w-14 h-14 bg-forest-900 rounded-2xl flex items-center justify-center shadow-lg shadow-forest-900/30 -translate-y-3 active:scale-95 transition-transform"
+              className="bg-forest-900 flex items-center justify-center active:scale-95 transition-transform"
+              style={{
+                width: 50,
+                height: 50,
+                borderRadius: 16,
+                marginTop: -20,
+                boxShadow: '0 6px 20px rgba(27,67,50,0.45)',
+              }}
             >
-              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </Link>
@@ -218,12 +239,21 @@ export default function Navbar() {
           {RIGHT_ITEMS.map(item => {
             const active = isActive(item)
             return (
-              <Link key={item.to} to={item.to} className="relative flex-1 flex flex-col items-center pt-2.5 pb-2 gap-0.5">
-                {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-forest-900 rounded-full" />}
+              <Link key={item.to} to={item.to} className="flex-1 flex flex-col items-center pt-2.5 pb-2 gap-0.5">
                 <item.icon active={active} />
-                <span className={`text-xs ${active ? 'text-forest-900 font-semibold' : 'text-gray-400'}`}>
+                <span
+                  className="font-semibold"
+                  style={{
+                    fontSize: '10px',
+                    color: active ? 'var(--color-primary)' : '#9CA3AF',
+                  }}
+                >
                   {item.label}
                 </span>
+                {active
+                  ? <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--color-primary)', display: 'block' }} />
+                  : <span style={{ width: 4, height: 4, display: 'block' }} />
+                }
               </Link>
             )
           })}
