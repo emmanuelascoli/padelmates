@@ -21,27 +21,27 @@ function SessionCard({ session, userId }) {
   if (isTomorrow(date)) dayLabel = 'DEM.'
 
   return (
-    <Link to={`/sessions/${session.id}`} className="block bg-white rounded-2xl shadow-sm overflow-hidden mb-3 active:scale-[0.99] transition-transform">
-      <div className="flex items-stretch">
+    <Link to={`/sessions/${session.id}`} className="block bg-white rounded-2xl shadow-sm mb-3 active:scale-[0.99] transition-transform">
+      <div className="flex items-center">
 
-        {/* ── Date column ── */}
-        <div className="w-[72px] bg-primary flex flex-col items-center justify-center py-4 shrink-0">
+        {/* ── Date block ── */}
+        <div className="w-14 bg-primary rounded-xl m-3 flex flex-col items-center justify-center py-[10px] shrink-0">
           <span className="text-[#6B9B7A] text-[10px] font-semibold tracking-widest uppercase leading-none">
             {dayLabel}
           </span>
-          <span className="text-white text-[28px] font-bold leading-tight mt-0.5">
+          <span className="text-white text-[26px] font-bold leading-tight mt-0.5">
             {format(date, 'd')}
           </span>
           <span className="text-[#6B9B7A] text-[10px] uppercase tracking-wide leading-none">
             {format(date, 'MMM', { locale: fr }).toUpperCase().replace('.', '')}
           </span>
-          <span className="text-[#7BC47B] text-xs font-semibold mt-1.5 leading-none">
+          <span className="text-accent font-bold text-xs mt-1.5 leading-none">
             {format(date, 'HH:mm')}
           </span>
         </div>
 
         {/* ── Content ── */}
-        <div className="flex-1 px-4 py-3 min-w-0">
+        <div className="flex-1 pr-4 py-3 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <span className="font-bold text-gray-900 text-[15px] leading-snug">{session.title}</span>
             {registered && (
@@ -50,7 +50,10 @@ function SessionCard({ session, userId }) {
               </span>
             )}
             {!isPastSess && isFull && !registered && (
-              <span className="shrink-0 inline-flex items-center bg-orange-100 text-orange-600 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+              <span
+                className="shrink-0 inline-flex items-center text-[11px] font-bold px-[9px] py-[3px] rounded-[20px]"
+                style={{ background: 'var(--color-red-bg)', color: 'var(--color-red)' }}
+              >
                 Complet
               </span>
             )}
@@ -65,16 +68,16 @@ function SessionCard({ session, userId }) {
           </div>
 
           {/* Slot bar */}
-          <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1.5">
+          <div className="w-full bg-gray-100 rounded-[3px] h-[6px] mb-1.5">
             <div
-              className={`h-1.5 rounded-full ${isFull ? 'bg-orange-400' : 'bg-accent'}`}
+              className={`h-[6px] rounded-[3px] transition-all ${isFull ? 'bg-[var(--color-red)]' : 'bg-accent'}`}
               style={{ width: `${pct}%` }}
             />
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-400">{count} / {max} joueurs</span>
             {isFull
-              ? <span className="text-orange-500 font-semibold">Complet</span>
+              ? <span className="font-semibold" style={{ color: 'var(--color-red)' }}>Complet</span>
               : <span className="text-forest-700 font-semibold">{max - count} place{max - count > 1 ? 's' : ''} dispo</span>
             }
           </div>

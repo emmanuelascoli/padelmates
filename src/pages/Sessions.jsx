@@ -106,10 +106,10 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
   const isRegistered = (session.session_participants || []).some(p => p.user_id === userId)
 
   return (
-    <Link to={`/sessions/${session.id}`} className="block bg-white rounded-2xl shadow-sm overflow-hidden active:scale-[0.99] transition-transform">
-      <div className="flex items-stretch">
+    <Link to={`/sessions/${session.id}`} className="block bg-white rounded-2xl shadow-sm active:scale-[0.99] transition-transform">
+      <div className="flex items-center">
         {/* Date block */}
-        <div className="w-[72px] bg-primary flex flex-col items-center justify-center py-4 shrink-0">
+        <div className="w-14 bg-primary rounded-xl m-3 flex flex-col items-center justify-center py-[10px] shrink-0">
           <span className="text-[#6B9B7A] text-[10px] font-semibold tracking-widest uppercase leading-none">
             {format(date, 'EEE', { locale: fr }).toUpperCase().replace('.', '')}
           </span>
@@ -119,19 +119,27 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
           <span className="text-[#6B9B7A] text-[10px] uppercase tracking-wide leading-none">
             {format(date, 'MMM', { locale: fr }).toUpperCase().replace('.', '')}
           </span>
-          <span className="text-[#7BC47B] text-xs font-semibold mt-1.5 leading-none">
+          <span className="text-accent font-bold text-xs mt-1.5 leading-none">
             {format(date, 'HH:mm')}
           </span>
         </div>
 
         {/* Info */}
-        <div className="flex-1 px-4 py-3 min-w-0">
+        <div className="flex-1 pr-4 py-3 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <span className="font-bold text-gray-900 text-[15px] leading-snug">{session.title}</span>
             <div className="flex gap-1 shrink-0 flex-wrap justify-end">
               {session.is_private && <span className="badge bg-purple-100 text-purple-700">🔒</span>}
               {isRegistered && (
                 <span className="inline-flex items-center gap-1 bg-accent-bg text-forest-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">✓ Inscrit</span>
+              )}
+              {!isRegistered && participantCount >= session.max_players && session.status !== 'cancelled' && (
+                <span
+                  className="inline-flex items-center text-[11px] font-bold px-[9px] py-[3px] rounded-[20px]"
+                  style={{ background: 'var(--color-red-bg)', color: 'var(--color-red)' }}
+                >
+                  Complet
+                </span>
               )}
               {session.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
             </div>
@@ -170,16 +178,16 @@ function SessionRow({ session, userId, friendIds, friendProfiles }) {
           />
 
           {/* Slot bar */}
-          <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2 mb-1">
+          <div className="w-full bg-gray-100 rounded-[3px] h-[6px] mt-2 mb-1">
             <div
-              className={`h-1.5 rounded-full ${participantCount >= session.max_players ? 'bg-orange-400' : 'bg-accent'}`}
+              className={`h-[6px] rounded-[3px] transition-all ${participantCount >= session.max_players ? 'bg-[var(--color-red)]' : 'bg-accent'}`}
               style={{ width: `${Math.min(100, Math.round((participantCount / session.max_players) * 100))}%` }}
             />
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-400">{participantCount} / {session.max_players} joueurs</span>
             {participantCount >= session.max_players
-              ? <span className="text-orange-500 font-semibold">Complet</span>
+              ? <span className="font-semibold" style={{ color: 'var(--color-red)' }}>Complet</span>
               : <span className="text-forest-700 font-semibold">{session.max_players - participantCount} dispo</span>
             }
           </div>
