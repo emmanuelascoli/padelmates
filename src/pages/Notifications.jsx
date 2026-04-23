@@ -101,11 +101,16 @@ function notifContent(notif) {
         href: `/sessions/${data.session_id}`,
       }
 
-    case 'result_recorded':
+    case 'result_recorded': {
+      const count = data.match_count ?? 1
+      const prefix = count > 1
+        ? `${count} matchs ont été enregistrés`
+        : `${data.recorder_name} a enregistré le score`
       return {
-        text: `${data.recorder_name} a enregistré le score de votre partie${data.session_date ? ` du ${formatDate(data.session_date)}` : ''}`,
+        text: `${prefix} pour votre partie${data.session_date ? ` du ${formatDate(data.session_date)}` : ''}`,
         href: `/sessions/${data.session_id}`,
       }
+    }
 
     case 'payment_reminder':
       return {

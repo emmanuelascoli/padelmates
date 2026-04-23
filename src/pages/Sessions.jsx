@@ -6,6 +6,19 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { BADGES } from '../lib/constants'
 
+// ── Liste fixe des lieux (synchronisée avec NewSession) ──────
+const KNOWN_VENUES = [
+  'Bernex',
+  "Cologny",
+  "David Lloyd's Club",
+  'Jonction',
+  'La Praille',
+  'Les Acacias',
+  'Padel Station',
+  'Parc des Evaux',
+  'TC International Chambesy',
+]
+
 // ── Helpers filtres ──────────────────────────────────────────
 const LEVEL_RANGES = {
   '1-3':  [1, 3],
@@ -311,8 +324,8 @@ export default function Sessions() {
     matchesOpen(s, openOnly)
   )
 
-  // Lieux uniques (nom du club uniquement, sans numéro de terrain)
-  const uniqueLocations = [...new Set(sessions.map(s => extractVenue(s.location)).filter(Boolean))].sort()
+  // Lieux : liste fixe complète (tous les clubs, toujours visibles)
+  const uniqueLocations = KNOWN_VENUES
 
   const showFilters = tab === 'upcoming' || tab === 'past' || tab === 'mine'
 
@@ -361,24 +374,22 @@ export default function Sessions() {
             <Pill active={timeActive.has('evening')} onClick={() => toggleSet(setTimeActive, 'evening')} color="orange">🌆 Soir</Pill>
           </div>
 
-          {/* Lieux (dynamique) */}
-          {uniqueLocations.length > 1 && (
-            <div className="flex items-start gap-2 flex-wrap">
-              <span className="text-xs text-gray-500 font-medium w-12 shrink-0 pt-1">Lieu</span>
-              <div className="flex gap-1.5 flex-wrap">
-                {uniqueLocations.map(loc => (
-                  <Pill
-                    key={loc}
-                    active={locationActive.has(loc)}
-                    onClick={() => toggleSet(setLocationActive, loc)}
-                    color="forest"
-                  >
-                    📍 {loc}
-                  </Pill>
-                ))}
-              </div>
+          {/* Lieux (liste fixe) */}
+          <div className="flex items-start gap-2 flex-wrap">
+            <span className="text-xs text-gray-500 font-medium w-12 shrink-0 pt-1">Lieu</span>
+            <div className="flex gap-1.5 flex-wrap">
+              {uniqueLocations.map(loc => (
+                <Pill
+                  key={loc}
+                  active={locationActive.has(loc)}
+                  onClick={() => toggleSet(setLocationActive, loc)}
+                  color="forest"
+                >
+                  📍 {loc}
+                </Pill>
+              ))}
             </div>
-          )}
+          </div>
 
           {/* Places disponibles (seulement sur À venir et Mes parties) */}
           {(tab === 'upcoming' || tab === 'mine') && (
