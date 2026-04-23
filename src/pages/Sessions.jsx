@@ -366,30 +366,34 @@ export default function Sessions() {
             <Pill active={levelActive.has('7-10')} onClick={() => toggleSet(setLevelActive, '7-10')}>7–10</Pill>
           </div>
 
-          {/* Créneau */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Créneau</span>
-            <Pill active={timeActive.has('morning')} onClick={() => toggleSet(setTimeActive, 'morning')} color="orange">🌅 Matin</Pill>
-            <Pill active={timeActive.has('noon')}    onClick={() => toggleSet(setTimeActive, 'noon')}    color="orange">☀️ Midi</Pill>
-            <Pill active={timeActive.has('evening')} onClick={() => toggleSet(setTimeActive, 'evening')} color="orange">🌆 Soir</Pill>
-          </div>
-
-          {/* Lieux (liste fixe) */}
-          <div className="flex items-start gap-2 flex-wrap">
-            <span className="text-xs text-gray-500 font-medium w-12 shrink-0 pt-1">Lieu</span>
-            <div className="flex gap-1.5 flex-wrap">
-              {uniqueLocations.map(loc => (
-                <Pill
-                  key={loc}
-                  active={locationActive.has(loc)}
-                  onClick={() => toggleSet(setLocationActive, loc)}
-                  color="forest"
-                >
-                  📍 {loc}
-                </Pill>
-              ))}
+          {/* Créneau — uniquement sur À venir */}
+          {tab === 'upcoming' && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Créneau</span>
+              <Pill active={timeActive.has('morning')} onClick={() => toggleSet(setTimeActive, 'morning')} color="orange">🌅 Matin</Pill>
+              <Pill active={timeActive.has('noon')}    onClick={() => toggleSet(setTimeActive, 'noon')}    color="orange">☀️ Midi</Pill>
+              <Pill active={timeActive.has('evening')} onClick={() => toggleSet(setTimeActive, 'evening')} color="orange">🌆 Soir</Pill>
             </div>
-          </div>
+          )}
+
+          {/* Lieux — uniquement sur À venir */}
+          {tab === 'upcoming' && (
+            <div className="flex items-start gap-2 flex-wrap">
+              <span className="text-xs text-gray-500 font-medium w-12 shrink-0 pt-1">Lieu</span>
+              <div className="flex gap-1.5 flex-wrap">
+                {uniqueLocations.map(loc => (
+                  <Pill
+                    key={loc}
+                    active={locationActive.has(loc)}
+                    onClick={() => toggleSet(setLocationActive, loc)}
+                    color="forest"
+                  >
+                    📍 {loc}
+                  </Pill>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Places disponibles (seulement sur À venir et Mes parties) */}
           {(tab === 'upcoming' || tab === 'mine') && (

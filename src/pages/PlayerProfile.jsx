@@ -192,6 +192,13 @@ export default function PlayerProfile() {
             <BadgeList badges={profile.badges} size="lg" className="justify-center" />
           </div>
         )}
+        {profile.rank_score > 0 && (
+          <div className="mt-3 inline-flex items-center gap-1.5 bg-forest-50 border border-forest-100 rounded-full px-3 py-1">
+            <span className="text-base">🏆</span>
+            <span className="text-sm font-bold text-forest-900">{profile.rank_score}</span>
+            <span className="text-xs text-forest-600 font-medium">pts ELO</span>
+          </div>
+        )}
         {isOwnProfile && (
           <div className="mt-2">
             <Link to="/profile" className="text-xs text-forest-700 hover:underline">Modifier mon profil →</Link>
