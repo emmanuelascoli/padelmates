@@ -452,8 +452,20 @@ export default function Profile() {
             {role && role !== 'member' && (() => {
               const r = ROLES[role]
               return (
-                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border mt-1.5 ${r.color} ${r.border}`}>
-                  {r.badge} {r.label}
+                <span
+                  className="inline-flex items-center gap-1.5 mt-1.5"
+                  style={{
+                    background: 'rgba(255,255,255,0.12)',
+                    color: 'rgba(255,255,255,0.9)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 20,
+                    padding: '4px 12px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#52B788', display: 'inline-block', flexShrink: 0 }} />
+                  {r.label}
                 </span>
               )
             })()}
@@ -475,10 +487,18 @@ export default function Profile() {
               <span className="text-[#6B9B7A] text-xs font-medium">Niveau</span>
               <span className="text-[#7BC47B] text-xs font-semibold">{LEVEL_LABEL[profile.level] ?? profile.level}</span>
             </div>
-            <div className="w-full bg-primary-hover rounded-full h-2 overflow-hidden">
+            <div
+              className="w-full overflow-hidden"
+              style={{ height: 8, borderRadius: 4, background: 'rgba(0,0,0,0.25)' }}
+            >
               <div
-                className="h-2 rounded-full bg-gradient-to-r from-accent to-[#7BC47B] transition-all"
-                style={{ width: `${(parseInt(profile.level) / 10) * 100}%` }}
+                className="transition-all"
+                style={{
+                  height: 8,
+                  borderRadius: 4,
+                  background: '#52B788',
+                  width: `${(parseInt(profile.level) / 10) * 100}%`,
+                }}
               />
             </div>
           </div>
@@ -493,8 +513,8 @@ export default function Profile() {
             { label: '% Victoire', value: `${winRate}%` },
           ].map((s, i) => (
             <div key={s.label} className={`py-3 text-center ${i < 3 ? 'border-r border-primary/60' : ''}`}>
-              <div className="stat-number text-white leading-tight">{s.value}</div>
-              <div className="text-[#6B9B7A] text-[10px] mt-0.5 leading-tight">{s.label}</div>
+              <div className="text-white leading-tight" style={{ fontSize: 18, fontWeight: 800 }}>{s.value}</div>
+              <div className="text-[#6B9B7A] mt-0.5 leading-tight" style={{ fontSize: 10 }}>{s.label}</div>
             </div>
           ))}
         </div>
