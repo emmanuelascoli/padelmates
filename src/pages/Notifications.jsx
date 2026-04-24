@@ -104,6 +104,13 @@ const ICON_STAR = (
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
   </svg>
 )
+const ICON_USER_MINUS = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+    <circle cx="8.5" cy="7" r="4"/>
+    <line x1="23" y1="11" x2="17" y2="11"/>
+  </svg>
+)
 
 // Icon config: { bg, color, icon }
 const ICON_CONFIG = {
@@ -116,6 +123,7 @@ const ICON_CONFIG = {
   player_promoted:          { bg: '#F5F3FF', color: '#7C3AED', icon: ICON_STAR },
   payment_reminder:         { bg: '#FFFBEB', color: '#D97706', icon: ICON_CARD },
   missing_players_reminder: { bg: '#FFF7ED', color: '#EA580C', icon: ICON_PEOPLE },
+  player_left:              { bg: '#FEF2F2', color: '#DC2626', icon: ICON_USER_MINUS },
 }
 
 function NotifIcon({ type }) {
@@ -171,6 +179,11 @@ function notifContent(notif) {
       const spots = data.spots_remaining ?? (data.max_players - data.current_players)
       return { text: `Ta partie de demain${data.location ? ` à ${data.location}` : ''} n'est pas complète — il manque encore ${spots} joueur${spots > 1 ? 's' : ''}.`, href: `/sessions/${data.session_id}` }
     }
+    case 'player_left':
+      return {
+        text: `${data.player_name} s'est désinscrit${data.session_date ? ` de ta partie du ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''}`,
+        href: `/sessions/${data.session_id}`,
+      }
     default:
       return { text: 'Nouvelle notification', href: '/' }
   }
