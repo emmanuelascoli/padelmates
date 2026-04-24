@@ -2,10 +2,15 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { LEVEL_LABEL } from '../lib/constants'
-import { BadgeList } from '../components/BadgeList'
+import { LEVEL_LABEL, BADGES } from '../lib/constants'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
+
+const IconStar = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="#52B788" stroke="none">
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+  </svg>
+)
 
 export default function PlayerProfile() {
   const { id } = useParams()
@@ -173,97 +178,182 @@ export default function PlayerProfile() {
         Retour
       </button>
 
-      {/* Header joueur */}
-      <div className="card text-center py-6">
-        {profile.avatar_url ? (
-          <img src={profile.avatar_url} alt="avatar"
-            className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-4 border-white ring-2 ring-forest-100 shadow-md" />
-        ) : (
-          <div className="w-20 h-20 bg-gradient-to-br from-forest-800 to-forest-800 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md">
-            <span className="text-3xl font-bold text-white">{profile.name?.charAt(0).toUpperCase()}</span>
-          </div>
-        )}
-        <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
-        {profile.level && (
-          <span className="badge bg-forest-100 text-forest-900 mt-2">{LEVEL_LABEL[profile.level]}</span>
-        )}
-        {profile.badges?.length > 0 && (
-          <div className="mt-3">
-            <BadgeList badges={profile.badges} size="lg" className="justify-center" />
-          </div>
-        )}
-        {profile.rank_score > 0 && (
-          <div className="mt-3 inline-flex items-center gap-1.5 bg-forest-50 border border-forest-100 rounded-full px-3 py-1">
-            <span className="text-base">🏆</span>
-            <span className="text-sm font-bold text-forest-900">{profile.rank_score}</span>
-            <span className="text-xs text-forest-600 font-medium">pts ELO</span>
-          </div>
-        )}
-        {isOwnProfile && (
-          <div className="mt-2">
-            <Link to="/profile" className="text-xs text-forest-700 hover:underline">Modifier mon profil →</Link>
-          </div>
-        )}
-
-        {/* Bouton ami */}
-        {!isOwnProfile && (
-          <div className="mt-3">
-            {!friendship && (
-              <button
-                onClick={handleAddFriend}
-                disabled={friendLoading}
-                className="px-4 py-2 bg-forest-900 hover:bg-forest-800 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+      {/* ── Header joueur ── */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #1B4332 0%, #2D6A4F 100%)' }}
+      >
+        {/* Top section: avatar + info */}
+        <div className="flex items-start gap-4 px-5 pt-6 pb-5">
+          {/* Avatar */}
+          <div className="shrink-0">
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt="avatar"
+                style={{ width: 80, height: 80, borderRadius: 22, objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)' }}
+              />
+            ) : (
+              <div
+                className="flex items-center justify-center"
+                style={{ width: 80, height: 80, borderRadius: 22, background: 'rgba(255,255,255,0.12)', border: '2px solid rgba(255,255,255,0.15)' }}
               >
-                {friendLoading ? '...' : '+ Ajouter comme ami'}
-              </button>
-            )}
-            {friendship?.status === 'pending' && friendship.requester_id === user?.id && (
-              <div className="flex items-center gap-2 justify-center">
-                <span className="text-sm text-gray-500">⏳ Demande envoyée</span>
-                <button onClick={handleRemoveFriend} disabled={friendLoading} className="text-xs text-red-400 hover:text-red-600">
-                  Annuler
-                </button>
-              </div>
-            )}
-            {friendship?.status === 'pending' && friendship.addressee_id === user?.id && (
-              <div className="flex items-center gap-2 justify-center">
-                <button
-                  onClick={handleAcceptFriend}
-                  disabled={friendLoading}
-                  className="px-4 py-2 bg-forest-900 hover:bg-forest-800 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
-                >
-                  {friendLoading ? '...' : '✓ Accepter la demande'}
-                </button>
-                <button onClick={handleRemoveFriend} disabled={friendLoading} className="text-xs text-red-400 hover:text-red-600">
-                  Refuser
-                </button>
-              </div>
-            )}
-            {friendship?.status === 'accepted' && (
-              <div className="flex items-center gap-2 justify-center">
-                <span className="text-sm text-forest-700 font-medium">✓ Amis</span>
-                <button onClick={handleRemoveFriend} disabled={friendLoading} className="text-xs text-gray-400 hover:text-red-500">
-                  Retirer
-                </button>
+                <span style={{ fontSize: 32, fontWeight: 700, color: '#fff' }}>
+                  {profile.name?.charAt(0).toUpperCase()}
+                </span>
               </div>
             )}
           </div>
-        )}
+
+          {/* Info */}
+          <div className="flex-1 min-w-0 pt-1">
+            <h1 className="text-white font-bold text-xl leading-tight truncate">{profile.name}</h1>
+            {profile.level && (
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 2 }}>
+                {LEVEL_LABEL[profile.level]}
+              </p>
+            )}
+
+            {/* ELO badge */}
+            {profile.rank_score > 0 && (
+              <div
+                className="inline-flex items-center gap-1.5 mt-2.5"
+                style={{
+                  background: 'rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 12,
+                  padding: '5px 12px',
+                }}
+              >
+                <IconStar />
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{profile.rank_score}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>ELO</span>
+              </div>
+            )}
+
+            {/* Badge pills */}
+            {profile.badges?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {profile.badges.map(key => {
+                  const b = BADGES[key]
+                  if (!b) return null
+                  return (
+                    <span
+                      key={key}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        height: 26,
+                        padding: '0 10px',
+                        borderRadius: 999,
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: 'rgba(255,255,255,0.85)',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title={b.description}
+                    >
+                      {b.label}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Friend / own-profile actions */}
+        <div className="px-5 pb-5">
+          {isOwnProfile && (
+            <Link
+              to="/profile"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.7)',
+                textDecoration: 'none',
+              }}
+            >
+              Modifier mon profil →
+            </Link>
+          )}
+          {!isOwnProfile && (
+            <div className="flex items-center gap-2">
+              {!friendship && (
+                <button
+                  onClick={handleAddFriend}
+                  disabled={friendLoading}
+                  className="px-4 py-2 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                  style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
+                >
+                  {friendLoading ? '...' : '+ Ajouter comme ami'}
+                </button>
+              )}
+              {friendship?.status === 'pending' && friendship.requester_id === user?.id && (
+                <>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Demande envoyée</span>
+                  <button onClick={handleRemoveFriend} disabled={friendLoading} className="text-xs text-red-300 hover:text-red-200">
+                    Annuler
+                  </button>
+                </>
+              )}
+              {friendship?.status === 'pending' && friendship.addressee_id === user?.id && (
+                <>
+                  <button
+                    onClick={handleAcceptFriend}
+                    disabled={friendLoading}
+                    className="px-4 py-2 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                    style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
+                  >
+                    {friendLoading ? '...' : '✓ Accepter'}
+                  </button>
+                  <button onClick={handleRemoveFriend} disabled={friendLoading} className="text-xs text-red-300 hover:text-red-200">
+                    Refuser
+                  </button>
+                </>
+              )}
+              {friendship?.status === 'accepted' && (
+                <>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>✓ Amis</span>
+                  <button onClick={handleRemoveFriend} disabled={friendLoading} className="text-xs text-red-300 hover:text-red-200 ml-2">
+                    Retirer
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-2">
-        {[
-          { label: 'Parties', value: stats.sessionCount, color: 'text-gray-800' },
-          { label: 'Matchs', value: stats.matchCount, color: 'text-gray-700' },
-          { label: 'Victoires', value: stats.wins, color: 'text-forest-700' },
-          { label: '% Victoire', value: `${winRate}%`, color: stats.losses === 0 && stats.wins === 0 ? 'text-gray-400' : winRate >= 50 ? 'text-forest-700' : 'text-red-500' },
-        ].map(s => (
-          <div key={s.label} className="card text-center py-3 px-1">
-            <div className={`stat-number ${s.color}`}>{s.value}</div>
-            <div className="text-xs text-gray-500 mt-0.5 leading-tight">{s.label}</div>
-          </div>
-        ))}
+      {/* ── Stats band ── */}
+      <div
+        className="bg-white rounded-2xl overflow-hidden"
+        style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          {[
+            { label: 'Parties',   value: stats.sessionCount },
+            { label: 'Matchs',    value: stats.matchCount },
+            { label: 'Victoires', value: stats.wins },
+            { label: 'Win%',      value: `${winRate}%` },
+          ].map((s, i) => (
+            <div
+              key={s.label}
+              style={{
+                padding: '16px 0',
+                textAlign: 'center',
+                borderRight: i < 3 ? '1px solid rgba(0,0,0,0.08)' : 'none',
+              }}
+            >
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#0D1F14', lineHeight: 1.1 }}>{s.value}</div>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Tabs */}
