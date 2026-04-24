@@ -527,12 +527,27 @@ export default function SessionDetail() {
 
   const myParticipant = participants.find(p => p.user_id === user?.id)
 
-  const paymentStatusLabel  = { pending: '⏳ En attente', paid: '💸 Déclaré', confirmed: '✅ Confirmé' }
-  const paymentStatusColor  = {
+  const CheckIcon = () => (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  )
+
+  const paymentStatusLabel = {
+    pending:   '⏳ En attente',
+    paid:      '💸 Déclaré',
+    confirmed: (
+      <span className="inline-flex items-center gap-1">
+        <CheckIcon /> Confirmé
+      </span>
+    ),
+  }
+  const paymentStatusColor = {
     pending:   'bg-yellow-50 text-yellow-700 border border-yellow-200',
     paid:      'bg-orange-50 text-orange-700 border border-orange-200',
-    confirmed: 'bg-green-50  text-green-700  border border-green-200',
+    confirmed: '',  // overridden inline below
   }
+  const paymentConfirmedStyle = { background: '#E8F5EE', color: '#2D6A4F', border: '1px solid rgba(82,183,136,0.3)' }
 
   return (
     <div className="max-w-lg mx-auto space-y-5">
@@ -576,36 +591,99 @@ export default function SessionDetail() {
 
       {/* Session header */}
       <div className="card">
-        <div className="flex items-start justify-between gap-3">
+        {/* Title + status badges */}
+        <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <h1 className="text-xl font-bold text-gray-900">{session.title}</h1>
-              {session.is_private && <span className="badge bg-purple-100 text-purple-700">🔒 Privée</span>}
+              {session.is_private && <span className="badge bg-purple-100 text-purple-700">Privée</span>}
               {session.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
               {session.status !== 'cancelled' && isPastSession && <span className="badge bg-gray-100 text-gray-500">Terminée</span>}
               {session.status === 'open' && !isPastSession && !isFull && <span className="badge bg-forest-100 text-forest-900">Ouverte</span>}
               {session.status === 'open' && !isPastSession && isFull && <span className="badge bg-orange-100 text-orange-600">Complet</span>}
             </div>
-            <p className="text-gray-600 font-medium capitalize">
-              📅 {sessionDate && format(sessionDate, 'EEEE d MMMM yyyy', { locale: fr })} à {session.time}
-            </p>
-            {session.duration && <p className="text-gray-500 text-sm mt-0.5">⏱ Durée : {session.duration}</p>}
-            <p className="text-gray-500 text-sm mt-0.5">📍 {session.location}</p>
-            <p className="text-gray-500 text-sm">👤 Organisateur : {session.organizer?.name}</p>
-            {session.cost_per_player > 0 && (
-              <p className="text-gray-500 text-sm">
-                💰 {(session.cost_per_player * session.max_players).toFixed(2)} CHF total →{' '}
-                <strong>{session.cost_per_player} CHF / joueur</strong>
-              </p>
-            )}
-            {(session.level_min || session.level_max) && (
-              <p className="text-gray-500 text-sm">
-                🎯 Niveau : {session.level_min && LEVEL_LABEL[session.level_min]}
-                {session.level_min && session.level_max && ' → '}
-                {session.level_max && LEVEL_LABEL[session.level_max]}
-              </p>
-            )}
           </div>
+        </div>
+
+        {/* Info rows */}
+        <div className="space-y-0 rounded-xl overflow-hidden border border-[rgba(0,0,0,0.08)]">
+          {/* Date */}
+          {sessionDate && (() => {
+            const rows = [
+              {
+                label: 'Date',
+                value: `${format(sessionDate, 'EEEE d MMMM yyyy', { locale: fr })} à ${session.time}`,
+                icon: (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                ),
+              },
+              ...(session.duration ? [{
+                label: 'Durée',
+                value: session.duration,
+                icon: (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                ),
+              }] : []),
+              {
+                label: 'Lieu',
+                value: session.location,
+                icon: (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
+                ),
+              },
+              {
+                label: 'Organisateur',
+                value: session.organizer?.name ?? '—',
+                icon: (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                ),
+              },
+              ...(session.cost_per_player > 0 ? [{
+                label: 'Coût',
+                value: `${session.cost_per_player} CHF / joueur — ${(session.cost_per_player * session.max_players).toFixed(2)} CHF total`,
+                icon: (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                  </svg>
+                ),
+              }] : []),
+              ...((session.level_min || session.level_max) ? [{
+                label: 'Niveau',
+                value: [session.level_min && LEVEL_LABEL[session.level_min], session.level_max && LEVEL_LABEL[session.level_max]].filter(Boolean).join(' → '),
+                icon: (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                  </svg>
+                ),
+              }] : []),
+            ]
+            return rows.map((row, i) => (
+              <div
+                key={row.label}
+                className="flex items-center gap-3 px-3 py-2.5 bg-white"
+                style={{ borderBottom: i < rows.length - 1 ? '1px solid rgba(0,0,0,0.08)' : 'none' }}
+              >
+                <div
+                  className="shrink-0 flex items-center justify-center"
+                  style={{ width: 32, height: 32, borderRadius: 10, background: '#F7F5F1' }}
+                >
+                  {row.icon}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p style={{ fontSize: 11, textTransform: 'uppercase', color: '#9CA3AF', letterSpacing: '0.3px', lineHeight: 1.2 }}>{row.label}</p>
+                  <p style={{ fontSize: 14, color: '#0D1F14', lineHeight: 1.3 }} className="capitalize">{row.value}</p>
+                </div>
+              </div>
+            ))
+          })()}
         </div>
 
         {/* Actions inscription */}
@@ -660,9 +738,21 @@ export default function SessionDetail() {
             </div>
           )}
           {canCancelSession && !showCancelConfirm && (
-            <button onClick={() => setShowCancelConfirm(true)} disabled={actionLoading}
-              className="bg-white hover:bg-red-50 text-red-500 font-medium text-xs py-2 px-3 rounded-xl border border-red-200 transition-colors disabled:opacity-50">
-              {isAdmin && !isOrganizer ? '👑 Annuler (admin)' : 'Annuler la partie'}
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              disabled={actionLoading}
+              className="transition-colors disabled:opacity-50"
+              style={{
+                background: '#F7F5F1',
+                color: '#6B7C72',
+                border: '1.5px solid rgba(0,0,0,0.08)',
+                borderRadius: 13,
+                fontWeight: 600,
+                fontSize: 12,
+                padding: '8px 12px',
+              }}
+            >
+              {isAdmin && !isOrganizer ? 'Annuler (admin)' : 'Annuler la partie'}
             </button>
           )}
           {canCancelSession && showCancelConfirm && (
@@ -723,9 +813,16 @@ export default function SessionDetail() {
               href={`https://wa.me/?text=${buildShareMessage(session, participants.length)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 text-sm py-2.5 px-4 transition-colors"
+              style={{
+                background: '#ffffff',
+                color: '#128C7E',
+                border: '1.5px solid rgba(18,140,126,0.25)',
+                borderRadius: 13,
+                fontWeight: 700,
+              }}
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#25D366">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
               </svg>
               Partager sur WhatsApp
@@ -828,7 +925,7 @@ export default function SessionDetail() {
               const canBeRemoved    = isOrganizer && !isOrganizerRow && !isPastSession && session?.status !== 'cancelled'
               const confirmingRemove = removingPlayerId === p.user_id
               return (
-                <div key={p.id} className="card">
+                <div key={p.id} className="bg-white p-5" style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.07)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 14 }}>
                   {/* Confirmation suppression */}
                   {confirmingRemove && (
                     <div className="mb-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 flex items-center justify-between gap-3">
@@ -886,7 +983,8 @@ export default function SessionDetail() {
                         <button
                           onClick={() => isOrganizer && togglePayment(p.id, p.payment_status)}
                           disabled={!isOrganizer}
-                          className={`badge ${paymentStatusColor[p.payment_status]} ${isOrganizer ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                          className={`badge ${p.payment_status !== 'confirmed' ? paymentStatusColor[p.payment_status] : ''} ${isOrganizer ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                          style={p.payment_status === 'confirmed' ? paymentConfirmedStyle : undefined}
                         >
                           {paymentStatusLabel[p.payment_status]}
                         </button>
@@ -1046,7 +1144,8 @@ export default function SessionDetail() {
                       <span className="text-sm text-gray-700 font-medium truncate">{p.profiles?.name}</span>
                       <button
                         onClick={() => togglePayment(p.id, p.payment_status)}
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all hover:opacity-80 ${paymentStatusColor[p.payment_status]}`}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all hover:opacity-80 ${p.payment_status !== 'confirmed' ? paymentStatusColor[p.payment_status] : ''}`}
+                        style={p.payment_status === 'confirmed' ? paymentConfirmedStyle : undefined}
                       >
                         {paymentStatusLabel[p.payment_status]}
                       </button>
