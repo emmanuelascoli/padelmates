@@ -28,14 +28,10 @@ export function AuthProvider({ children }) {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchProfile(session.user)
-        // Logue la connexion (anti-doublon 1h côté DB)
-        if (event === 'SIGNED_IN') {
-          supabase.rpc('log_user_login').catch(() => {})
-        }
       } else {
         setProfile(null)
         setNeedsProfileSetup(false)
@@ -58,6 +54,8 @@ export function AuthProvider({ children }) {
       setProfile(data)
       setNeedsProfileSetup(false)
       setOauthMeta(null)
+      // Logue la connexion à chaque chargement de profil (anti-doublon 1h en DB)
+      supabase.rpc('log_user_login').catch(() => {})
     } else {
       // No profile yet — extract OAuth metadata for pre-fill
       const meta = authUser.user_metadata || {}

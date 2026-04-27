@@ -414,8 +414,7 @@ export default function SessionDetail() {
   const sessionLevelMax = session?.level_max ? parseInt(session.level_max, 10) : null
   const levelTooLow  = playerLevel !== null && sessionLevelMin !== null && playerLevel < sessionLevelMin
   const levelTooHigh = playerLevel !== null && sessionLevelMax !== null && playerLevel > sessionLevelMax
-  // Les admins ne sont pas bloqués par le niveau
-  const levelBlocked = !isAdmin && (levelTooLow || levelTooHigh)
+  const levelBlocked = levelTooLow || levelTooHigh
 
   const canJoin     = !isParticipant && !isFull  && !isPastSession && session?.status === 'open' && !levelBlocked
   const canWaitlist = !isParticipant && isFull && !isOnWaitlist && !isPastSession && session?.status === 'open' && !levelBlocked
