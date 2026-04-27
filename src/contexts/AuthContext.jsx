@@ -55,7 +55,9 @@ export function AuthProvider({ children }) {
       setNeedsProfileSetup(false)
       setOauthMeta(null)
       // Logue la connexion à chaque chargement de profil (anti-doublon 1h en DB)
-      supabase.rpc('log_user_login').catch(() => {})
+      // Utilise .then(null, () => {}) plutôt que .catch() car le builder
+      // Supabase est un "thenable" sans garantie de .catch()
+      supabase.rpc('log_user_login').then(null, () => {})
     } else {
       // No profile yet — extract OAuth metadata for pre-fill
       const meta = authUser.user_metadata || {}
