@@ -723,6 +723,289 @@ function TabStats() {
   )
 }
 
+// ── Tab Activité (connexions) ────────────────────────────────
+function TabActivite() {
+  const [loading, setLoading]   = useState(true)
+  const [kpis, setKpis]         = useState({ today: 0, week: 0, month: 0, activeUsers: 0, totalAll: 0 })
+  const [chartData, setChartData] = useState([])  // [{date, count}] — 14 derniers jours remplis
+  const [topUsers, setTopUsers] = useState([])    // top 8 joueurs actifs (30j)
+  const [allUsers, setAllUsers] = useState([])    // tous les joueurs avec stats
+  const [search, setSearch]     = useState('')
+
+  useEffect(() => { fetchAll() }, [])
+
+  async function fetchAll() {
+    setLoading(true)
+
+    const [{ data: userStats, error: e1 }, { data: rawChart, error: e2 }] = await Promise.all([
+      supabase.rpc('get_user_login_stats'),
+      supabase.rpc('get_daily_login_chart', { p_days: 14 }),
+    ])
+
+    if (e1 || e2) {
+      console.error('Login stats error:', e1 || e2)
+      setLoading(false)
+      return
+    }
+
+    // Profils pour les noms / avatars
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url, role')
+    const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]))
+
+    // ── KPIs globaux ──────────────────────────────────────────
+    const stats = userStats || []
+    const totalToday  = stats.reduce((s, u) => s + Number(u.logins_today), 0)
+    const total7d     = stats.reduce((s, u) => s + Number(u.logins_7d), 0)
+    const total30d    = stats.reduce((s, u) => s + Number(u.logins_30d), 0)
+    const activeUsers = stats.filter(u => Number(u.logins_30d) > 0).length
+    const totalAll    = stats.reduce((s, u) => s + Number(u.total_logins), 0)
+    setKpis({ today: totalToday, week: total7d, month: total30d, activeUsers, totalAll })
+
+    // ── Graphique : remplir les jours sans connexion ──────────
+    const chartMap = {}
+    ;(rawChart || []).forEach(r => { chartMap[r.day] = Number(r.login_count) })
+    const filled = []
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const key = d.toISOString().split('T')[0]
+      filled.push({ date: key, count: chartMap[key] || 0 })
+    }
+    setChartData(filled)
+
+    // ── Top 8 joueurs actifs (30j) ────────────────────────────
+    const top = [...stats]
+      .filter(u => Number(u.logins_30d) > 0)
+      .sort((a, b) => Number(b.logins_30d) - Number(a.logins_30d))
+      .slice(0, 8)
+      .map(u => ({ ...profileMap[u.user_id], ...u }))
+    setTopUsers(top)
+
+    // ── Tous les joueurs avec stats ───────────────────────────
+    const all = (profiles || []).map(p => {
+      const s = stats.find(u => u.user_id === p.id) || {}
+      return {
+        ...p,
+        total_logins: Number(s.total_logins ?? 0),
+        logins_30d:   Number(s.logins_30d ?? 0),
+        last_login:   s.last_login ?? null,
+      }
+    }).sort((a, b) => {
+      if (!a.last_login && !b.last_login) return 0
+      if (!a.last_login) return 1
+      if (!b.last_login) return -1
+      return new Date(b.last_login) - new Date(a.last_login)
+    })
+    setAllUsers(all)
+
+    setLoading(false)
+  }
+
+  const filteredUsers = allUsers.filter(u =>
+    u.name?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  // Formatage date relative
+  function relativeTime(dateStr) {
+    if (!dateStr) return 'Jamais'
+    return formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: fr })
+  }
+
+  // Formatage court du jour pour le graphique
+  function chartDayLabel(dateStr) {
+    const d = new Date(dateStr)
+    return format(d, 'd', { locale: fr })
+  }
+  function chartDayFull(dateStr) {
+    const d = new Date(dateStr)
+    return format(d, 'EEE d MMM', { locale: fr })
+  }
+
+  const maxBar = Math.max(...chartData.map(d => d.count), 1)
+
+  const isToday = (dateStr) => {
+    if (!dateStr) return false
+    const d = new Date(dateStr)
+    const now = new Date()
+    return d.toDateString() === now.toDateString()
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+
+      {/* ── KPI Cards ───────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { label: "Aujourd'hui",    value: kpis.today,       sub: 'connexions',        color: 'text-forest-800' },
+          { label: '7 derniers j.',  value: kpis.week,        sub: 'connexions',        color: 'text-forest-800' },
+          { label: '30 derniers j.', value: kpis.month,       sub: 'connexions',        color: 'text-orange-700' },
+          { label: 'Joueurs actifs', value: kpis.activeUsers, sub: 'ce mois',           color: 'text-blue-700' },
+        ].map(k => (
+          <div key={k.label} className="card text-center py-4">
+            <div className={`font-bold text-2xl leading-none mb-1 ${k.color}`}>{k.value}</div>
+            <div className="text-xs text-gray-400">{k.sub}</div>
+            <div className="text-xs font-medium text-gray-600 mt-0.5">{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Graphique 14 jours ──────────────────────────────── */}
+      <div className="card space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="section-title text-gray-900">Activité quotidienne</h3>
+          <span className="text-xs text-gray-400">14 derniers jours</span>
+        </div>
+
+        {/* Barres */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 80, padding: '0 2px' }}>
+          {chartData.map(d => {
+            const barH = Math.max(d.count > 0 ? 6 : 2, Math.round((d.count / maxBar) * 72))
+            const isNow = isToday(d.date)
+            return (
+              <div
+                key={d.date}
+                title={`${chartDayFull(d.date)} : ${d.count} connexion${d.count !== 1 ? 's' : ''}`}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+              >
+                <div
+                  style={{
+                    width: '100%',
+                    height: barH,
+                    background: isNow ? '#1B4332' : d.count > 0 ? '#52B788' : '#E5E7EB',
+                    borderRadius: 4,
+                    transition: 'height 0.3s ease',
+                  }}
+                />
+                <span style={{ fontSize: 9, color: isNow ? '#1B4332' : '#9CA3AF', fontWeight: isNow ? 700 : 400 }}>
+                  {chartDayLabel(d.date)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Légende */}
+        <div className="flex items-center gap-3 pt-1 border-t border-gray-50">
+          <div className="flex items-center gap-1.5">
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: '#52B788' }} />
+            <span className="text-xs text-gray-400">Connexions</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: '#1B4332' }} />
+            <span className="text-xs text-gray-400">Aujourd'hui</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Top joueurs actifs (30j) ─────────────────────────── */}
+      {topUsers.length > 0 && (
+        <div className="card">
+          <h3 className="section-title text-gray-900 mb-3">Top joueurs actifs — 30 jours</h3>
+          <div className="space-y-2">
+            {topUsers.map((p, i) => (
+              <div key={p.id ?? i} className="flex items-center gap-3">
+                <span className="text-xs font-bold text-gray-300 w-4 text-right shrink-0">{i + 1}</span>
+                {p.avatar_url ? (
+                  <img src={p.avatar_url} className="w-8 h-8 rounded-full object-cover shrink-0" alt="" />
+                ) : (
+                  <div className="w-8 h-8 bg-forest-100 text-forest-800 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                    {p.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                )}
+                <Link to={`/players/${p.user_id}`} className="flex-1 min-w-0 text-sm font-medium text-gray-900 hover:text-forest-800 transition-colors truncate">
+                  {p.name}
+                </Link>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span
+                    style={{
+                      background: '#E8F5EE', color: '#2D6A4F',
+                      border: '1px solid rgba(82,183,136,0.3)',
+                      borderRadius: 999, fontSize: 11, fontWeight: 700,
+                      padding: '2px 8px',
+                    }}
+                  >
+                    {p.logins_30d}×
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Toutes les connexions ────────────────────────────── */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="section-title text-gray-900">Dernière connexion par joueur</h3>
+          <span className="text-xs text-gray-400">{kpis.totalAll} au total</span>
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-3">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text" value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher…"
+            className="input pl-9 text-sm"
+          />
+        </div>
+
+        <div className="divide-y divide-gray-50">
+          {filteredUsers.map(u => (
+            <div key={u.id} className="flex items-center gap-3 py-2.5">
+              {/* Avatar */}
+              {u.avatar_url ? (
+                <img src={u.avatar_url} className="w-7 h-7 rounded-full object-cover shrink-0" alt="" />
+              ) : (
+                <div className="w-7 h-7 bg-forest-100 text-forest-800 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                  {u.name?.charAt(0)?.toUpperCase()}
+                </div>
+              )}
+
+              {/* Nom */}
+              <Link to={`/players/${u.id}`} className="flex-1 min-w-0 text-sm font-medium text-gray-900 hover:text-forest-800 transition-colors truncate">
+                {u.name}
+              </Link>
+
+              {/* Stats */}
+              <div className="shrink-0 text-right">
+                <div className="text-xs font-medium text-gray-700">
+                  {u.last_login ? relativeTime(u.last_login) : (
+                    <span className="text-gray-300">Jamais</span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {u.total_logins > 0
+                    ? `${u.total_logins} connexion${u.total_logins > 1 ? 's' : ''}`
+                    : '—'
+                  }
+                </div>
+              </div>
+            </div>
+          ))}
+          {filteredUsers.length === 0 && (
+            <div className="py-8 text-center text-gray-400 text-sm">Aucun résultat</div>
+          )}
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
 // ── Tab ELO ──────────────────────────────────────────────────
 function TabElo() {
   const [players, setPlayers] = useState([])
@@ -941,18 +1224,20 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="grid grid-cols-4 bg-gray-100 rounded-xl p-1 gap-0.5">
+      {/* Tabs — flex scrollable pour supporter N onglets */}
+      <div className="bg-gray-100 rounded-xl p-1" style={{ display: 'flex', gap: 2, overflowX: 'auto' }}>
         {[
           { key: 'members',  label: '👥 Membres' },
           { key: 'sessions', label: '📅 Parties' },
           { key: 'stats',    label: '📊 Stats' },
           { key: 'elo',      label: '🏆 ELO' },
+          { key: 'activity', label: '📡 Activité' },
         ].map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`py-2 text-xs font-medium rounded-lg transition-all ${
+            style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+            className={`py-2 px-3 text-xs font-medium rounded-lg transition-all ${
               tab === key ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
             }`}
           >
@@ -965,6 +1250,7 @@ export default function Admin() {
       {tab === 'sessions' && <TabParties />}
       {tab === 'stats'    && <TabStats />}
       {tab === 'elo'      && <TabElo />}
+      {tab === 'activity' && <TabActivite />}
     </div>
   )
 }

@@ -46,7 +46,7 @@ DECLARE
   v_count       INT := 0;
 BEGIN
   -- ── Remise à zéro ─────────────────────────────────────────
-  UPDATE profiles SET rank_score = 1000;
+  UPDATE profiles SET rank_score = 1000 WHERE TRUE;
 
   -- ── Rejeu chronologique ───────────────────────────────────
   -- On exclut les matchs liés à des parties annulées

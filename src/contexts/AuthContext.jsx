@@ -28,10 +28,14 @@ export function AuthProvider({ children }) {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchProfile(session.user)
+        // Logue la connexion (anti-doublon 1h côté DB)
+        if (event === 'SIGNED_IN') {
+          supabase.rpc('log_user_login').catch(() => {})
+        }
       } else {
         setProfile(null)
         setNeedsProfileSetup(false)
