@@ -329,7 +329,7 @@ export default function SessionDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { user, role, isAdmin } = useAuth()
+  const { user, role, isAdmin, profile } = useAuth()
   const [linkCopied, setLinkCopied] = useState(false)
 
   const [session, setSession] = useState(null)
@@ -408,8 +408,17 @@ export default function SessionDetail() {
   const sessionDate = session ? new Date(`${session.date}T${session.time}`) : null
   const isPastSession = sessionDate ? isPast(sessionDate) : false
   const isFull = participants.length >= (session?.max_players ?? 4)
-  const canJoin = !isParticipant && !isFull && !isPastSession && session?.status === 'open'
-  const canWaitlist = !isParticipant && isFull && !isOnWaitlist && !isPastSession && session?.status === 'open'
+  // Vérification du niveau requis par la partie
+  const playerLevel    = profile?.level ? parseInt(profile.level, 10) : null
+  const sessionLevelMin = session?.level_min ? parseInt(session.level_min, 10) : null
+  const sessionLevelMax = session?.level_max ? parseInt(session.level_max, 10) : null
+  const levelTooLow  = playerLevel !== null && sessionLevelMin !== null && playerLevel < sessionLevelMin
+  const levelTooHigh = playerLevel !== null && sessionLevelMax !== null && playerLevel > sessionLevelMax
+  // Les admins ne sont pas bloqués par le niveau
+  const levelBlocked = !isAdmin && (levelTooLow || levelTooHigh)
+
+  const canJoin     = !isParticipant && !isFull  && !isPastSession && session?.status === 'open' && !levelBlocked
+  const canWaitlist = !isParticipant && isFull && !isOnWaitlist && !isPastSession && session?.status === 'open' && !levelBlocked
 
   // Cancel restrictions: admin=anytime, organizer=2h, member=24h
   const hoursUntilSession = sessionDate
@@ -688,6 +697,48 @@ export default function SessionDetail() {
 
         {/* Actions inscription */}
         <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 flex-wrap">
+
+          {/* Blocage niveau */}
+          {levelBlocked && !isParticipant && !isPastSession && session?.status === 'open' && (
+            <div className="w-full" style={{
+              background: '#FFFBEB',
+              border: '1.5px solid rgba(217,119,6,0.3)',
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              gap: 12,
+              alignItems: 'flex-start',
+            }}>
+              {/* Icône cible */}
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: '#FEF3C7',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <circle cx="12" cy="12" r="6"/>
+                  <circle cx="12" cy="12" r="2"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: 700, color: '#92400E', fontSize: 13, marginBottom: 3 }}>
+                  Niveau requis non atteint
+                </p>
+                <p style={{ color: '#B45309', fontSize: 12, lineHeight: 1.55 }}>
+                  {levelTooLow
+                    ? <>Cette partie est réservée aux joueurs de niveau <strong>{LEVEL_LABEL[session.level_min]}</strong> minimum.</>
+                    : <>Cette partie est réservée aux joueurs jusqu'au niveau <strong>{LEVEL_LABEL[session.level_max]}</strong>.</>
+                  }
+                  {profile?.level && (
+                    <> Ton niveau actuel est <strong>{LEVEL_LABEL[profile.level] ?? profile.level}</strong>.</>
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
+
           {canJoin && (
             <button onClick={handleJoin} disabled={actionLoading}
               className="flex-1 bg-forest-900 hover:bg-forest-800 text-white font-semibold text-sm py-3 rounded-xl transition-colors disabled:opacity-50 shadow-sm">
