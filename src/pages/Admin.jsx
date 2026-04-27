@@ -726,6 +726,7 @@ function TabStats() {
 // ── Tab Activité (connexions) ────────────────────────────────
 function TabActivite() {
   const [loading, setLoading]   = useState(true)
+  const [fetchError, setFetchError] = useState(null)
   const [kpis, setKpis]         = useState({ today: 0, week: 0, month: 0, activeUsers: 0, totalAll: 0 })
   const [chartData, setChartData] = useState([])  // [{date, count}] — 14 derniers jours remplis
   const [topUsers, setTopUsers] = useState([])    // top 8 joueurs actifs (30j)
@@ -736,6 +737,7 @@ function TabActivite() {
 
   async function fetchAll() {
     setLoading(true)
+    setFetchError(null)
 
     const [{ data: userStats, error: e1 }, { data: rawChart, error: e2 }] = await Promise.all([
       supabase.rpc('get_user_login_stats'),
@@ -743,7 +745,8 @@ function TabActivite() {
     ])
 
     if (e1 || e2) {
-      console.error('Login stats error:', e1 || e2)
+      const msg = (e1 || e2).message || 'Erreur inconnue'
+      setFetchError(msg)
       setLoading(false)
       return
     }
@@ -836,6 +839,33 @@ function TabActivite() {
     return (
       <div className="flex justify-center py-12">
         <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (fetchError) {
+    return (
+      <div className="card space-y-3">
+        <div className="flex items-start gap-3">
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div>
+            <p className="font-semibold text-red-700 text-sm">La migration SQL n'a pas encore été appliquée</p>
+            <p className="text-xs text-red-500 mt-1">Erreur : {fetchError}</p>
+          </div>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-600 space-y-1 border border-gray-100">
+          <p className="font-semibold text-gray-800">Pour activer l'onglet Activité :</p>
+          <p>1. Ouvre <strong>Supabase → SQL Editor</strong></p>
+          <p>2. Exécute le fichier <code className="bg-gray-200 px-1 rounded">supabase/migration27_user_logins.sql</code></p>
+          <p>3. Recharge cette page</p>
+        </div>
+        <button onClick={fetchAll} className="text-xs px-3 py-2 bg-forest-900 text-white font-semibold rounded-xl hover:bg-forest-800 transition-colors">
+          Réessayer
+        </button>
       </div>
     )
   }

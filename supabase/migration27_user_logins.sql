@@ -25,12 +25,14 @@ CREATE INDEX IF NOT EXISTS idx_user_logins_logged_at ON user_logins(logged_at DE
 ALTER TABLE user_logins ENABLE ROW LEVEL SECURITY;
 
 -- Tout utilisateur authentifié peut insérer sa propre connexion
+DROP POLICY IF EXISTS "Users can insert own login" ON user_logins;
 CREATE POLICY "Users can insert own login"
   ON user_logins FOR INSERT
   TO authenticated
   WITH CHECK (user_id = auth.uid());
 
 -- Seuls les admins peuvent lire les connexions
+DROP POLICY IF EXISTS "Admins can read all logins" ON user_logins;
 CREATE POLICY "Admins can read all logins"
   ON user_logins FOR SELECT
   TO authenticated
