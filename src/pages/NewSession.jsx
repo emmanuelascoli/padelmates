@@ -14,7 +14,7 @@ const DURATIONS = [
 
 export default function NewSession() {
   const navigate = useNavigate()
-  const { user, profile } = useAuth()
+  const { user, profile, isAdmin } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -88,8 +88,8 @@ export default function NewSession() {
       return
     }
 
-    // Inscription automatique uniquement si l'organisateur joue
-    if (form.organizerPlays) {
+    // Inscription automatique sauf si admin et a choisi de ne pas jouer
+    if (!isAdmin || form.organizerPlays) {
       await supabase.from('session_participants').insert({
         session_id: data.id,
         user_id: user.id,
@@ -284,8 +284,8 @@ export default function NewSession() {
           )}
         </div>
 
-        {/* Toggle : organizer joue ou pas */}
-        <button
+        {/* Toggle : organizer joue ou pas — admins uniquement */}
+        {isAdmin && <button
           type="button"
           onClick={() => setForm({ ...form, organizerPlays: !form.organizerPlays })}
           style={{
@@ -317,7 +317,7 @@ export default function NewSession() {
                 : "Tu organises sans jouer — les 4 places sont libres. Les joueurs te remboursent via Revolut."}
             </p>
           </div>
-        </button>
+        </button>}
 
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Création en cours...' : 'Créer la partie'}
