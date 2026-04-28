@@ -32,6 +32,7 @@ export default function NewSession() {
     level_min: '',
     level_max: '',
     isPrivate: false,
+    organizerPlays: true,   // par défaut l'organisateur joue
   })
 
   const handleChange = (e) => {
@@ -87,12 +88,14 @@ export default function NewSession() {
       return
     }
 
-    // L'organisateur rejoint automatiquement
-    await supabase.from('session_participants').insert({
-      session_id: data.id,
-      user_id: user.id,
-      payment_status: 'confirmed',
-    })
+    // Inscription automatique uniquement si l'organisateur joue
+    if (form.organizerPlays) {
+      await supabase.from('session_participants').insert({
+        session_id: data.id,
+        user_id: user.id,
+        payment_status: 'confirmed',
+      })
+    }
 
     navigate(`/sessions/${data.id}`)
   }
@@ -281,9 +284,40 @@ export default function NewSession() {
           )}
         </div>
 
-        <div className="bg-forest-50 rounded-xl p-4 text-sm text-forest-900">
-          💡 Tu seras automatiquement inscrit comme organisateur.
-        </div>
+        {/* Toggle : organizer joue ou pas */}
+        <button
+          type="button"
+          onClick={() => setForm({ ...form, organizerPlays: !form.organizerPlays })}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            background: form.organizerPlays ? '#F0FDF4' : '#F7F5F1',
+            border: form.organizerPlays ? '1.5px solid rgba(82,183,136,0.35)' : '1.5px solid rgba(0,0,0,0.08)',
+            borderRadius: 14, padding: '14px 16px', textAlign: 'left', width: '100%', cursor: 'pointer',
+          }}
+        >
+          {/* Toggle pill */}
+          <div style={{
+            width: 42, height: 24, borderRadius: 999, flexShrink: 0, position: 'relative', transition: 'background 0.2s',
+            background: form.organizerPlays ? '#52B788' : '#D1D5DB',
+          }}>
+            <div style={{
+              position: 'absolute', top: 3, width: 18, height: 18, borderRadius: '50%', background: '#fff',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.2)', transition: 'left 0.2s',
+              left: form.organizerPlays ? 21 : 3,
+            }} />
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <p style={{ fontWeight: 700, fontSize: 14, color: '#0D1F14', marginBottom: 2 }}>
+              Je joue dans cette partie
+            </p>
+            <p style={{ fontSize: 12, color: '#6B7C72', lineHeight: 1.45 }}>
+              {form.organizerPlays
+                ? "Tu seras inscrit en tant que joueur — 3 places restantes pour les autres."
+                : "Tu organises sans jouer — les 4 places sont libres. Les joueurs te remboursent via Revolut."}
+            </p>
+          </div>
+        </button>
 
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Création en cours...' : 'Créer la partie'}

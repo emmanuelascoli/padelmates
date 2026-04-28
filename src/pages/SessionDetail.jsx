@@ -416,8 +416,8 @@ export default function SessionDetail() {
   const levelTooHigh = playerLevel !== null && sessionLevelMax !== null && playerLevel > sessionLevelMax
   const levelBlocked = levelTooLow || levelTooHigh
 
-  const canJoin     = !isParticipant && !isFull  && !isPastSession && session?.status === 'open' && !levelBlocked
-  const canWaitlist = !isParticipant && isFull && !isOnWaitlist && !isPastSession && session?.status === 'open' && !levelBlocked
+  const canJoin     = !isParticipant && !isOrganizer && !isFull  && !isPastSession && session?.status === 'open' && !levelBlocked
+  const canWaitlist = !isParticipant && !isOrganizer && isFull && !isOnWaitlist && !isPastSession && session?.status === 'open' && !levelBlocked
 
   // Cancel restrictions: admin=anytime, organizer=2h, member=24h
   const hoursUntilSession = sessionDate
