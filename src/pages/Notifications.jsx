@@ -124,6 +124,7 @@ const ICON_CONFIG = {
   payment_reminder:         { bg: '#FFFBEB', color: '#D97706', icon: ICON_CARD },
   missing_players_reminder: { bg: '#FFF7ED', color: '#EA580C', icon: ICON_PEOPLE },
   player_left:              { bg: '#FEF2F2', color: '#DC2626', icon: ICON_USER_MINUS },
+  player_left_peer:         { bg: '#FEF2F2', color: '#DC2626', icon: ICON_USER_MINUS },
 }
 
 function NotifIcon({ type }) {
@@ -182,6 +183,11 @@ function notifContent(notif) {
     case 'player_left':
       return {
         text: `${data.player_name} s'est désinscrit${data.session_date ? ` de ta partie du ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''}`,
+        href: `/sessions/${data.session_id}`,
+      }
+    case 'player_left_peer':
+      return {
+        text: `${data.player_name} s'est désinscrit${data.session_date ? ` de la partie du ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''}`,
         href: `/sessions/${data.session_id}`,
       }
     default:
