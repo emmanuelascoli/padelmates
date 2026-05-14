@@ -76,15 +76,15 @@ function SessionCard({ session, userId }) {
       style={{ border: '0.5px solid #E5E7EB' }}
     >
       <div className="flex items-center">
-        <div className="w-11 bg-primary rounded-xl m-2.5 flex flex-col items-center justify-center py-2 shrink-0" style={{ minHeight: 64 }}>
-          <span className="text-[#6B9B7A] text-[9px] font-semibold tracking-widest uppercase leading-none">{dayLabel}</span>
-          <span className="text-white text-[20px] font-bold leading-tight mt-0.5">{format(date, 'd')}</span>
-          <span className="text-[#6B9B7A] text-[9px] uppercase tracking-wide leading-none">{format(date, 'MMM', { locale: fr }).toUpperCase().replace('.', '')}</span>
-          <span className="text-accent font-bold text-[10px] mt-1 leading-none">{format(date, 'HH:mm')}</span>
+        <div className="bg-primary rounded-xl m-2 flex flex-col items-center justify-center py-2 shrink-0" style={{ width: 52 }}>
+          <span className="text-[#6B9B7A] text-[10px] font-semibold tracking-widest uppercase leading-none">{dayLabel}</span>
+          <span className="text-white text-[26px] font-bold leading-tight mt-0.5">{format(date, 'd')}</span>
+          <span className="text-[#6B9B7A] text-[10px] uppercase tracking-wide leading-none">{format(date, 'MMM', { locale: fr }).toUpperCase().replace('.', '')}</span>
+          <span className="text-accent font-bold text-[12px] mt-1 leading-none">{format(date, 'HH:mm')}</span>
         </div>
         <div className="flex-1 pr-3 py-2.5 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-0.5">
-            <span className="font-medium text-gray-900 text-[12px] leading-snug">{session.title}</span>
+            <span className="font-bold text-gray-900 text-[14px] leading-snug">{session.title}</span>
             {registered && (
               <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#DCFCE7', color: '#166534' }}>Inscrit</span>
             )}
