@@ -129,20 +129,20 @@ function SessionCard({ session, userId, friendIds, friendProfiles }) {
     >
       {/* Boîte date */}
       <div className="bg-primary rounded-xl m-2 flex flex-col items-center justify-center py-2 shrink-0"
-        style={{ width: 46 }}>
-        <span className="text-[#6B9B7A] text-[9px] font-semibold tracking-widest uppercase leading-none">{dayLabel}</span>
-        <span className="text-white text-[20px] font-bold leading-tight mt-0.5">{format(date, 'd')}</span>
-        <span className="text-[#6B9B7A] text-[9px] uppercase tracking-wide leading-none">
+        style={{ width: 52 }}>
+        <span className="text-[#6B9B7A] text-[10px] font-semibold tracking-widest uppercase leading-none">{dayLabel}</span>
+        <span className="text-white text-[26px] font-bold leading-tight mt-0.5">{format(date, 'd')}</span>
+        <span className="text-[#6B9B7A] text-[10px] uppercase tracking-wide leading-none">
           {format(date, 'MMM', { locale: fr }).toUpperCase().replace('.', '')}
         </span>
-        <span className="text-accent font-bold text-[10px] mt-1 leading-none">{format(date, 'HH:mm')}</span>
+        <span className="text-accent font-bold text-[12px] mt-1 leading-none">{format(date, 'HH:mm')}</span>
       </div>
 
       {/* Corps */}
       <div className="flex-1 py-2.5 pr-3 pl-2 min-w-0">
         {/* Titre + badge */}
         <div className="flex items-start justify-between gap-2 mb-1">
-          <span className="font-medium text-gray-900 text-[12.5px] leading-snug">{title}</span>
+          <span className="font-bold text-gray-900 text-[14px] leading-snug">{title}</span>
           <div className="flex gap-1 shrink-0 flex-wrap justify-end">
             {session.is_private && (
               <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">🔒</span>
