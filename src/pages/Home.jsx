@@ -101,7 +101,7 @@ function SessionCard({ session, userId }) {
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 bg-gray-100 rounded-[2px] h-[3px]" style={{ overflow: 'hidden' }}>
-              <div className={`h-[3px] rounded-[2px]`}
+              <div className="h-[3px] rounded-[2px]"
                 style={{ width: `${pct}%`, background: isFull ? '#EF4444' : '#4ade80' }} />
             </div>
             <span className="text-[9px] shrink-0" style={{ color: isFull ? '#EF4444' : '#15803d', fontWeight: 500 }}>
@@ -122,7 +122,7 @@ export default function Home() {
   const [totalUpcoming, setTotalUpcoming]       = useState(0)
   const [myStats, setMyStats]       = useState({ wins: 0, losses: 0, played: 0, points: 0 })
   const [eloRank, setEloRank]       = useState(null)
-  const [recentForm, setRecentForm] = useState([])   // array of 'W' | 'L'
+  const [recentForm, setRecentForm] = useState([])
   const [topPartners, setTopPartners]   = useState([])
   const [topRivals, setTopRivals]       = useState([])
   const [eloHistory, setEloHistory]     = useState([])
@@ -139,37 +139,85 @@ export default function Home() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
 
-    const [{ data: sessions }, { count: total }, { data: rawMatches }, { count: aboveElo }] = await Promise.all([
+    // ── Phase 1 : requêtes parallèles indépendantes ─────────
+    const [
+      { data: myParticipations },
+      { data: rawMatches },
+      { data: allMatchRows },
+    ] = await Promise.all([
+      // Sessions où le joueur est inscrit
       supabase
-        .from('sessions')
-        .select('*, session_participants(id, user_id)')
-        .gte('date', today)
-        .neq('status', 'cancelled')
-        .eq('is_private', false)
-        .order('date', { ascending: true })
-        .order('time', { ascending: true })
-        .limit(5),
-      supabase
-        .from('sessions')
-        .select('*', { count: 'exact', head: true })
-        .gte('date', today)
-        .neq('status', 'cancelled')
-        .eq('is_private', false),
+        .from('session_participants')
+        .select('session_id')
+        .eq('user_id', profile.id),
+      // Mes matchs (stats + historique)
       supabase
         .from('valid_matches')
         .select('*')
         .or(`team1_player1.eq.${profile.id},team1_player2.eq.${profile.id},team2_player1.eq.${profile.id},team2_player2.eq.${profile.id}`)
         .not('winner_team', 'is', null)
         .order('played_at', { ascending: true }),
+      // Tous les matchs → pour le classement ELO (identique à la page Communauté)
       supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .gt('rank_score', profile.rank_score ?? 1000),
+        .from('valid_matches')
+        .select('team1_player1,team1_player2,team2_player1,team2_player2')
+        .not('winner_team', 'is', null),
+    ])
+
+    // ── Phase 2 : requêtes dépendant de la phase 1 ──────────
+    const mySessionIds = (myParticipations || []).map(p => p.session_id)
+
+    // Identifiants uniques de tous les joueurs ayant joué au moins 1 match
+    const allPlayerIds = [
+      ...new Set(
+        (allMatchRows || [])
+          .flatMap(m => [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2])
+          .filter(Boolean)
+      ),
+    ]
+
+    const [
+      { data: sessions },
+      { count: total },
+      { data: rankedProfiles },
+    ] = await Promise.all([
+      mySessionIds.length > 0
+        ? supabase
+            .from('sessions')
+            .select('*, session_participants(id, user_id)')
+            .in('id', mySessionIds)
+            .gte('date', today)
+            .neq('status', 'cancelled')
+            .order('date', { ascending: true })
+            .order('time', { ascending: true })
+            .limit(5)
+        : Promise.resolve({ data: [] }),
+      mySessionIds.length > 0
+        ? supabase
+            .from('sessions')
+            .select('*', { count: 'exact', head: true })
+            .in('id', mySessionIds)
+            .gte('date', today)
+            .neq('status', 'cancelled')
+        : Promise.resolve({ count: 0 }),
+      allPlayerIds.length > 0
+        ? supabase
+            .from('profiles')
+            .select('id, rank_score')
+            .in('id', allPlayerIds)
+        : Promise.resolve({ data: [] }),
     ])
 
     setUpcomingSessions(sessions || [])
     setTotalUpcoming(total ?? 0)
-    setEloRank((aboveElo ?? 0) + 1)
+
+    // ── Classement ELO (même logique que la page Communauté) ─
+    // Seuls les joueurs ayant joué ≥ 1 match sont pris en compte
+    const sortedElo = (rankedProfiles || []).sort(
+      (a, b) => (b.rank_score ?? 1000) - (a.rank_score ?? 1000)
+    )
+    const myEloIdx = sortedElo.findIndex(p => p.id === profile.id)
+    setEloRank(myEloIdx >= 0 ? myEloIdx + 1 : null)
 
     const matches = rawMatches || []
 
@@ -202,11 +250,7 @@ export default function Home() {
         const ws   = m.winner_team === 1 ? m.team1_score : m.team2_score
         const ls   = m.winner_team === 1 ? m.team2_score : m.team1_score
         const diff = (ws ?? 0) - (ls ?? 0)
-        let eloPts = 20
-        if (diff === 1) eloPts = 17
-        else if (diff === 2) eloPts = 20
-        else if (diff <= 4) eloPts = 23
-        else eloPts = 26
+        let eloPts = diff === 1 ? 17 : diff <= 2 ? 20 : diff <= 4 ? 23 : 26
         elo = Math.max(100, elo + (won ? eloPts : -eloPts))
         pts += won ? 3 : 1
         eloH.push(elo)
@@ -216,7 +260,7 @@ export default function Home() {
       setPtsHistory(ptsH)
     }
 
-    // ── Partners & Rivals ────────────────────────────────────
+    // ── Partenaires & Rivaux ─────────────────────────────────
     const partnerMap = {}, rivalMap = {}
     const getOrCreate = (map, id) => {
       if (!map[id]) map[id] = { id, games: 0, wins: 0 }
@@ -225,8 +269,14 @@ export default function Home() {
     matches.forEach(m => {
       const isT1 = m.team1_player1 === profile.id || m.team1_player2 === profile.id
       const won  = (isT1 && m.winner_team === 1) || (!isT1 && m.winner_team === 2)
-      const partnerIds  = (isT1 ? [m.team1_player1, m.team1_player2] : [m.team2_player1, m.team2_player2]).filter(id => id && id !== profile.id)
-      const rivalIds    = (isT1 ? [m.team2_player1, m.team2_player2] : [m.team1_player1, m.team1_player2]).filter(Boolean)
+      const partnerIds = (isT1
+        ? [m.team1_player1, m.team1_player2]
+        : [m.team2_player1, m.team2_player2]
+      ).filter(id => id && id !== profile.id)
+      const rivalIds = (isT1
+        ? [m.team2_player1, m.team2_player2]
+        : [m.team1_player1, m.team1_player2]
+      ).filter(Boolean)
       partnerIds.forEach(id => { const p = getOrCreate(partnerMap, id); p.games++; if (won) p.wins++ })
       rivalIds.forEach(id   => { const p = getOrCreate(rivalMap,   id); p.games++; if (won) p.wins++ })
     })
@@ -235,7 +285,8 @@ export default function Home() {
 
     const allIds = [...new Set([...topP, ...topR].map(p => p.id).filter(Boolean))]
     if (allIds.length > 0) {
-      const { data: profileData } = await supabase.from('profiles').select('id, name').in('id', allIds)
+      const { data: profileData } = await supabase
+        .from('profiles').select('id, name').in('id', allIds)
       const nameMap = Object.fromEntries((profileData || []).map(p => [p.id, p.name]))
       topP.forEach(p => { p.name = nameMap[p.id] ?? 'Joueur' })
       topR.forEach(p => { p.name = nameMap[p.id] ?? 'Joueur' })
@@ -251,7 +302,6 @@ export default function Home() {
   const eloDelta   = profile?.rank_score_delta ?? 0
   const winRate    = myStats.played > 0 ? Math.round((myStats.wins / myStats.played) * 100) : 0
 
-  // Streak from recent form
   const streak = (() => {
     if (!recentForm.length) return null
     const last = recentForm[recentForm.length - 1]
@@ -263,7 +313,6 @@ export default function Home() {
   })()
 
   const chartPoints = chartTab === 'elo' ? eloHistory : ptsHistory
-
   const playersList = playersTab === 'partners' ? topPartners : topRivals
 
   return (
@@ -271,7 +320,6 @@ export default function Home() {
 
       {/* ── Banner ─────────────────────────────────────── */}
       <div style={{ background: '#14532d', padding: '28px 20px 44px', position: 'relative', overflow: 'hidden' }}>
-        {/* Circles */}
         <div style={{ position:'absolute', borderRadius:'50%', width:210, height:210, right:-50, top:-70, background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
         <div style={{ position:'absolute', borderRadius:'50%', width:100, height:100, right:30, top:5,   background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
         <div style={{ position:'absolute', borderRadius:'50%', width:150, height:150, right:10, bottom:-90, background:'rgba(255,255,255,0.03)', pointerEvents:'none' }} />
@@ -319,7 +367,7 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Prochaines parties */}
+        {/* Mes prochaines parties (seulement celles où je suis inscrit) */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
           <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Mes prochaines parties</div>
         </div>
@@ -352,19 +400,16 @@ export default function Home() {
           </div>
         )}
 
-        {/* Forme récente */}
+        {/* Ma forme récente */}
         {!loading && (
           <>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-              <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Ma forme récente</div>
-            </div>
+            <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Ma forme récente</div>
             <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:12, marginBottom:14, display:'flex', gap:5, alignItems:'center' }}>
               {recentForm.length === 0 ? (
                 <>
                   {[0,1,2,3,4].map(i => (
-                    <span key={i} style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:500, background:'#F3F4F6', color:'#9CA3AF' }}>·</span>
+                    <span key={i} style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, background:'#F3F4F6', color:'#9CA3AF' }}>·</span>
                   ))}
-                  {[0,1,2,3].map(i => null)}
                   <span style={{ flex:1, height:1, background:'#E5E7EB' }} />
                   <span style={{ fontSize:10, color:'#9CA3AF', whiteSpace:'nowrap' }}>Aucun match joué</span>
                 </>
@@ -379,7 +424,7 @@ export default function Home() {
                     }}>{r === 'W' ? 'V' : 'D'}</span>
                   ))}
                   {recentForm.length < 5 && Array.from({ length: 5 - recentForm.length }).map((_, i) => (
-                    <span key={`e-${i}`} style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, background:'#F3F4F6', color:'#9CA3AF' }}>·</span>
+                    <span key={`e${i}`} style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, background:'#F3F4F6', color:'#9CA3AF' }}>·</span>
                   ))}
                   <span style={{ flex:1, height:1, background:'#E5E7EB' }} />
                   {streak && <span style={{ fontSize:10, color:'#6B7280', whiteSpace:'nowrap' }}>{streak}</span>}
@@ -389,7 +434,7 @@ export default function Home() {
           </>
         )}
 
-        {/* Stats 2×2 */}
+        {/* Mes stats 2×2 */}
         {!loading && (
           <>
             <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Mes stats</div>
@@ -420,7 +465,7 @@ export default function Home() {
                   badgeGood: false,
                 },
               ].map((s, i) => (
-                <div key={i} style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:12, opacity: myStats.played === 0 && i !== 3 ? 0.4 : 1 }}>
+                <div key={i} style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:12, opacity: myStats.played === 0 && i > 0 ? 0.4 : 1 }}>
                   <div style={{ fontSize:22, fontWeight:500, color:'#111827', lineHeight:1 }}>{s.val}</div>
                   <div style={{ fontSize:10, color:'#6B7280', marginTop:3 }}>{s.lbl}</div>
                   <div style={{ fontSize:9, fontWeight:500, padding:'2px 6px', borderRadius:999, marginTop:5, display:'inline-block',
@@ -433,29 +478,27 @@ export default function Home() {
           </>
         )}
 
-        {/* Chart */}
+        {/* Évolution */}
         {!loading && (
-          <>
-            <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:'12px 12px 8px', marginBottom:14, overflow:'hidden' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Évolution</div>
-                <div style={{ display:'flex', gap:3 }}>
-                  {['elo','pts'].map(t => (
-                    <button key={t} onClick={() => setChartTab(t)}
-                      style={{
-                        fontSize:10, fontWeight:500, padding:'4px 10px', borderRadius:999,
-                        border: `0.5px solid ${chartTab === t ? '#14532d' : '#E5E7EB'}`,
-                        background: chartTab === t ? '#14532d' : 'none',
-                        color:      chartTab === t ? '#fff' : '#6B7280',
-                        cursor:'pointer',
-                      }}
-                    >{t === 'elo' ? 'ELO' : 'Points'}</button>
-                  ))}
-                </div>
+          <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:'12px 12px 8px', marginBottom:14, overflow:'hidden' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+              <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Évolution</div>
+              <div style={{ display:'flex', gap:3 }}>
+                {['elo','pts'].map(t => (
+                  <button key={t} onClick={() => setChartTab(t)}
+                    style={{
+                      fontSize:10, fontWeight:500, padding:'4px 10px', borderRadius:999,
+                      border: `0.5px solid ${chartTab === t ? '#14532d' : '#E5E7EB'}`,
+                      background: chartTab === t ? '#14532d' : 'none',
+                      color:      chartTab === t ? '#fff' : '#6B7280',
+                      cursor:'pointer',
+                    }}
+                  >{t === 'elo' ? 'ELO' : 'Points'}</button>
+                ))}
               </div>
-              <EvoChart points={chartPoints} />
             </div>
-          </>
+            <EvoChart points={chartPoints} />
+          </div>
         )}
 
         {/* Partenaires & Rivaux */}
@@ -463,32 +506,29 @@ export default function Home() {
           <>
             <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Partenaires &amp; Rivaux</div>
             <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', overflow:'hidden', marginBottom:14 }}>
-              {/* Tabs */}
               <div style={{ display:'flex', borderBottom:'0.5px solid #E5E7EB' }}>
                 {[['partners','Partenaires'],['rivals','Rivaux']].map(([key, label]) => (
                   <button key={key} onClick={() => setPlayersTab(key)}
                     style={{
                       flex:1, padding:9, fontSize:11, fontWeight:500, background:'none', border:'none', cursor:'pointer',
-                      color:             playersTab === key ? '#14532d' : '#6B7280',
-                      borderBottom:      `2px solid ${playersTab === key ? '#14532d' : 'transparent'}`,
-                      marginBottom:'-1px',
-                      transition:'color 0.15s',
+                      color:        playersTab === key ? '#14532d' : '#6B7280',
+                      borderBottom: `2px solid ${playersTab === key ? '#14532d' : 'transparent'}`,
+                      marginBottom: '-1px',
                     }}
                   >{label}</button>
                 ))}
               </div>
-              {/* List */}
               {playersList.length === 0 ? (
                 <div style={{ padding:20, textAlign:'center', fontSize:11, color:'#9CA3AF' }}>
                   Jouez des parties pour voir vos stats ici
                 </div>
               ) : playersList.map((p, i) => {
-                const winRate = p.games > 0 ? Math.round((p.wins / p.games) * 100) : 0
-                const losses = p.games - p.wins
+                const pWinRate = p.games > 0 ? Math.round((p.wins / p.games) * 100) : 0
+                const pLosses = p.games - p.wins
                 const initials = (p.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 1)
                 const color = avatarColor(p.id || '')
                 return (
-                  <Link key={p.id} to={`/members/${p.id}`}
+                  <Link key={p.id} to={`/players/${p.id}`}
                     style={{ display:'flex', alignItems:'center', gap:9, padding:'9px 12px', borderBottom: i < playersList.length - 1 ? '0.5px solid #E5E7EB' : 'none', textDecoration:'none' }}
                   >
                     <div style={{ fontSize:11, color:'#9CA3AF', width:14, textAlign:'center', flexShrink:0 }}>{i + 1}</div>
@@ -498,25 +538,27 @@ export default function Home() {
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:12, fontWeight:500, color:'#111827' }}>{p.name}</div>
                       <div style={{ fontSize:10, color:'#6B7280', marginTop:1 }}>
-                        {playersTab === 'partners' ? `${p.games} partie${p.games > 1 ? 's' : ''} ensemble` : `${p.games} confrontation${p.games > 1 ? 's' : ''}`}
+                        {playersTab === 'partners'
+                          ? `${p.games} partie${p.games > 1 ? 's' : ''} ensemble`
+                          : `${p.games} confrontation${p.games > 1 ? 's' : ''}`}
                       </div>
                     </div>
                     {playersTab === 'partners' ? (
                       <div style={{ textAlign:'right', flexShrink:0 }}>
-                        <div style={{ fontSize:12, fontWeight:500, color:'#14532d' }}>{winRate}%</div>
+                        <div style={{ fontSize:12, fontWeight:500, color:'#14532d' }}>{pWinRate}%</div>
                         <div style={{ fontSize:9, color:'#9CA3AF', marginTop:1 }}>victoires</div>
                         <div style={{ width:44, height:4, background:'#E5E7EB', borderRadius:2, overflow:'hidden', marginTop:3 }}>
-                          <div style={{ width:`${winRate}%`, height:'100%', background:'#14532d', borderRadius:2 }} />
+                          <div style={{ width:`${pWinRate}%`, height:'100%', background:'#14532d', borderRadius:2 }} />
                         </div>
                       </div>
                     ) : (
                       <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', flexShrink:0 }}>
                         <div style={{ display:'flex', gap:3 }}>
                           <span style={{ fontSize:9, fontWeight:500, padding:'1px 5px', borderRadius:999, background:'#DCFCE7', color:'#166534' }}>{p.wins}V</span>
-                          <span style={{ fontSize:9, fontWeight:500, padding:'1px 5px', borderRadius:999, background:'#FEE2E2', color:'#B91C1C' }}>{losses}D</span>
+                          <span style={{ fontSize:9, fontWeight:500, padding:'1px 5px', borderRadius:999, background:'#FEE2E2', color:'#B91C1C' }}>{pLosses}D</span>
                         </div>
                         <div style={{ fontSize:9, color:'#9CA3AF', marginTop:3 }}>
-                          {p.wins > losses ? 'Avantage' : p.wins === losses ? 'Égalité' : 'Défavorable'}
+                          {p.wins > pLosses ? 'Avantage' : p.wins === pLosses ? 'Égalité' : 'Défavorable'}
                         </div>
                       </div>
                     )}

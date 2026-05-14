@@ -55,7 +55,7 @@ function AppRoutes() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-[#EAE0D0]">
+      <div className="min-h-screen bg-[#F5F4F0]">
         <Navbar />
         <main className="max-w-4xl mx-auto px-4 py-6 pb-28 md:pb-6">
           <Routes>
