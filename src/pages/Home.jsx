@@ -6,50 +6,52 @@ import { format, isToday, isTomorrow, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { LEVEL_SHORT } from '../lib/constants'
 
-// ── ELO Sparkline ─────────────────────────────────────────────
-function EloChart({ points }) {
-  if (!points || points.length < 2) return null
+// Consistent avatar color from string
+function avatarColor(str = '') {
+  const colors = ['#2563EB','#059669','#7C3AED','#D97706','#DC2626','#0891B2','#9333EA','#16A34A']
+  let h = 0
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffffffff
+  return colors[Math.abs(h) % colors.length]
+}
 
-  const W = 300, H = 90
-  const padL = 38, padR = 10, padT = 14, padB = 14
-
-  const minVal = Math.min(...points)
-  const maxVal = Math.max(...points)
-  const range  = maxVal - minVal || 1
-
-  const cx = (i) => padL + (i / (points.length - 1)) * (W - padL - padR)
-  const cy = (v) => padT + (1 - (v - minVal) / range) * (H - padT - padB)
-
-  const linePath = points.map((v, i) => `${i === 0 ? 'M' : 'L'}${cx(i).toFixed(1)},${cy(v).toFixed(1)}`).join(' ')
-  const areaPath = `${linePath} L${cx(points.length - 1).toFixed(1)},${(H - padB).toFixed(1)} L${cx(0).toFixed(1)},${(H - padB).toFixed(1)} Z`
-
-  const trend     = points[points.length - 1] >= points[0]
-  const stroke    = trend ? '#3D7A52' : '#E05252'
-  const fillColor = trend ? 'rgba(61,122,82,0.08)' : 'rgba(224,82,82,0.08)'
-
-  // 3 y-axis ticks clamped inside the SVG
-  const ticks = [
-    { v: maxVal, y: Math.max(padT + 6,  cy(maxVal)) },
-    { v: Math.round((maxVal + minVal) / 2), y: cy((maxVal + minVal) / 2) },
-    { v: minVal, y: Math.min(H - padB - 2, cy(minVal)) },
-  ]
+// ── Inline SVG Chart ──────────────────────────────────────────
+function EvoChart({ points }) {
+  if (!points || points.length < 2) return (
+    <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#9CA3AF' }}>
+      Jouez votre premier match pour voir votre évolution
+    </div>
+  )
+  const W = 308, H = 80, padL = 6, padR = 6, padT = 10, padB = 18
+  const innerW = W - padL - padR, innerH = H - padT - padB
+  const mn = Math.min(...points), mx = Math.max(...points)
+  const range = mx - mn || 1
+  const xs = points.map((_, i) => padL + i * innerW / (points.length - 1))
+  const ys = points.map(v => padT + innerH - ((v - mn) / range) * innerH)
+  const polyline = xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ')
+  const areaPath = `M${xs[0].toFixed(1)},${ys[0].toFixed(1)} ` +
+    xs.slice(1).map((x, i) => `L${x.toFixed(1)},${ys[i + 1].toFixed(1)}`).join(' ') +
+    ` L${xs[xs.length - 1].toFixed(1)},${(H - padB).toFixed(1)} L${xs[0].toFixed(1)},${(H - padB).toFixed(1)} Z`
+  const lastX = xs[xs.length - 1], lastY = ys[ys.length - 1]
+  const lastVal = points[points.length - 1]
+  const labelX = lastX > W - 56 ? lastX - 38 : lastX + 6
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ display: 'block' }}>
-      {/* Area fill */}
-      <path d={areaPath} fill={fillColor} />
-      {/* Baseline */}
-      <line x1={padL} y1={H - padB} x2={W - padR} y2={H - padB} stroke="#F3F4F6" strokeWidth="1" />
-      {/* Line */}
-      <path d={linePath} fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      {/* Last dot */}
-      <circle cx={cx(points.length - 1)} cy={cy(points[points.length - 1])} r="3.5" fill={stroke} />
-      {/* Y-axis labels */}
-      {ticks.map((t, i) => (
-        <text key={i} x={padL - 4} y={t.y + 3.5} textAnchor="end" fontSize="9" fill="#9CA3AF" fontFamily="inherit">
-          {t.v}
-        </text>
+    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', overflow: 'hidden' }}>
+      <defs>
+        <clipPath id="cc"><rect x={padL} y={padT} width={innerW} height={innerH + 2} /></clipPath>
+      </defs>
+      <path d={areaPath} fill="rgba(20,83,45,0.07)" clipPath="url(#cc)" />
+      <polyline points={polyline} fill="none" stroke="#14532d" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" clipPath="url(#cc)" />
+      {xs.slice(0, -1).map((x, i) => (
+        <circle key={i} cx={x.toFixed(1)} cy={ys[i].toFixed(1)} r="2" fill="#14532d" opacity="0.5" />
       ))}
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="6" fill="rgba(20,83,45,0.12)" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="3.5" fill="#14532d" />
+      <rect x={labelX} y={lastY - 9} width="36" height="14" rx="4" fill="#14532d" />
+      <text x={labelX + 18} y={lastY + 1} textAnchor="middle" fontSize="9" fill="white" fontWeight="500">{lastVal} pts</text>
+      <line x1={padL} y1={H - padB} x2={W - padR} y2={H - padB} stroke="#E5E7EB" strokeWidth="0.5" />
+      <text x={padL} y={H - 4} fontSize="8" fill="#9CA3AF">M1</text>
+      <text x={W - padR} y={H - 4} fontSize="8" fill="#9CA3AF" textAnchor="end">M{points.length}</text>
     </svg>
   )
 }
@@ -69,78 +71,44 @@ function SessionCard({ session, userId }) {
   if (isTomorrow(date)) dayLabel = 'DEM.'
 
   return (
-    <Link to={`/sessions/${session.id}`} className="block bg-white rounded-2xl shadow-sm mb-3 active:scale-[0.99] transition-transform border border-gray-100">
+    <Link to={`/sessions/${session.id}`}
+      className="block bg-white rounded-2xl mb-2 active:scale-[0.99] transition-transform"
+      style={{ border: '0.5px solid #E5E7EB' }}
+    >
       <div className="flex items-center">
-        {/* Date block */}
-        <div className="w-14 bg-primary rounded-xl m-3 flex flex-col items-center justify-center py-[10px] shrink-0">
-          <span className="text-[#6B9B7A] text-[10px] font-semibold tracking-widest uppercase leading-none">{dayLabel}</span>
-          <span className="text-white text-[26px] font-bold leading-tight mt-0.5">{format(date, 'd')}</span>
-          <span className="text-[#6B9B7A] text-[10px] uppercase tracking-wide leading-none">{format(date, 'MMM', { locale: fr }).toUpperCase().replace('.', '')}</span>
-          <span className="text-accent font-bold text-xs mt-1.5 leading-none">{format(date, 'HH:mm')}</span>
+        <div className="w-11 bg-primary rounded-xl m-2.5 flex flex-col items-center justify-center py-2 shrink-0" style={{ minHeight: 64 }}>
+          <span className="text-[#6B9B7A] text-[9px] font-semibold tracking-widest uppercase leading-none">{dayLabel}</span>
+          <span className="text-white text-[20px] font-bold leading-tight mt-0.5">{format(date, 'd')}</span>
+          <span className="text-[#6B9B7A] text-[9px] uppercase tracking-wide leading-none">{format(date, 'MMM', { locale: fr }).toUpperCase().replace('.', '')}</span>
+          <span className="text-accent font-bold text-[10px] mt-1 leading-none">{format(date, 'HH:mm')}</span>
         </div>
-        {/* Content */}
-        <div className="flex-1 pr-4 py-3 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <span className="font-bold text-gray-900 text-[15px] leading-snug">{session.title}</span>
+        <div className="flex-1 pr-3 py-2.5 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-0.5">
+            <span className="font-medium text-gray-900 text-[12px] leading-snug">{session.title}</span>
             {registered && (
-              <span className="shrink-0 inline-flex items-center gap-1 bg-accent-bg text-forest-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">
-                ✓ Inscrit
-              </span>
+              <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#DCFCE7', color: '#166534' }}>Inscrit</span>
             )}
             {!isPastSess && isFull && !registered && (
-              <span
-                className="shrink-0 inline-flex items-center text-[11px] font-bold px-[9px] py-[3px] rounded-[20px]"
-                style={{ background: 'var(--color-red-bg)', color: 'var(--color-red)' }}
-              >
-                Complet
-              </span>
+              <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEE2E2', color: '#B91C1C' }}>Complet</span>
             )}
           </div>
-          <div className="flex items-center gap-1 text-gray-400 text-xs mb-2.5">
-            <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="flex items-center gap-1 text-gray-400 text-[10px] mb-1.5">
+            <svg className="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             {session.location}
           </div>
-          <div className="w-full bg-gray-100 rounded-[3px] h-[6px] mb-1.5">
-            <div
-              className={`h-[6px] rounded-[3px] transition-all ${isFull ? 'bg-[var(--color-red)]' : 'bg-accent'}`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-400">{count} / {max} joueurs</span>
-            {isFull
-              ? <span className="font-semibold" style={{ color: 'var(--color-red)' }}>Complet</span>
-              : <span className="text-forest-700 font-semibold">{max - count} place{max - count > 1 ? 's' : ''} dispo</span>
-            }
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 bg-gray-100 rounded-[2px] h-[3px]" style={{ overflow: 'hidden' }}>
+              <div className={`h-[3px] rounded-[2px]`}
+                style={{ width: `${pct}%`, background: isFull ? '#EF4444' : '#4ade80' }} />
+            </div>
+            <span className="text-[9px] shrink-0" style={{ color: isFull ? '#EF4444' : '#15803d', fontWeight: 500 }}>
+              {isFull ? 'Complet' : `${max - count} dispo`}
+            </span>
           </div>
         </div>
-      </div>
-    </Link>
-  )
-}
-
-// ── Player Mini Card ──────────────────────────────────────────
-function PlayerCard({ player }) {
-  const winRate  = player.games > 0 ? Math.round((player.wins / player.games) * 100) : 0
-  const initials = (player.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-  const isGood   = winRate >= 50
-
-  return (
-    <Link to={`/members/${player.id}`} className="flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform min-w-0">
-      <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-        {initials}
-      </div>
-      <span className="text-[11px] font-semibold text-gray-700 leading-tight w-[52px] truncate text-center">
-        {player.name?.split(' ')[0] ?? '—'}
-      </span>
-      <div className="flex flex-col items-center gap-0.5">
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isGood ? 'bg-accent-bg text-forest-700' : 'bg-red-50 text-red-400'}`}>
-          {winRate}%
-        </span>
-        <span className="text-[9px] text-gray-300">{player.games}j</span>
       </div>
     </Link>
   )
@@ -149,12 +117,18 @@ function PlayerCard({ player }) {
 // ── Page ─────────────────────────────────────────────────────
 export default function Home() {
   const { user, profile, signOut } = useAuth()
+
   const [upcomingSessions, setUpcomingSessions] = useState([])
   const [totalUpcoming, setTotalUpcoming]       = useState(0)
-  const [myStats, setMyStats]         = useState({ wins: 0, played: 0 })
+  const [myStats, setMyStats]       = useState({ wins: 0, losses: 0, played: 0, points: 0 })
+  const [eloRank, setEloRank]       = useState(null)
+  const [recentForm, setRecentForm] = useState([])   // array of 'W' | 'L'
   const [topPartners, setTopPartners]   = useState([])
-  const [topOpponents, setTopOpponents] = useState([])
+  const [topRivals, setTopRivals]       = useState([])
   const [eloHistory, setEloHistory]     = useState([])
+  const [ptsHistory, setPtsHistory]     = useState([])
+  const [chartTab, setChartTab]         = useState('elo')
+  const [playersTab, setPlayersTab]     = useState('partners')
   const [loading, setLoading]           = useState(true)
 
   useEffect(() => {
@@ -165,7 +139,7 @@ export default function Home() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
 
-    const [{ data: sessions }, { count: total }, { data: rawMatches }] = await Promise.all([
+    const [{ data: sessions }, { count: total }, { data: rawMatches }, { count: aboveElo }] = await Promise.all([
       supabase
         .from('sessions')
         .select('*, session_participants(id, user_id)')
@@ -187,281 +161,375 @@ export default function Home() {
         .or(`team1_player1.eq.${profile.id},team1_player2.eq.${profile.id},team2_player1.eq.${profile.id},team2_player2.eq.${profile.id}`)
         .not('winner_team', 'is', null)
         .order('played_at', { ascending: true }),
+      supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .gt('rank_score', profile.rank_score ?? 1000),
     ])
 
     setUpcomingSessions(sessions || [])
     setTotalUpcoming(total ?? 0)
+    setEloRank((aboveElo ?? 0) + 1)
 
     const matches = rawMatches || []
 
     // ── Stats ───────────────────────────────────────────────
-    let wins = 0
+    let wins = 0, losses = 0
     matches.forEach(m => {
       const isT1 = m.team1_player1 === profile.id || m.team1_player2 === profile.id
-      if ((isT1 && m.winner_team === 1) || (!isT1 && m.winner_team === 2)) wins++
+      const won  = (isT1 && m.winner_team === 1) || (!isT1 && m.winner_team === 2)
+      if (won) wins++; else losses++
     })
-    setMyStats({ wins, played: matches.length })
+    const played = matches.length
+    const points = wins * 3 + losses * 1
+    setMyStats({ wins, losses, played, points })
 
-    // ── ELO history (approximation locale) ─────────────────
+    // ── Forme récente (5 derniers matchs) ───────────────────
+    setRecentForm(
+      [...matches].reverse().slice(0, 5).reverse().map(m => {
+        const isT1 = m.team1_player1 === profile.id || m.team1_player2 === profile.id
+        return (isT1 && m.winner_team === 1) || (!isT1 && m.winner_team === 2) ? 'W' : 'L'
+      })
+    )
+
+    // ── Historiques ELO & Points ─────────────────────────────
     if (matches.length >= 2) {
-      let elo = 1000
-      const history = [elo]
+      let elo = 1000, pts = 0
+      const eloH = [elo], ptsH = [pts]
       matches.forEach(m => {
         const isT1 = m.team1_player1 === profile.id || m.team1_player2 === profile.id
         const won  = (isT1 && m.winner_team === 1) || (!isT1 && m.winner_team === 2)
         const ws   = m.winner_team === 1 ? m.team1_score : m.team2_score
         const ls   = m.winner_team === 1 ? m.team2_score : m.team1_score
         const diff = (ws ?? 0) - (ls ?? 0)
-
-        let pts = 20
-        if (diff === 1)      pts = 17
-        else if (diff === 2) pts = 20
-        else if (diff <= 4)  pts = 23
-        else                 pts = 26
-
-        elo = Math.max(100, elo + (won ? pts : -pts))
-        history.push(elo)
+        let eloPts = 20
+        if (diff === 1) eloPts = 17
+        else if (diff === 2) eloPts = 20
+        else if (diff <= 4) eloPts = 23
+        else eloPts = 26
+        elo = Math.max(100, elo + (won ? eloPts : -eloPts))
+        pts += won ? 3 : 1
+        eloH.push(elo)
+        ptsH.push(pts)
       })
-      setEloHistory(history)
+      setEloHistory(eloH)
+      setPtsHistory(ptsH)
     }
 
-    // ── Partners & Opponents ────────────────────────────────
-    const partnerMap  = {}
-    const opponentMap = {}
+    // ── Partners & Rivals ────────────────────────────────────
+    const partnerMap = {}, rivalMap = {}
     const getOrCreate = (map, id) => {
       if (!map[id]) map[id] = { id, games: 0, wins: 0 }
       return map[id]
     }
-
     matches.forEach(m => {
       const isT1 = m.team1_player1 === profile.id || m.team1_player2 === profile.id
       const won  = (isT1 && m.winner_team === 1) || (!isT1 && m.winner_team === 2)
-
-      const partnerIds  = isT1
-        ? [m.team1_player1, m.team1_player2]
-        : [m.team2_player1, m.team2_player2]
-
-      const opponentIds = isT1
-        ? [m.team2_player1, m.team2_player2]
-        : [m.team1_player1, m.team1_player2]
-
-      partnerIds.filter(id => id && id !== profile.id).forEach(id => {
-        const p = getOrCreate(partnerMap, id); p.games++; if (won) p.wins++
-      })
-      opponentIds.filter(Boolean).forEach(id => {
-        const o = getOrCreate(opponentMap, id); o.games++; if (won) o.wins++
-      })
+      const partnerIds  = (isT1 ? [m.team1_player1, m.team1_player2] : [m.team2_player1, m.team2_player2]).filter(id => id && id !== profile.id)
+      const rivalIds    = (isT1 ? [m.team2_player1, m.team2_player2] : [m.team1_player1, m.team1_player2]).filter(Boolean)
+      partnerIds.forEach(id => { const p = getOrCreate(partnerMap, id); p.games++; if (won) p.wins++ })
+      rivalIds.forEach(id   => { const p = getOrCreate(rivalMap,   id); p.games++; if (won) p.wins++ })
     })
-
     const topP = Object.values(partnerMap).sort((a, b) => b.games - a.games).slice(0, 4)
-    const topO = Object.values(opponentMap).sort((a, b) => b.games - a.games).slice(0, 4)
+    const topR = Object.values(rivalMap).sort((a, b) => b.games - a.games).slice(0, 4)
 
-    const allIds = [...new Set([...topP, ...topO].map(p => p.id).filter(Boolean))]
+    const allIds = [...new Set([...topP, ...topR].map(p => p.id).filter(Boolean))]
     if (allIds.length > 0) {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', allIds)
+      const { data: profileData } = await supabase.from('profiles').select('id, name').in('id', allIds)
       const nameMap = Object.fromEntries((profileData || []).map(p => [p.id, p.name]))
       topP.forEach(p => { p.name = nameMap[p.id] ?? 'Joueur' })
-      topO.forEach(p => { p.name = nameMap[p.id] ?? 'Joueur' })
+      topR.forEach(p => { p.name = nameMap[p.id] ?? 'Joueur' })
     }
-
     setTopPartners(topP)
-    setTopOpponents(topO)
+    setTopRivals(topR)
     setLoading(false)
   }
 
   const firstName  = profile?.name?.split(' ')[0] ?? 'Joueur'
   const levelLabel = LEVEL_SHORT[profile?.level] ?? ''
-  const winRate    = myStats.played > 0 ? Math.round((myStats.wins / myStats.played) * 100) : 0
   const eloScore   = profile?.rank_score ?? 1000
   const eloDelta   = profile?.rank_score_delta ?? 0
+  const winRate    = myStats.played > 0 ? Math.round((myStats.wins / myStats.played) * 100) : 0
+
+  // Streak from recent form
+  const streak = (() => {
+    if (!recentForm.length) return null
+    const last = recentForm[recentForm.length - 1]
+    let count = 0
+    for (let i = recentForm.length - 1; i >= 0; i--) {
+      if (recentForm[i] === last) count++; else break
+    }
+    return count >= 2 ? `${count} ${last === 'W' ? 'victoires' : 'défaites'} d'affilée` : null
+  })()
+
+  const chartPoints = chartTab === 'elo' ? eloHistory : ptsHistory
+
+  const playersList = playersTab === 'partners' ? topPartners : topRivals
 
   return (
     <div className="-mx-4 -mt-6">
 
-      {/* ── Green banner ──────────────────────────────────── */}
-      <div className="bg-primary px-5 pt-7 pb-16 relative overflow-hidden">
-        {/* Decorative circles */}
-        <div className="absolute -top-8 -right-8 w-44 h-44 rounded-full bg-white/[0.05]" />
-        <div className="absolute top-6 right-10 w-16 h-16 rounded-full bg-white/[0.06]" />
-        <div className="absolute -bottom-4 right-4 w-28 h-28 rounded-full bg-white/[0.04]" />
-        {/* Subtle dot grid */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
-            backgroundSize: '20px 20px',
-          }}
-        />
-        {/* Greeting */}
-        <div className="flex items-start justify-between relative z-10">
-          <div>
-            <p className="text-[#6B9B7A] text-sm font-medium tracking-wide">Bonjour,</p>
-            <h1 className="text-white text-[36px] font-bold leading-tight tracking-tight mt-0.5">
-              {firstName}
-            </h1>
-            {levelLabel && (
-              <span className="inline-flex items-center gap-2 mt-2.5 bg-primary-hover text-[#90C9A0] text-xs font-medium px-3 py-1.5 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-                {levelLabel}
-              </span>
-            )}
+      {/* ── Banner ─────────────────────────────────────── */}
+      <div style={{ background: '#14532d', padding: '28px 20px 44px', position: 'relative', overflow: 'hidden' }}>
+        {/* Circles */}
+        <div style={{ position:'absolute', borderRadius:'50%', width:210, height:210, right:-50, top:-70, background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', borderRadius:'50%', width:100, height:100, right:30, top:5,   background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', borderRadius:'50%', width:150, height:150, right:10, bottom:-90, background:'rgba(255,255,255,0.03)', pointerEvents:'none' }} />
+        <div style={{ position:'relative', zIndex:1 }}>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+            <div>
+              <div style={{ fontSize:12, color:'#6B9B7A', fontWeight:500, letterSpacing:'0.05em', marginBottom:4 }}>Bonjour,</div>
+              <div style={{ fontSize:34, fontWeight:500, color:'#fff', lineHeight:1.05 }}>{firstName}</div>
+            </div>
+            <div style={{ width:48, height:48, background:'rgba(255,255,255,0.08)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>🎾</div>
           </div>
-          <div className="w-12 h-12 bg-primary-hover/60 rounded-2xl flex items-center justify-center text-2xl mt-1 relative z-10">
-            🎾
+          <div style={{ display:'flex', gap:7, marginTop:12, flexWrap:'wrap' }}>
+            {levelLabel && (
+              <div style={{ background:'rgba(255,255,255,0.1)', color:'#90C9A0', fontSize:11, fontWeight:500, padding:'5px 11px', borderRadius:999, display:'flex', alignItems:'center', gap:5 }}>
+                <div style={{ width:5, height:5, borderRadius:'50%', background:'#4ade80' }} />
+                {levelLabel}
+              </div>
+            )}
+            {eloRank && myStats.played > 0 && (
+              <div style={{ background:'rgba(251,191,36,0.15)', color:'#fbbf24', fontSize:11, fontWeight:500, padding:'5px 11px', borderRadius:999 }}>
+                ✦ #{eloRank} ELO
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── Beige sheet ───────────────────────────────────── */}
-      <div className="bg-[#F7F7F5] rounded-t-3xl -mt-8 px-4 pt-6 pb-10 min-h-screen">
+      {/* ── Sheet ──────────────────────────────────────── */}
+      <div style={{ background:'#F5F4F0', borderRadius:'24px 24px 0 0', marginTop:-20, padding:'18px 14px 32px', minHeight:'100vh', position:'relative', zIndex:2 }}>
 
-        {/* Action buttons */}
-        <div className="flex gap-3 mb-5">
-          <Link
-            to="/sessions/new"
-            className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold text-sm py-3.5 rounded-2xl transition-colors shadow-sm"
+        {/* Buttons */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:8, marginBottom:18 }}>
+          <Link to="/sessions/new"
+            style={{ background:'#14532d', color:'#fff', fontSize:13, fontWeight:500, border:'none', borderRadius:13, padding:'12px 14px', display:'flex', alignItems:'center', gap:7, textDecoration:'none' }}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             Organiser une partie
           </Link>
-          <Link
-            to="/sessions"
-            className="flex items-center justify-center bg-white border border-gray-200 text-gray-700 font-semibold text-sm py-3.5 px-5 rounded-2xl shadow-sm hover:bg-gray-50 transition-colors"
+          <Link to="/sessions"
+            style={{ background:'#fff', color:'#374151', fontSize:13, fontWeight:500, border:'0.5px solid #E5E7EB', borderRadius:13, padding:'12px 14px', textDecoration:'none', whiteSpace:'nowrap', display:'flex', alignItems:'center' }}
           >
             Voir tout
           </Link>
         </div>
 
-        {/* Stats card */}
-        <div className="bg-white rounded-2xl shadow-sm mb-5 overflow-hidden">
-          <div className="grid grid-cols-3 divide-x divide-gray-100">
-            <div className="py-4 text-center">
-              <div className="text-[22px] font-bold text-gray-900 leading-none">{myStats.played}</div>
-              <div className="text-[11px] text-gray-400 mt-1">Parties</div>
-            </div>
-            <div className="py-4 text-center">
-              <div className="text-[22px] font-bold text-gray-900 leading-none">
-                {winRate}<span className="text-sm font-medium text-gray-400">%</span>
-              </div>
-              <div className="text-[11px] text-gray-400 mt-1">Victoires</div>
-            </div>
-            <div className="py-4 text-center">
-              <div className="flex items-center justify-center gap-1 leading-none">
-                <span className="text-[22px] font-bold text-gray-900">{eloScore}</span>
-                {eloDelta !== 0 && (
-                  <span className={`text-[10px] font-bold px-1 py-0.5 rounded self-start mt-0.5 ${
-                    eloDelta > 0 ? 'bg-accent-bg text-forest-700' : 'bg-red-50 text-red-500'
-                  }`}>
-                    {eloDelta > 0 ? '+' : ''}{eloDelta}
-                  </span>
-                )}
-              </div>
-              <div className="text-[11px] text-gray-400 mt-1">Score ELO</div>
-            </div>
-          </div>
-        </div>
-
         {/* Prochaines parties */}
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="section-title text-gray-900">Prochaines parties</h3>
-          <Link to="/sessions" className="text-sm text-forest-700 font-medium hover:underline">
-            Tout voir →
-          </Link>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+          <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Mes prochaines parties</div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-10">
+          <div style={{ display:'flex', justifyContent:'center', padding:'32px 0' }}>
             <div className="w-6 h-6 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : upcomingSessions.length === 0 ? (
-          <div className="bg-white rounded-2xl p-6 text-center mb-5 shadow-sm">
-            <div className="text-4xl mb-3">📅</div>
-            <p className="text-sm font-medium text-gray-500">Aucune partie prévue</p>
-            <Link to="/sessions/new" className="text-sm text-forest-700 hover:underline mt-2 inline-block font-medium">
-              Organiser la première →
-            </Link>
+          <div style={{ background:'#fff', borderRadius:14, border:'0.5px dashed #D1D5DB', padding:16, textAlign:'center', marginBottom:14 }}>
+            <div style={{ fontSize:20, marginBottom:5 }}>📅</div>
+            <div style={{ fontSize:12, color:'#6B7280', marginBottom:6 }}>Vous n'êtes inscrit à aucune partie à venir</div>
+            <Link to="/sessions"
+              style={{ fontSize:11, fontWeight:500, color:'#14532d', background:'#DCFCE7', border:'none', borderRadius:999, padding:'6px 14px', textDecoration:'none', display:'inline-block' }}
+            >Rejoindre une partie →</Link>
           </div>
         ) : (
-          <>
+          <div style={{ marginBottom:14 }}>
             {upcomingSessions.map(s => <SessionCard key={s.id} session={s} userId={user?.id} />)}
             {totalUpcoming > 5 && (
-              <Link
-                to="/sessions"
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-dashed border-gray-200 text-sm text-gray-500 hover:border-forest-300 hover:text-forest-700 hover:bg-forest-50 transition-all mb-2"
+              <Link to="/sessions"
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'10px 0', fontSize:11, color:'#6B7280', textDecoration:'none' }}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
-                {totalUpcoming - 5} autre{totalUpcoming - 5 > 1 ? 's' : ''} partie{totalUpcoming - 5 > 1 ? 's' : ''} à venir
+                {totalUpcoming - 5} autre{totalUpcoming - 5 > 1 ? 's' : ''} à venir
               </Link>
             )}
+          </div>
+        )}
+
+        {/* Forme récente */}
+        {!loading && (
+          <>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+              <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Ma forme récente</div>
+            </div>
+            <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:12, marginBottom:14, display:'flex', gap:5, alignItems:'center' }}>
+              {recentForm.length === 0 ? (
+                <>
+                  {[0,1,2,3,4].map(i => (
+                    <span key={i} style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:500, background:'#F3F4F6', color:'#9CA3AF' }}>·</span>
+                  ))}
+                  {[0,1,2,3].map(i => null)}
+                  <span style={{ flex:1, height:1, background:'#E5E7EB' }} />
+                  <span style={{ fontSize:10, color:'#9CA3AF', whiteSpace:'nowrap' }}>Aucun match joué</span>
+                </>
+              ) : (
+                <>
+                  {recentForm.map((r, i) => (
+                    <span key={i} style={{
+                      width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+                      fontSize:10, fontWeight:500,
+                      background: r === 'W' ? '#DCFCE7' : '#FEE2E2',
+                      color:      r === 'W' ? '#166534' : '#B91C1C',
+                    }}>{r === 'W' ? 'V' : 'D'}</span>
+                  ))}
+                  {recentForm.length < 5 && Array.from({ length: 5 - recentForm.length }).map((_, i) => (
+                    <span key={`e-${i}`} style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, background:'#F3F4F6', color:'#9CA3AF' }}>·</span>
+                  ))}
+                  <span style={{ flex:1, height:1, background:'#E5E7EB' }} />
+                  {streak && <span style={{ fontSize:10, color:'#6B7280', whiteSpace:'nowrap' }}>{streak}</span>}
+                </>
+              )}
+            </div>
           </>
         )}
 
-        {/* Empty state nouveau joueur */}
-        {!loading && myStats.played === 0 && (
-          <div className="bg-white rounded-2xl p-5 text-center mb-5 shadow-sm mt-2">
-            <div className="text-3xl mb-2">🏸</div>
-            <p className="text-sm font-semibold text-gray-700">Première partie en vue ?</p>
-            <p className="text-xs text-gray-400 mt-1 max-w-[220px] mx-auto">
-              Inscris-toi à une partie pour voir tes stats, tes partenaires et ton classement apparaître ici.
-            </p>
-          </div>
+        {/* Stats 2×2 */}
+        {!loading && (
+          <>
+            <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Mes stats</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:8, marginBottom:14 }}>
+              {[
+                {
+                  val: eloScore,
+                  lbl: 'Score ELO',
+                  badge: eloDelta !== 0 ? `${eloDelta > 0 ? '+' : ''}${eloDelta} dernier match` : `${myStats.played} partie${myStats.played > 1 ? 's' : ''}`,
+                  badgeGood: eloDelta > 0,
+                },
+                {
+                  val: `${winRate}%`,
+                  lbl: 'Taux de victoire',
+                  badge: myStats.played > 0 ? `sur ${myStats.played} partie${myStats.played > 1 ? 's' : ''}` : '—',
+                  badgeGood: winRate >= 50,
+                },
+                {
+                  val: eloRank ? `#${eloRank}` : '—',
+                  lbl: 'Classement ELO',
+                  badge: myStats.played > 0 ? 'classement général' : 'après 1ère partie',
+                  badgeGood: false,
+                },
+                {
+                  val: myStats.points,
+                  lbl: 'Points classiques',
+                  badge: myStats.played > 0 ? `${myStats.wins}V / ${myStats.losses}D` : '—',
+                  badgeGood: false,
+                },
+              ].map((s, i) => (
+                <div key={i} style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:12, opacity: myStats.played === 0 && i !== 3 ? 0.4 : 1 }}>
+                  <div style={{ fontSize:22, fontWeight:500, color:'#111827', lineHeight:1 }}>{s.val}</div>
+                  <div style={{ fontSize:10, color:'#6B7280', marginTop:3 }}>{s.lbl}</div>
+                  <div style={{ fontSize:9, fontWeight:500, padding:'2px 6px', borderRadius:999, marginTop:5, display:'inline-block',
+                    background: s.badgeGood ? '#DCFCE7' : '#F3F4F6',
+                    color:      s.badgeGood ? '#166534' : '#6B7280',
+                  }}>{s.badge}</div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
-        {/* Partenaires & Adversaires */}
-        {!loading && myStats.played > 0 && (topPartners.length > 0 || topOpponents.length > 0) && (
-          <div className="mt-4">
-            {topPartners.length > 0 && (
-              <div className="mb-4">
-                <h3 className="section-title text-gray-900 mb-3">Mes partenaires</h3>
-                <div className="bg-white rounded-2xl px-4 py-4 shadow-sm">
-                  <div className="flex justify-around gap-2">
-                    {topPartners.map(p => <PlayerCard key={p.id} player={p} />)}
-                  </div>
+        {/* Chart */}
+        {!loading && (
+          <>
+            <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:'12px 12px 8px', marginBottom:14, overflow:'hidden' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Évolution</div>
+                <div style={{ display:'flex', gap:3 }}>
+                  {['elo','pts'].map(t => (
+                    <button key={t} onClick={() => setChartTab(t)}
+                      style={{
+                        fontSize:10, fontWeight:500, padding:'4px 10px', borderRadius:999,
+                        border: `0.5px solid ${chartTab === t ? '#14532d' : '#E5E7EB'}`,
+                        background: chartTab === t ? '#14532d' : 'none',
+                        color:      chartTab === t ? '#fff' : '#6B7280',
+                        cursor:'pointer',
+                      }}
+                    >{t === 'elo' ? 'ELO' : 'Points'}</button>
+                  ))}
                 </div>
               </div>
-            )}
-            {topOpponents.length > 0 && (
-              <div className="mb-4">
-                <h3 className="section-title text-gray-900 mb-3">Mes adversaires</h3>
-                <div className="bg-white rounded-2xl px-4 py-4 shadow-sm">
-                  <div className="flex justify-around gap-2">
-                    {topOpponents.map(p => <PlayerCard key={p.id} player={p} />)}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+              <EvoChart points={chartPoints} />
+            </div>
+          </>
         )}
 
-        {/* Évolution ELO */}
-        {!loading && eloHistory.length >= 3 && (
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="section-title text-gray-900">Évolution ELO</h3>
-              <span className="text-[11px] text-gray-400">
-                {eloHistory.length - 1} match{eloHistory.length - 1 > 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="bg-white rounded-2xl px-4 pt-4 pb-3 shadow-sm">
-              <EloChart points={eloHistory} />
-              <div className="flex justify-between mt-1.5 text-[10px] text-gray-300 px-1">
-                <span>1ère partie</span>
-                <span>Aujourd'hui</span>
+        {/* Partenaires & Rivaux */}
+        {!loading && (
+          <>
+            <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Partenaires &amp; Rivaux</div>
+            <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', overflow:'hidden', marginBottom:14 }}>
+              {/* Tabs */}
+              <div style={{ display:'flex', borderBottom:'0.5px solid #E5E7EB' }}>
+                {[['partners','Partenaires'],['rivals','Rivaux']].map(([key, label]) => (
+                  <button key={key} onClick={() => setPlayersTab(key)}
+                    style={{
+                      flex:1, padding:9, fontSize:11, fontWeight:500, background:'none', border:'none', cursor:'pointer',
+                      color:             playersTab === key ? '#14532d' : '#6B7280',
+                      borderBottom:      `2px solid ${playersTab === key ? '#14532d' : 'transparent'}`,
+                      marginBottom:'-1px',
+                      transition:'color 0.15s',
+                    }}
+                  >{label}</button>
+                ))}
               </div>
+              {/* List */}
+              {playersList.length === 0 ? (
+                <div style={{ padding:20, textAlign:'center', fontSize:11, color:'#9CA3AF' }}>
+                  Jouez des parties pour voir vos stats ici
+                </div>
+              ) : playersList.map((p, i) => {
+                const winRate = p.games > 0 ? Math.round((p.wins / p.games) * 100) : 0
+                const losses = p.games - p.wins
+                const initials = (p.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 1)
+                const color = avatarColor(p.id || '')
+                return (
+                  <Link key={p.id} to={`/members/${p.id}`}
+                    style={{ display:'flex', alignItems:'center', gap:9, padding:'9px 12px', borderBottom: i < playersList.length - 1 ? '0.5px solid #E5E7EB' : 'none', textDecoration:'none' }}
+                  >
+                    <div style={{ fontSize:11, color:'#9CA3AF', width:14, textAlign:'center', flexShrink:0 }}>{i + 1}</div>
+                    <div style={{ width:30, height:30, borderRadius:9, background:color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:500, color:'#fff', flexShrink:0 }}>
+                      {initials}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:12, fontWeight:500, color:'#111827' }}>{p.name}</div>
+                      <div style={{ fontSize:10, color:'#6B7280', marginTop:1 }}>
+                        {playersTab === 'partners' ? `${p.games} partie${p.games > 1 ? 's' : ''} ensemble` : `${p.games} confrontation${p.games > 1 ? 's' : ''}`}
+                      </div>
+                    </div>
+                    {playersTab === 'partners' ? (
+                      <div style={{ textAlign:'right', flexShrink:0 }}>
+                        <div style={{ fontSize:12, fontWeight:500, color:'#14532d' }}>{winRate}%</div>
+                        <div style={{ fontSize:9, color:'#9CA3AF', marginTop:1 }}>victoires</div>
+                        <div style={{ width:44, height:4, background:'#E5E7EB', borderRadius:2, overflow:'hidden', marginTop:3 }}>
+                          <div style={{ width:`${winRate}%`, height:'100%', background:'#14532d', borderRadius:2 }} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', flexShrink:0 }}>
+                        <div style={{ display:'flex', gap:3 }}>
+                          <span style={{ fontSize:9, fontWeight:500, padding:'1px 5px', borderRadius:999, background:'#DCFCE7', color:'#166534' }}>{p.wins}V</span>
+                          <span style={{ fontSize:9, fontWeight:500, padding:'1px 5px', borderRadius:999, background:'#FEE2E2', color:'#B91C1C' }}>{losses}D</span>
+                        </div>
+                        <div style={{ fontSize:9, color:'#9CA3AF', marginTop:3 }}>
+                          {p.wins > losses ? 'Avantage' : p.wins === losses ? 'Égalité' : 'Défavorable'}
+                        </div>
+                      </div>
+                    )}
+                  </Link>
+                )
+              })}
             </div>
-          </div>
+          </>
         )}
 
         {/* Sign out */}
-        <div className="text-center pt-2">
-          <button onClick={signOut} className="text-xs text-gray-300 hover:text-gray-500 transition-colors">
+        <div style={{ textAlign:'center', paddingTop:4 }}>
+          <button onClick={signOut} style={{ fontSize:11, color:'#9CA3AF', background:'none', border:'none', cursor:'pointer' }}>
             Se déconnecter
           </button>
         </div>
