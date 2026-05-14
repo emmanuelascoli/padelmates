@@ -4,53 +4,38 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { BADGES } from '../lib/constants'
 
-// ── Liste fixe des lieux (synchronisée avec NewSession) ──────
+// ── Lieux connus (synchronisés avec NewSession) ───────────────
 const KNOWN_VENUES = [
-  'Bernex',
-  "Cologny",
-  "David Lloyd's Club",
-  'Jonction',
-  'La Praille',
-  'Les Acacias',
-  'Padel Station',
-  'Parc des Evaux',
-  'TC International Chambesy',
+  'Bernex', 'Cologny', "David Lloyd's Club", 'Jonction',
+  'La Praille', 'Les Acacias', 'Padel Station',
+  'Parc des Evaux', 'TC International Chambesy',
 ]
 
-// ── Helpers filtres ──────────────────────────────────────────
-const LEVEL_RANGES = {
-  '1-3':  [1, 3],
-  '4-6':  [4, 6],
-  '7-10': [7, 10],
-}
+// ── Helpers filtres ───────────────────────────────────────────
+const LEVEL_RANGES = { '1-3': [1,3], '4-6': [4,6], '7-10': [7,10] }
 
-function matchesLevel(session, active) {
+function matchesLevel(s, active) {
   if (active.size === 0) return true
-  if (!session.level_min && !session.level_max) return true
-  const sMin = session.level_min ? parseInt(session.level_min) : 1
-  const sMax = session.level_max ? parseInt(session.level_max) : 10
-  return [...active].some(key => {
-    const [fMin, fMax] = LEVEL_RANGES[key]
-    return sMin <= fMax && sMax >= fMin
+  if (!s.level_min && !s.level_max) return true
+  const sMin = s.level_min ? parseInt(s.level_min) : 1
+  const sMax = s.level_max ? parseInt(s.level_max) : 10
+  return [...active].some(k => {
+    const [a, b] = LEVEL_RANGES[k]
+    return sMin <= b && sMax >= a
   })
 }
 
-function matchesTime(session, active) {
+function matchesTime(s, active) {
   if (active.size === 0) return true
-  const h = parseInt((session.time || '00:00').split(':')[0])
+  const h = parseInt((s.time || '00:00').split(':')[0])
   const slots = { morning: h >= 6 && h < 12, noon: h >= 12 && h < 17, evening: h >= 17 }
-  return [...active].some(key => slots[key])
+  return [...active].some(k => slots[k])
 }
 
-// Extrait le nom du lieu sans le numéro de terrain
-// "Padel Club - Court 2" → "Padel Club"
-// "Centre Sportif Terrain 3" → "Centre Sportif"
-// "Club du Lac - 4" → "Club du Lac"
-function extractVenue(location) {
-  if (!location) return location
-  return location
+function extractVenue(loc) {
+  if (!loc) return loc
+  return loc
     .replace(/\s*[-–—]\s*(court|terrain|piste|field|salle)\s*\d+\s*$/i, '')
     .replace(/\s+(court|terrain|piste|field|salle)\s*\d+\s*$/i, '')
     .replace(/\s*[-–—]\s*\d+\s*$/i, '')
@@ -58,18 +43,22 @@ function extractVenue(location) {
     .trim()
 }
 
-function matchesLocation(session, active) {
+function matchesLocation(s, active) {
   if (active.size === 0) return true
-  return active.has(extractVenue(session.location))
+  return active.has(extractVenue(s.location))
 }
 
-function matchesOpen(session, openOnly) {
+function matchesOpen(s, openOnly) {
   if (!openOnly) return true
-  const count = session.session_participants?.length ?? 0
-  return count < session.max_players
+  return (s.session_participants?.length ?? 0) < s.max_players
 }
 
-// ── FriendAvatars (toujours affiché sur les cartes) ──────────
+// ── Titre calculé depuis la date ──────────────────────────────
+function sessionTitle(date) {
+  return 'Partie du ' + format(date, 'EEEE d MMMM', { locale: fr })
+}
+
+// ── Amis présents ─────────────────────────────────────────────
 function FriendAvatars({ participants, friendIds, friendProfiles }) {
   const friendsIn = (participants || [])
     .map(p => p.user_id)
@@ -78,19 +67,24 @@ function FriendAvatars({ participants, friendIds, friendProfiles }) {
   if (friendsIn.length === 0) return null
   return (
     <div className="flex items-center gap-1.5 mt-1.5">
-      <div className="flex -space-x-1.5">
-        {friendsIn.map(id => {
+      <div className="flex" style={{ marginRight: 2 }}>
+        {friendsIn.map((id, i) => {
           const p = friendProfiles[id]
           return p?.avatar_url ? (
-            <img key={id} src={p.avatar_url} className="w-5 h-5 rounded-full object-cover border border-white" alt="" />
+            <img key={id} src={p.avatar_url}
+              className="w-5 h-5 rounded-full object-cover"
+              style={{ border: '1.5px solid #fff', marginLeft: i ? -6 : 0 }}
+              alt="" />
           ) : (
-            <div key={id} className="w-5 h-5 rounded-full bg-forest-100 border border-white flex items-center justify-center text-forest-800 font-bold text-xs">
+            <div key={id}
+              className="w-5 h-5 rounded-full bg-forest-100 flex items-center justify-center text-forest-800 font-bold text-[8px]"
+              style={{ border: '1.5px solid #fff', marginLeft: i ? -6 : 0 }}>
               {p?.name?.charAt(0).toUpperCase() ?? '?'}
             </div>
           )
         })}
       </div>
-      <span className="text-xs text-forest-700 font-medium">
+      <span className="text-[10px] text-forest-700 font-medium">
         {friendsIn.length === 1
           ? `${friendProfiles[friendsIn[0]]?.name?.split(' ')[0] ?? 'Ami'} joue`
           : `${friendsIn.length} amis jouent`}
@@ -99,114 +93,131 @@ function FriendAvatars({ participants, friendIds, friendProfiles }) {
   )
 }
 
-// ── Session card ─────────────────────────────────────────────
-function SessionRow({ session, userId, friendIds, friendProfiles }) {
-  const date = new Date(`${session.date}T${session.time}`)
-  const participantCount = session.session_participants?.length ?? 0
+// ── Séparateur de section ─────────────────────────────────────
+function SectionSep({ label }) {
+  return (
+    <div className="flex items-center gap-2 mb-2 mt-1">
+      <span className="text-[11px] font-semibold text-gray-600 whitespace-nowrap">{label}</span>
+      <div className="flex-1 h-px bg-gray-300" />
+    </div>
+  )
+}
+
+// ── Carte de session ──────────────────────────────────────────
+function SessionCard({ session, userId, friendIds, friendProfiles }) {
+  const date        = new Date(`${session.date}T${session.time}`)
+  const count       = session.session_participants?.length ?? 0
+  const max         = session.max_players
+  const isFull      = count >= max
   const isRegistered = (session.session_participants || []).some(p => p.user_id === userId)
+  const isCancelled  = session.status === 'cancelled'
+  const pct         = Math.min(100, Math.round((count / max) * 100))
+
+  const dayLabel = format(date, 'EEE', { locale: fr }).toUpperCase().replace('.', '')
+  const title    = sessionTitle(date)
+
+  // Couleur dégradée de la barre
+  const barGradient = isFull
+    ? 'linear-gradient(90deg, #fca5a5, #dc2626)'
+    : 'linear-gradient(90deg, #86efac, #16a34a)'
 
   return (
-    <Link to={`/sessions/${session.id}`} className="block bg-white rounded-2xl shadow-sm active:scale-[0.99] transition-transform">
-      <div className="flex items-center">
-        {/* Date block */}
-        <div className="w-14 bg-primary rounded-xl m-3 flex flex-col items-center justify-center py-[10px] shrink-0">
-          <span className="text-[#6B9B7A] text-[10px] font-semibold tracking-widest uppercase leading-none">
-            {format(date, 'EEE', { locale: fr }).toUpperCase().replace('.', '')}
-          </span>
-          <span className="text-white text-[26px] font-bold leading-tight mt-0.5">
-            {format(date, 'd')}
-          </span>
-          <span className="text-[#6B9B7A] text-[10px] uppercase tracking-wide leading-none">
-            {format(date, 'MMM', { locale: fr }).toUpperCase().replace('.', '')}
-          </span>
-          <span className="text-accent font-bold text-xs mt-1.5 leading-none">
-            {format(date, 'HH:mm')}
-          </span>
+    <Link
+      to={`/sessions/${session.id}`}
+      className="flex items-stretch bg-white rounded-2xl mb-2 active:scale-[0.99] transition-transform"
+      style={{ border: '0.5px solid #E5E7EB', textDecoration: 'none' }}
+    >
+      {/* Boîte date */}
+      <div className="bg-primary rounded-xl m-2 flex flex-col items-center justify-center py-2 shrink-0"
+        style={{ width: 46 }}>
+        <span className="text-[#6B9B7A] text-[9px] font-semibold tracking-widest uppercase leading-none">{dayLabel}</span>
+        <span className="text-white text-[20px] font-bold leading-tight mt-0.5">{format(date, 'd')}</span>
+        <span className="text-[#6B9B7A] text-[9px] uppercase tracking-wide leading-none">
+          {format(date, 'MMM', { locale: fr }).toUpperCase().replace('.', '')}
+        </span>
+        <span className="text-accent font-bold text-[10px] mt-1 leading-none">{format(date, 'HH:mm')}</span>
+      </div>
+
+      {/* Corps */}
+      <div className="flex-1 py-2.5 pr-3 pl-2 min-w-0">
+        {/* Titre + badge */}
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <span className="font-medium text-gray-900 text-[12.5px] leading-snug">{title}</span>
+          <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+            {session.is_private && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">🔒</span>
+            )}
+            {isCancelled && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">Annulée</span>
+            )}
+            {!isCancelled && isRegistered && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#DCFCE7', color: '#166534' }}>
+                Inscrit
+              </span>
+            )}
+            {!isCancelled && !isRegistered && isFull && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#FEE2E2', color: '#B91C1C' }}>
+                Complet
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Info */}
-        <div className="flex-1 pr-4 py-3 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <span className="font-bold text-gray-900 text-[15px] leading-snug">{session.title}</span>
-            <div className="flex gap-1 shrink-0 flex-wrap justify-end">
-              {session.is_private && <span className="badge bg-purple-100 text-purple-700">🔒</span>}
-              {isRegistered && (
-                <span className="inline-flex items-center gap-1 bg-accent-bg text-forest-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">✓ Inscrit</span>
-              )}
-              {!isRegistered && participantCount >= session.max_players && session.status !== 'cancelled' && (
-                <span
-                  className="inline-flex items-center text-[11px] font-bold px-[9px] py-[3px] rounded-[20px]"
-                  style={{ background: 'var(--color-red-bg)', color: 'var(--color-red)' }}
-                >
-                  Complet
-                </span>
-              )}
-              {session.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
-            </div>
-          </div>
+        {/* Lieu */}
+        <div className="flex items-center gap-1 text-[11px] mb-1" style={{ color: '#6B7280' }}>
+          <svg className="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {session.location}
+        </div>
 
-          <div className="flex items-center gap-1 text-gray-400 text-xs mb-1.5">
-            <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        {/* Organisateur (sans prix ni niveau) */}
+        {session.organizer?.name && (
+          <div className="flex items-center gap-1 text-[11px] mb-1" style={{ color: '#6B7280' }}>
+            <svg className="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            {session.location}
+            {session.organizer.name}
           </div>
+        )}
 
-          {session.organizer?.name && (
-            <p className="text-xs text-gray-400 mb-1.5">
-              👤 {session.organizer.name}
-              {session.cost_per_player > 0 && (
-                <span className="ml-1 font-medium text-gray-500">· {session.cost_per_player} CHF</span>
-              )}
-              {(session.level_min || session.level_max) && (
-                <span className="ml-1 text-gray-400">
-                  · Niv.{session.level_min && session.level_max
-                    ? ` ${session.level_min}–${session.level_max}`
-                    : session.level_min
-                      ? ` ${session.level_min}+`
-                      : ` ≤${session.level_max}`}
-                </span>
-              )}
-            </p>
-          )}
+        {/* Amis */}
+        <FriendAvatars
+          participants={session.session_participants}
+          friendIds={friendIds}
+          friendProfiles={friendProfiles}
+        />
 
-          <FriendAvatars
-            participants={session.session_participants}
-            friendIds={friendIds}
-            friendProfiles={friendProfiles}
-          />
-
-          {/* Slot bar */}
-          <div className="w-full bg-gray-100 rounded-[3px] h-[6px] mt-2 mb-1">
-            <div
-              className={`h-[6px] rounded-[3px] transition-all ${participantCount >= session.max_players ? 'bg-[var(--color-red)]' : 'bg-accent'}`}
-              style={{ width: `${Math.min(100, Math.round((participantCount / session.max_players) * 100))}%` }}
-            />
+        {/* Barre de progression dégradée */}
+        {!isCancelled && (
+          <div className="mt-1.5">
+            <div className="w-full h-[4px] rounded-[2px] mb-1.5" style={{ background: '#F3F4F6', overflow: 'hidden' }}>
+              <div className="h-full rounded-[2px]" style={{ width: `${pct}%`, background: barGradient }} />
+            </div>
+            {/* Texte sous la barre : places dispo uniquement si non complet */}
+            {!isFull && (
+              <span className="text-[10px] font-medium" style={{ color: '#15803d' }}>
+                {max - count} place{max - count > 1 ? 's' : ''} disponible{max - count > 1 ? 's' : ''}
+              </span>
+            )}
           </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-400">{participantCount} / {session.max_players} joueurs</span>
-            {participantCount >= session.max_players
-              ? <span className="font-semibold" style={{ color: 'var(--color-red)' }}>Complet</span>
-              : <span className="text-forest-700 font-semibold">{session.max_players - participantCount} dispo</span>
-            }
-          </div>
-        </div>
+        )}
       </div>
     </Link>
   )
 }
 
-// ── Pill helper ──────────────────────────────────────────────
+// ── Pill filtre ───────────────────────────────────────────────
 function Pill({ active, onClick, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="h-8 px-3 rounded-[999px] text-xs font-medium transition-all shrink-0 whitespace-nowrap"
+      className="h-7 px-3 rounded-full text-[10px] font-medium transition-all shrink-0 whitespace-nowrap"
       style={active
-        ? { background: 'var(--color-primary)', color: '#fff', border: '1.5px solid var(--color-primary)' }
-        : { background: '#fff', border: '1.5px solid rgba(0,0,0,0.08)', color: 'var(--color-text-2)' }
+        ? { background: '#14532d', color: '#fff', border: '1px solid #14532d' }
+        : { background: '#F9F9F8', border: '0.5px solid #E5E7EB', color: '#374151' }
       }
     >
       {children}
@@ -214,21 +225,20 @@ function Pill({ active, onClick, children }) {
   )
 }
 
+// ── Page ─────────────────────────────────────────────────────
 const TABS = [
   { key: 'upcoming', label: 'À venir' },
   { key: 'past',     label: 'Passées' },
-  { key: 'mine',     label: 'Mes parties' },
 ]
 
 export default function Sessions() {
   const { user } = useAuth()
-  const [sessions, setSessions]     = useState([])
-  const [tab, setTab]               = useState('upcoming')
-  const [loading, setLoading]       = useState(true)
-  const [friendIds, setFriendIds]   = useState([])
+  const [sessions, setSessions]   = useState([])
+  const [tab, setTab]             = useState('upcoming')
+  const [loading, setLoading]     = useState(true)
+  const [friendIds, setFriendIds] = useState([])
   const [friendProfiles, setFriendProfiles] = useState({})
 
-  // ── Filtres ──────────────────────────────────────────────────
   const [levelActive, setLevelActive]       = useState(new Set())
   const [timeActive, setTimeActive]         = useState(new Set())
   const [locationActive, setLocationActive] = useState(new Set())
@@ -252,14 +262,8 @@ export default function Sessions() {
   }
 
   useEffect(() => { resetFilters() }, [tab])
-
-  useEffect(() => {
-    if (user) fetchFriendData()
-  }, [user])
-
-  useEffect(() => {
-    fetchSessions()
-  }, [tab])
+  useEffect(() => { if (user) fetchFriendData() }, [user])
+  useEffect(() => { fetchSessions() }, [tab])
 
   async function fetchFriendData() {
     const { data: fs } = await supabase
@@ -271,43 +275,16 @@ export default function Sessions() {
     const ids = fs.map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id)
     setFriendIds(ids)
     const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, name, avatar_url')
-      .in('id', ids)
+      .from('profiles').select('id, name, avatar_url').in('id', ids)
     setFriendProfiles(Object.fromEntries((profiles || []).map(p => [p.id, p])))
   }
 
   async function fetchSessions() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
-
-    if (tab === 'mine') {
-      const [{ data: organized }, { data: participated }] = await Promise.all([
-        supabase.from('sessions').select('id').eq('organizer_id', user.id),
-        supabase.from('session_participants').select('session_id').eq('user_id', user.id),
-      ])
-      const myIds = [...new Set([
-        ...(organized || []).map(s => s.id),
-        ...(participated || []).map(p => p.session_id),
-      ])]
-      if (myIds.length === 0) { setSessions([]); setLoading(false); return }
-      const { data } = await supabase
-        .from('sessions')
-        .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name, badges)')
-        .in('id', myIds)
-        .gte('date', today)               // uniquement futures
-        .neq('status', 'cancelled')
-        .order('date', { ascending: true })
-        .order('time', { ascending: true })
-        .limit(50)
-      setSessions(data || [])
-      setLoading(false)
-      return
-    }
-
     let query = supabase
       .from('sessions')
-      .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name, badges)')
+      .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name)')
       .eq('is_private', false)
       .order('date', { ascending: tab === 'upcoming' })
       .order('time', { ascending: true })
@@ -318,42 +295,39 @@ export default function Sessions() {
       query = query.lt('date', today)
     }
 
-    const { data } = await query.limit(50)
+    const { data } = await query.limit(60)
     setSessions(data || [])
     setLoading(false)
   }
 
-  // ── Filtrage client-side ─────────────────────────────────────
-  const filteredSessions = sessions.filter(s =>
+  // Filtrage client-side
+  const filtered = sessions.filter(s =>
     matchesLevel(s, levelActive) &&
     matchesTime(s, timeActive) &&
     matchesLocation(s, locationActive) &&
     matchesOpen(s, openOnly)
   )
 
-  // Lieux : liste fixe complète (tous les clubs, toujours visibles)
-  const uniqueLocations = KNOWN_VENUES
+  // Séparation mes parties / toutes les parties (uniquement sur "À venir")
+  const mine  = filtered.filter(s => (s.session_participants || []).some(p => p.user_id === user?.id))
+  const other = filtered.filter(s => !(s.session_participants || []).some(p => p.user_id === user?.id))
 
-  const showFilters = tab === 'upcoming' || tab === 'past' || tab === 'mine'
+  const cardProps = { userId: user?.id, friendIds, friendProfiles }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="section-title text-gray-900">Parties</h1>
-        <Link to="/sessions/new" className="btn-primary text-sm py-2">
-          + Organiser
-        </Link>
+        <Link to="/sessions/new" className="btn-primary text-sm py-2">+ Organiser</Link>
       </div>
 
       {/* Onglets */}
-      <div className="flex bg-gray-100 rounded-xl p-1">
+      <div className="flex bg-[#ECEAE5] rounded-xl p-1 gap-0.5">
         {TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
-              tab === key ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
+          <button key={key} onClick={() => setTab(key)}
+            className={`flex-1 py-2 text-xs font-medium rounded-[9px] transition-all ${
+              tab === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
             }`}
           >
             {label}
@@ -361,70 +335,55 @@ export default function Sessions() {
         ))}
       </div>
 
-      {/* Filtres */}
-      {showFilters && (
-        <div className="card py-3 space-y-3">
+      {/* Filtres (seulement sur À venir) */}
+      {tab === 'upcoming' && (
+        <div className="bg-white rounded-2xl p-3 space-y-2.5" style={{ border: '0.5px solid #E5E7EB' }}>
 
           {/* Niveau */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Niveau</span>
+            <span className="text-[10px] text-gray-400 font-medium w-10 shrink-0">Niveau</span>
             <Pill active={levelActive.has('1-3')}  onClick={() => toggleSet(setLevelActive, '1-3')}>1–3</Pill>
             <Pill active={levelActive.has('4-6')}  onClick={() => toggleSet(setLevelActive, '4-6')}>4–6</Pill>
             <Pill active={levelActive.has('7-10')} onClick={() => toggleSet(setLevelActive, '7-10')}>7–10</Pill>
           </div>
 
-          {/* Créneau — uniquement sur À venir */}
-          {tab === 'upcoming' && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Créneau</span>
-              <Pill active={timeActive.has('morning')} onClick={() => toggleSet(setTimeActive, 'morning')}>Matin</Pill>
-              <Pill active={timeActive.has('noon')}    onClick={() => toggleSet(setTimeActive, 'noon')}>☀️ Midi</Pill>
-              <Pill active={timeActive.has('evening')} onClick={() => toggleSet(setTimeActive, 'evening')}>Soir</Pill>
-            </div>
-          )}
+          {/* Créneau */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] text-gray-400 font-medium w-10 shrink-0">Créneau</span>
+            <Pill active={timeActive.has('morning')} onClick={() => toggleSet(setTimeActive, 'morning')}>Matin</Pill>
+            <Pill active={timeActive.has('noon')}    onClick={() => toggleSet(setTimeActive, 'noon')}>Midi</Pill>
+            <Pill active={timeActive.has('evening')} onClick={() => toggleSet(setTimeActive, 'evening')}>Soir</Pill>
+          </div>
 
-          {/* Lieux — uniquement sur À venir, scroll horizontal */}
-          {tab === 'upcoming' && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Lieu</span>
-              <div
-                className="no-scrollbar min-w-0"
-                style={{ display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', gap: '6px', paddingBottom: '4px' }}
-              >
-                {uniqueLocations.map(loc => (
-                  <Pill
-                    key={loc}
-                    active={locationActive.has(loc)}
-                    onClick={() => toggleSet(setLocationActive, loc)}
-                  >
-                    {loc}
-                  </Pill>
-                ))}
+          {/* Lieu (scroll horizontal) */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-400 font-medium w-10 shrink-0">Lieu</span>
+            <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-0.5" style={{ flexWrap: 'nowrap' }}>
+              {KNOWN_VENUES.map(loc => (
+                <Pill key={loc} active={locationActive.has(loc)} onClick={() => toggleSet(setLocationActive, loc)}>
+                  {loc}
+                </Pill>
+              ))}
+            </div>
+          </div>
+
+          {/* Séparateur + Places dispo */}
+          <div className="border-t pt-2 flex items-center justify-between" style={{ borderColor: '#F3F4F6' }}>
+            <Pill active={openOnly} onClick={() => setOpenOnly(v => !v)}>
+              Places disponibles
+            </Pill>
+            {hasActiveFilters && (
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-gray-400">
+                  {filtered.length} résultat{filtered.length !== 1 ? 's' : ''}
+                </span>
+                <button onClick={resetFilters} className="text-[10px] text-forest-700 font-medium hover:underline">
+                  Effacer ×
+                </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Places disponibles (seulement sur À venir et Mes parties) */}
-          {(tab === 'upcoming' || tab === 'mine') && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 font-medium w-12 shrink-0">Dispo</span>
-              <Pill active={openOnly} onClick={() => setOpenOnly(v => !v)}>
-                Places disponibles
-              </Pill>
-            </div>
-          )}
-
-          {/* Reset */}
-          {hasActiveFilters && (
-            <div className="pt-1 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-xs text-gray-400">
-                {filteredSessions.length} résultat{filteredSessions.length !== 1 ? 's' : ''}
-              </span>
-              <button onClick={resetFilters} className="text-xs text-forest-700 hover:underline font-medium">
-                Effacer les filtres ✕
-              </button>
-            </div>
-          )}
         </div>
       )}
 
@@ -433,47 +392,42 @@ export default function Sessions() {
         <div className="flex justify-center py-12">
           <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : filteredSessions.length === 0 ? (
-        <div className="card text-center py-12 text-gray-400">
-          <div className="text-5xl mb-3">{hasActiveFilters ? '🔍' : '📅'}</div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl text-center py-12" style={{ border: '0.5px solid #E5E7EB' }}>
+          <div className="text-4xl mb-3">{hasActiveFilters ? '🔍' : '📅'}</div>
           {hasActiveFilters ? (
             <>
-              <p className="font-medium text-gray-600">Aucune partie pour ces filtres</p>
-              <button onClick={resetFilters} className="text-sm text-forest-700 hover:underline mt-2">
-                Effacer les filtres
-              </button>
+              <p className="font-medium text-gray-600 text-sm">Aucune partie pour ces filtres</p>
+              <button onClick={resetFilters} className="text-sm text-forest-700 hover:underline mt-2">Effacer les filtres</button>
             </>
           ) : tab === 'upcoming' ? (
             <>
-              <p className="font-medium text-gray-600">Aucune partie prévue</p>
-              <p className="text-sm mt-1">Sois le premier à en organiser une !</p>
-              <Link to="/sessions/new" className="btn-primary inline-block mt-4 text-sm">
-                Organiser une partie
-              </Link>
-            </>
-          ) : tab === 'mine' ? (
-            <>
-              <p className="font-medium text-gray-600">Aucune partie à venir</p>
-              <p className="text-sm mt-1">Inscris-toi à une partie ou organises-en une !</p>
-              <Link to="/sessions/new" className="btn-primary inline-block mt-4 text-sm">
-                Organiser une partie
-              </Link>
+              <p className="font-medium text-gray-600 text-sm">Aucune partie prévue</p>
+              <p className="text-sm text-gray-400 mt-1">Sois le premier à en organiser une !</p>
+              <Link to="/sessions/new" className="btn-primary inline-block mt-4 text-sm">Organiser une partie</Link>
             </>
           ) : (
-            <p className="font-medium text-gray-600">Aucune partie passée</p>
+            <p className="font-medium text-gray-600 text-sm">Aucune partie passée</p>
           )}
         </div>
+      ) : tab === 'upcoming' ? (
+        <>
+          {mine.length > 0 && (
+            <div>
+              <SectionSep label="Mes parties" />
+              {mine.map(s => <SessionCard key={s.id} session={s} {...cardProps} />)}
+            </div>
+          )}
+          {other.length > 0 && (
+            <div>
+              <SectionSep label="Toutes les parties" />
+              {other.map(s => <SessionCard key={s.id} session={s} {...cardProps} />)}
+            </div>
+          )}
+        </>
       ) : (
-        <div className="space-y-3">
-          {filteredSessions.map(s => (
-            <SessionRow
-              key={s.id}
-              session={s}
-              userId={user?.id}
-              friendIds={friendIds}
-              friendProfiles={friendProfiles}
-            />
-          ))}
+        <div>
+          {filtered.map(s => <SessionCard key={s.id} session={s} {...cardProps} />)}
         </div>
       )}
     </div>
