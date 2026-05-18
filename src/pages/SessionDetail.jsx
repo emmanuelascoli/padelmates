@@ -624,91 +624,102 @@ export default function SessionDetail() {
           </div>
         </div>
 
-        {/* Info rows */}
-        <div className="space-y-0 rounded-xl overflow-hidden border border-[rgba(0,0,0,0.08)]">
-          {/* Date */}
-          {sessionDate && (() => {
-            const rows = [
-              {
-                label: 'Date',
-                value: (() => {
-                  const timeFormatted = sessionDate.getMinutes() === 0
-                    ? `${sessionDate.getHours()}h`
-                    : `${sessionDate.getHours()}h${String(sessionDate.getMinutes()).padStart(2, '0')}`
-                  return `${format(sessionDate, 'EEEE d MMMM yyyy', { locale: fr })} · ${timeFormatted}`
-                })(),
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
-                ),
-              },
-              ...(session.duration ? [{
-                label: 'Durée',
-                value: session.duration,
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                ),
-              }] : []),
-              {
-                label: 'Lieu',
-                value: session.location,
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                  </svg>
-                ),
-              },
-              {
-                label: 'Organisateur',
-                value: session.organizer?.name ?? '—',
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                  </svg>
-                ),
-              },
-              ...(session.cost_per_player > 0 ? [{
-                label: 'Coût',
-                value: `${session.cost_per_player} CHF / joueur — ${(session.cost_per_player * session.max_players).toFixed(2)} CHF total`,
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-                  </svg>
-                ),
-              }] : []),
-              ...((session.level_min || session.level_max) ? [{
-                label: 'Niveau',
-                value: [session.level_min && LEVEL_LABEL[session.level_min], session.level_max && LEVEL_LABEL[session.level_max]].filter(Boolean).join(' → '),
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                  </svg>
-                ),
-              }] : []),
-            ]
-            return rows.map((row, i) => (
-              <div
-                key={row.label}
-                className="flex items-center gap-3 px-3 py-2.5 bg-white"
-                style={{ borderBottom: i < rows.length - 1 ? '1px solid rgba(0,0,0,0.08)' : 'none' }}
-              >
-                <div
-                  className="shrink-0 flex items-center justify-center"
-                  style={{ width: 32, height: 32, borderRadius: 10, background: '#F7F5F1' }}
-                >
-                  {row.icon}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p style={{ fontSize: 11, textTransform: 'uppercase', color: '#9CA3AF', letterSpacing: '0.3px', lineHeight: 1.2 }}>{row.label}</p>
-                  <p style={{ fontSize: 14, color: '#0D1F14', lineHeight: 1.3 }} className="capitalize">{row.value}</p>
-                </div>
+        {/* Slot bar */}
+        {(() => {
+          const pct = Math.min(100, Math.round((participants.length / (session.max_players ?? 4)) * 100))
+          const spotsLeft = (session.max_players ?? 4) - participants.length
+          return (
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-sm font-medium text-gray-700">{participants.length} / {session.max_players} joueurs</span>
+                {!isFull && <span className="text-xs font-medium text-green-600">{spotsLeft} place{spotsLeft > 1 ? 's' : ''} libre{spotsLeft > 1 ? 's' : ''}</span>}
+                {isFull && <span className="text-xs font-medium text-red-500">Complet</span>}
               </div>
-            ))
-          })()}
-        </div>
+              <div className="w-full rounded-full overflow-hidden" style={{ height: 6, background: '#E9EAE7' }}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${pct}%`,
+                    background: isFull
+                      ? 'linear-gradient(90deg,#f87171,#ef4444)'
+                      : 'linear-gradient(90deg,#86efac,#16a34a)',
+                  }}
+                />
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Info rows */}
+        {sessionDate && (() => {
+          const timeFormatted = sessionDate.getMinutes() === 0
+            ? `${sessionDate.getHours()}h`
+            : `${sessionDate.getHours()}h${String(sessionDate.getMinutes()).padStart(2, '0')}`
+          const rows = [
+            {
+              value: `${format(sessionDate, 'EEEE d MMMM yyyy', { locale: fr })} · ${timeFormatted}`,
+              icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7C72" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+              ),
+            },
+            ...(session.duration ? [{
+              value: session.duration,
+              icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7C72" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              ),
+            }] : []),
+            {
+              value: session.location,
+              icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7C72" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+              ),
+            },
+            {
+              value: session.organizer?.name ?? '—',
+              icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7C72" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+              ),
+            },
+            ...(session.cost_per_player > 0 ? [{
+              value: `${session.cost_per_player} CHF / joueur — ${(session.cost_per_player * session.max_players).toFixed(2)} CHF total`,
+              icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7C72" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                </svg>
+              ),
+            }] : []),
+            ...((session.level_min || session.level_max) ? [{
+              value: [session.level_min && LEVEL_LABEL[session.level_min], session.level_max && LEVEL_LABEL[session.level_max]].filter(Boolean).join(' → '),
+              icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7C72" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+              ),
+            }] : []),
+          ]
+          return (
+            <div className="space-y-0 mb-4">
+              {rows.map((row, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2.5 py-2"
+                  style={{ borderBottom: i < rows.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}
+                >
+                  <span className="shrink-0 flex items-center">{row.icon}</span>
+                  <span style={{ fontSize: 14, color: '#374151', lineHeight: 1.4 }} className="capitalize">{row.value}</span>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
 
         {/* Actions inscription */}
         <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 flex-wrap">
