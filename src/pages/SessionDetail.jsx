@@ -1112,15 +1112,17 @@ export default function SessionDetail() {
                         {/* Payment dot (clickable for organizer) */}
                         {session.cost_per_player > 0 && (
                           <button
-                            onClick={() => isOrganizer && togglePayment(p.id, p.payment_status)}
-                            disabled={!isOrganizer}
+                            onClick={() => isOrganizer ? togglePayment(p.id, p.payment_status) : undefined}
                             title={isOrganizer ? 'Changer le statut de paiement' : undefined}
                             style={{
-                              width: 8, height: 8, borderRadius: '50%', background: payDotColor,
-                              border: 'none', padding: 0, flexShrink: 0,
+                              width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+                              background: 'transparent', border: 'none', padding: 0,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
                               cursor: isOrganizer ? 'pointer' : 'default',
                             }}
-                          />
+                          >
+                            <div style={{ width: 9, height: 9, borderRadius: '50%', background: payDotColor }} />
+                          </button>
                         )}
 
                         {/* WhatsApp */}
