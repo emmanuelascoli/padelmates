@@ -216,6 +216,7 @@ function DeleteAccountSection({ userEmail, onDeleted }) {
 }
 
 export default function Profile() {
+  const navigate = useNavigate()
   const { user, profile, refreshProfile, signOut, role } = useAuth()
   const [form, setForm] = useState({ name: '', phone: '', revolut_tag: '', level: '3' })
   const [loading, setLoading] = useState(false)
@@ -413,317 +414,299 @@ export default function Profile() {
     ? Math.round((stats.wins / (stats.wins + stats.losses)) * 100)
     : 0
 
-  return (
-    <div className="max-w-lg mx-auto -mx-4 -mt-6">
+  const levelLabel = profile?.level ? (LEVEL_LABEL[profile.level] ?? profile.level) : null
 
-      {/* ── Green banner ── */}
-      <div className="bg-primary px-5 pt-7 pb-16">
-        <div className="flex items-center gap-4 mb-5">
+  return (
+    <div style={{ maxWidth: 480, margin: '0 auto', marginLeft: -16, marginRight: -16, marginTop: -24 }}>
+
+      {/* ── Banner ── */}
+      <div style={{ background: '#14532d', padding: '24px 16px 20px', position: 'relative', overflow: 'hidden' }}>
+        {/* Decorative circles */}
+        <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 20, right: 40, width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -20, left: -20, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
+
+        {/* Avatar + name row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 10 }}>
           {/* Avatar */}
-          <div className="relative shrink-0">
+          <div style={{ position: 'relative', flexShrink: 0 }}>
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
                 alt="avatar"
-                className="w-20 h-20 rounded-2xl object-cover border-2 border-primary-hover shadow-lg"
+                style={{ width: 64, height: 64, borderRadius: 18, objectFit: 'cover', display: 'block' }}
               />
             ) : (
-              <div className="w-20 h-20 bg-primary-hover rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-3xl font-bold text-white">
+              <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 26, fontWeight: 700, color: '#fff' }}>
                   {profile?.name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? '?'}
                 </span>
               </div>
             )}
-            <label className="absolute -bottom-1 -right-1 w-7 h-7 bg-accent hover:bg-accent/80 rounded-xl flex items-center justify-center cursor-pointer shadow-md transition-colors">
-              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            {/* Camera button */}
+            <label style={{ position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, background: '#4ade80', borderRadius: 7, border: '2px solid #14532d', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#14532d" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
             </label>
           </div>
 
-          {/* Name + info */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-white text-2xl font-bold leading-tight truncate">
-              {profile?.name || <span className="text-[#6B9B7A] italic text-lg">Nom non renseigné</span>}
-            </h1>
-            <p className="text-[#6B9B7A] text-xs mt-0.5 truncate">{user?.email}</p>
-            {role && role !== 'member' && (() => {
-              const r = ROLES[role]
-              return (
-                <span
-                  className="inline-flex items-center gap-1.5 mt-1.5"
-                  style={{
-                    background: 'rgba(255,255,255,0.12)',
-                    color: 'rgba(255,255,255,0.9)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: 20,
-                    padding: '4px 12px',
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#52B788', display: 'inline-block', flexShrink: 0 }} />
-                  {r.label}
-                </span>
-              )
-            })()}
-            {profile?.badges?.length > 0 && (
-              <div className="mt-1.5">
-                <BadgeList badges={profile.badges} size="sm" />
-              </div>
-            )}
+          {/* Name + email + badges */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {profile?.name || <span style={{ color: '#6B9B7A', fontStyle: 'italic', fontSize: 15 }}>Nom non renseigné</span>}
+            </div>
+            <div style={{ color: '#6B9B7A', fontSize: 12, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
+
+            {/* Badges row */}
+            <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' }}>
+              {levelLabel && (
+                <div style={{ background: 'rgba(255,255,255,0.12)', color: '#90C9A0', fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80' }} />
+                  {levelLabel}
+                </div>
+              )}
+              {role && role !== 'member' && (
+                <div style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 999 }}>
+                  {ROLES[role]?.label}
+                </div>
+              )}
+              {profile?.badges?.length > 0 && <BadgeList badges={profile.badges} size="sm" />}
+            </div>
           </div>
         </div>
 
-        {photoLoading && <p className="text-xs text-[#7BC47B] mb-2">Upload en cours…</p>}
-        {photoError && <p className="text-xs text-red-400 mb-2">{photoError}</p>}
+        {photoLoading && <p style={{ fontSize: 11, color: '#7BC47B', marginBottom: 6, marginTop: 2 }}>Upload en cours…</p>}
+        {photoError && <p style={{ fontSize: 11, color: '#f87171', marginBottom: 6, marginTop: 2 }}>{photoError}</p>}
 
-        {/* Level bar */}
-        {profile?.level && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[#6B9B7A] text-xs font-medium">Niveau</span>
-              <span className="text-[#7BC47B] text-xs font-semibold">{LEVEL_LABEL[profile.level] ?? profile.level}</span>
-            </div>
-            <div
-              className="w-full overflow-hidden"
-              style={{ height: 8, borderRadius: 4, background: 'rgba(0,0,0,0.25)' }}
-            >
-              <div
-                className="transition-all"
-                style={{
-                  height: 8,
-                  borderRadius: 4,
-                  background: '#52B788',
-                  width: `${(parseInt(profile.level) / 10) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-4 rounded-2xl overflow-hidden bg-primary-hover/50">
+        {/* Stats grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 12 }}>
           {[
             { label: 'Parties', value: stats.sessions },
             { label: 'Victoires', value: stats.wins },
             { label: 'Défaites', value: stats.losses },
             { label: '% Victoire', value: `${winRate}%` },
-          ].map((s, i) => (
-            <div key={s.label} className={`py-3 text-center ${i < 3 ? 'border-r border-primary/60' : ''}`}>
-              <div className="text-white leading-tight" style={{ fontSize: 18, fontWeight: 800 }}>{s.value}</div>
-              <div className="text-[#6B9B7A] mt-0.5 leading-tight" style={{ fontSize: 10 }}>{s.label}</div>
+          ].map(s => (
+            <div key={s.label} style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
+              <div style={{ color: '#fff', fontSize: 20, fontWeight: 500, lineHeight: 1.1 }}>{s.value}</div>
+              <div style={{ color: '#6B9B7A', fontSize: 10, marginTop: 3 }}>{s.label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── White sheet ── */}
-      <div className="bg-white rounded-t-3xl -mt-8 px-4 pt-5 pb-10 min-h-screen space-y-5">
+      {/* ── Sheet ── */}
+      <div style={{ background: '#F5F4F0', borderRadius: '20px 20px 0 0', marginTop: -12, position: 'relative', zIndex: 2 }}>
 
-      {/* Tabs */}
-      <div className="flex bg-gray-100 rounded-xl p-1">
-        {[
-          { key: 'info', label: 'Mon profil' },
-          { key: 'history', label: `Historique (${history.length})` },
-          { key: 'amis', label: 'Amis' },
-        ].map(({ key, label }) => (
-          <button key={key} onClick={() => setTab(key)}
-            className={`relative flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-              tab === key ? 'bg-white text-forest-900 shadow-sm' : 'text-gray-500'
-            }`}
-          >
-            {label}
-            {key === 'amis' && pendingFriendCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
-                {pendingFriendCount > 9 ? '9+' : pendingFriendCount}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* ── TAB : Historique ── */}
-      {tab === 'history' && (
-        <div className="space-y-3">
-          {history.length === 0 ? (
-            <div className="card text-center py-10 text-gray-400">
-              <div className="text-4xl mb-2">📅</div>
-              <p>Aucune partie jouée pour l'instant</p>
-            </div>
-          ) : history.map(s => {
-            const date = new Date(`${s.date}T${s.time}`)
-            const past = isPast(date)
-            const matches = historyMatches[s.id] || []
-            const wins = matches.filter(m => m.won).length
-            const losses = matches.filter(m => !m.won).length
-            return (
-              <div key={s.id} className="card space-y-3">
-                {/* Session header */}
-                <Link to={`/sessions/${s.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                  <div className="bg-forest-50 rounded-xl p-2 text-center min-w-[44px] shrink-0">
-                    <div className="text-xs text-forest-700 font-medium uppercase">{format(date, 'MMM', { locale: fr })}</div>
-                    <div className="text-lg font-bold text-forest-900 leading-none">{format(date, 'd')}</div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{s.title}</p>
-                    <p className="text-sm text-gray-400">📍 {s.location} · {format(date, 'HH:mm')}</p>
-                  </div>
-                  {matches.length > 0 && (
-                    <div className="text-right shrink-0">
-                      <span className="text-sm font-bold text-forest-700">{wins}V</span>
-                      <span className="text-gray-300 mx-1">·</span>
-                      <span className="text-sm font-bold text-red-500">{losses}D</span>
-                    </div>
-                  )}
-                </Link>
-
-                {/* Matchs de cette session */}
-                {matches.length > 0 && (
-                  <div className="space-y-1.5 pt-2 border-t border-gray-50">
-                    {matches.map((m, i) => (
-                      <div key={m.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${m.won ? 'bg-forest-50' : 'bg-red-50'}`}>
-                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ${m.won ? 'bg-forest-200 text-forest-900' : 'bg-red-200 text-red-700'}`}>
-                          {m.won ? 'V' : 'D'}
-                        </span>
-                        <span className="flex-1 truncate text-gray-700">
-                          <span className={m.won ? 'font-semibold' : ''}>{m.t1}</span>
-                          <span className="text-gray-400 mx-1">vs</span>
-                          <span className={!m.won ? 'font-semibold' : ''}>{m.t2}</span>
-                        </span>
-                        <span className="font-bold text-gray-700 shrink-0">
-                          {m.team1_score}–{m.team2_score}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {matches.length === 0 && past && (
-                  <p className="text-xs text-gray-400 pt-1 border-t border-gray-50">Aucun match enregistré pour cette partie</p>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* ── TAB : Amis ── */}
-      {tab === 'amis' && <FriendsSection userId={user.id} />}
-
-      {/* ── TAB : Mon profil ── */}
-      {tab === 'info' && <>
-
-      {/* Edit form */}
-      <form onSubmit={handleSave} className="card space-y-4">
-        <h3 className="font-semibold text-gray-900">Mes informations</h3>
-
-        {!profile && (
-          <div className="bg-forest-50 border border-forest-200 text-forest-900 px-4 py-3 rounded-xl text-sm">
-            👋 Complète ton profil pour apparaître dans le classement et les parties.
-          </div>
-        )}
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
-        {saved && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">✅ Profil mis à jour !</div>}
-
-        <div>
-          <label className="label">Prénom et Nom *</label>
-          <input type="text" name="name" value={form.name} onChange={handleChange} required className="input" placeholder="Marie Dupont" />
-        </div>
-        {/* Moyens de paiement */}
-        <div className="space-y-3 pt-1">
-          <div className="flex items-center gap-2">
-            <h4 className="text-sm font-semibold text-gray-700">💳 Revolut</h4>
-            <span className="text-xs text-gray-400">(pour recevoir les remboursements)</span>
-          </div>
-          <div>
-            <label className="label flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#191C1F] text-white text-xs font-bold shrink-0">R</span>
-              Revolut — Ton tag
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium select-none">@</span>
-              <input
-                type="text"
-                name="revolut_tag"
-                value={form.revolut_tag}
-                onChange={e => {
-                  setForm({ ...form, revolut_tag: e.target.value.replace(/^@/, '') })
-                  setSaved(false); setError('')
+        {/* Tabs bar */}
+        <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', borderBottom: '0.5px solid #E2E0D8' }}>
+          <div style={{ display: 'flex' }}>
+            {[
+              { key: 'info', label: 'Mon profil' },
+              { key: 'history', label: `Historique (${history.length})` },
+              { key: 'amis', label: 'Amis' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                style={{
+                  flex: 1,
+                  fontSize: 13,
+                  padding: '11px 8px',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: tab === key ? '2px solid #15803D' : '2px solid transparent',
+                  color: tab === key ? '#15803D' : '#6B7280',
+                  fontWeight: tab === key ? 500 : 400,
+                  cursor: 'pointer',
+                  position: 'relative',
+                  transition: 'color 0.15s',
                 }}
-                className="input pl-7"
-                placeholder="ton-tag-revolut"
-                autoComplete="off"
-              />
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Trouvable dans Revolut → Profil → Partager. Sans le @.</p>
+              >
+                {label}
+                {key === 'amis' && pendingFriendCount > 0 && (
+                  <span style={{ position: 'absolute', top: 6, right: 10, minWidth: 16, height: 16, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', lineHeight: 1 }}>
+                    {pendingFriendCount > 9 ? '9+' : pendingFriendCount}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
-        <div>
-          <label className="label">Niveau de jeu (officiel padel)</label>
-          <select name="level" value={form.level} onChange={handleChange} className="input">
-            {LEVEL_OPTIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-          </select>
-        </div>
-        <button type="submit" disabled={loading} className="btn-primary w-full">
-          {loading ? 'Enregistrement...' : 'Sauvegarder'}
-        </button>
-      </form>
 
-      {/* Password change */}
-      <form onSubmit={handlePwChange} className="card space-y-4">
-        <h3 className="font-semibold text-gray-900">Changer de mot de passe</h3>
-        {pwError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{pwError}</div>}
-        {pwSaved && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">✅ Mot de passe mis à jour !</div>}
-        <div>
-          <label className="label">Nouveau mot de passe</label>
-          <PasswordInput
-            value={pwForm.newPw} minLength={6}
-            onChange={e => { setPwForm({ ...pwForm, newPw: e.target.value }); setPwError(''); setPwSaved(false) }}
-            placeholder="Minimum 6 caractères" required
-          />
-        </div>
-        <div>
-          <label className="label">Confirmer le mot de passe</label>
-          <PasswordInput
-            value={pwForm.confirm} minLength={6}
-            onChange={e => { setPwForm({ ...pwForm, confirm: e.target.value }); setPwError('') }}
-            placeholder="Répète le nouveau mot de passe" required
-          />
-        </div>
-        <button type="submit" disabled={pwLoading} className="btn-secondary w-full">
-          {pwLoading ? 'Mise à jour...' : 'Changer le mot de passe'}
-        </button>
-      </form>
+        {/* Tab content */}
+        <div style={{ padding: '14px 14px 32px' }}>
 
-      {/* Admin panel shortcut */}
-      {role === 'admin' && (
-        <div className="card bg-purple-50 border-purple-100">
-          <Link to="/admin" className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-purple-900">👑 Panneau d'administration</p>
-              <p className="text-xs text-purple-600 mt-0.5">Gérer les membres, les parties et les statistiques</p>
+          {/* ── TAB : Mon profil ── */}
+          {tab === 'info' && (
+            <form onSubmit={handleSave}>
+
+              {/* Errors / success */}
+              {!profile && (
+                <div className="bg-forest-50 border border-forest-200 text-forest-900 px-4 py-3 rounded-xl text-sm mb-3">
+                  👋 Complète ton profil pour apparaître dans le classement et les parties.
+                </div>
+              )}
+              {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-3">{error}</div>}
+              {saved && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm mb-3">✅ Profil mis à jour !</div>}
+
+              {/* Card: Informations */}
+              <div className="card" style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>Informations</div>
+                {/* Name field */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 5, fontWeight: 500, display: 'block' }}>Prénom et Nom</label>
+                  <input type="text" name="name" value={form.name} onChange={handleChange} required className="input" placeholder="Marie Dupont" />
+                </div>
+                {/* Level field */}
+                <div>
+                  <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 5, fontWeight: 500, display: 'block' }}>Niveau de jeu</label>
+                  <select name="level" value={form.level} onChange={handleChange} className="input">
+                    {LEVEL_OPTIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Card: Paiement */}
+              <div className="card" style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Paiement</div>
+                <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 12 }}>Permet aux joueurs de te rembourser quand tu organises une partie</div>
+                <div>
+                  <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 5, fontWeight: 500, display: 'block' }}>Tag Revolut</label>
+                  <div style={{ display: 'flex', alignItems: 'center', background: '#F9F9F7', border: '0.5px solid #E2E0D8', borderRadius: 8, overflow: 'hidden' }}>
+                    <span style={{ padding: '0 10px', fontSize: 13, color: '#9CA3AF', borderRight: '0.5px solid #E2E0D8', background: '#F3F2EE', height: 38, display: 'flex', alignItems: 'center' }}>@</span>
+                    <input
+                      type="text"
+                      name="revolut_tag"
+                      value={form.revolut_tag}
+                      onChange={e => { setForm({ ...form, revolut_tag: e.target.value.replace(/^@/, '') }); setSaved(false); setError('') }}
+                      style={{ flex: 1, background: 'transparent', border: 'none', padding: '9px 12px', fontSize: 13, color: '#111827', outline: 'none' }}
+                      placeholder="ton-tag-revolut"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>Revolut → Profil → Partager · sans le @</div>
+                </div>
+              </div>
+
+              {/* Save button */}
+              <button type="submit" disabled={loading} className="btn-primary w-full" style={{ marginBottom: 10 }}>
+                {loading ? 'Enregistrement...' : 'Sauvegarder les modifications'}
+              </button>
+
+              {/* Card: Sécurité */}
+              <div className="card" style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Sécurité</div>
+                {pwError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-3">{pwError}</div>}
+                {pwSaved && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm mb-3">Mot de passe mis à jour !</div>}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 5, fontWeight: 500, display: 'block' }}>Nouveau mot de passe</label>
+                  <PasswordInput value={pwForm.newPw} minLength={6} onChange={e => { setPwForm({ ...pwForm, newPw: e.target.value }); setPwError(''); setPwSaved(false) }} placeholder="Minimum 6 caractères" required />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 5, fontWeight: 500, display: 'block' }}>Confirmer</label>
+                  <PasswordInput value={pwForm.confirm} minLength={6} onChange={e => { setPwForm({ ...pwForm, confirm: e.target.value }); setPwError('') }} placeholder="Répète le nouveau mot de passe" required />
+                </div>
+                <button type="button" onClick={handlePwChange} disabled={pwLoading} className="btn-secondary w-full" style={{ marginTop: 10 }}>
+                  {pwLoading ? 'Mise à jour...' : 'Changer le mot de passe'}
+                </button>
+              </div>
+
+              {/* Admin card */}
+              {role === 'admin' && (
+                <Link to="/admin" className="card" style={{ background: '#F5F0FF', borderColor: '#E9D8FD', display: 'block', textDecoration: 'none', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: '#6B21A8' }}>👑 Administration</div>
+                      <div style={{ fontSize: 11, color: '#9333EA', marginTop: 2 }}>Gérer les membres, parties et statistiques</div>
+                    </div>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A855F7" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  </div>
+                </Link>
+              )}
+
+              {/* Sign out */}
+              <button onClick={signOut} className="w-full" style={{ background: '#fff', border: '0.5px solid #E2E0D8', borderRadius: 8, padding: '10px 16px', fontSize: 13, color: '#374151', cursor: 'pointer', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                Se déconnecter
+              </button>
+
+              {/* Delete account */}
+              <DeleteAccountSection userEmail={user?.email} onDeleted={signOut} />
+
+            </form>
+          )}
+
+          {/* ── TAB : Historique ── */}
+          {tab === 'history' && (
+            <div className="space-y-3">
+              {history.length === 0 ? (
+                <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #E2E0D8', padding: 14, marginBottom: 10, textAlign: 'center' }} className="py-10 text-gray-400">
+                  <div className="text-4xl mb-2">📅</div>
+                  <p>Aucune partie jouée pour l'instant</p>
+                </div>
+              ) : history.map(s => {
+                const date = new Date(`${s.date}T${s.time}`)
+                const past = isPast(date)
+                const matches = historyMatches[s.id] || []
+                const wins = matches.filter(m => m.won).length
+                const losses = matches.filter(m => !m.won).length
+                return (
+                  <div key={s.id} style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #E2E0D8', padding: 14, marginBottom: 10 }} className="space-y-3">
+                    {/* Session header */}
+                    <Link to={`/sessions/${s.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                      <div style={{ background: '#F0FDF4', borderRadius: 8, padding: '6px 8px', textAlign: 'center', minWidth: 44 }} className="shrink-0">
+                        <div style={{ color: '#15803D', fontSize: 11, fontWeight: 500, textTransform: 'uppercase' }}>{format(date, 'MMM', { locale: fr })}</div>
+                        <div style={{ color: '#15803D', fontSize: 18, fontWeight: 700, lineHeight: 1 }}>{format(date, 'd')}</div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{s.title}</p>
+                        <p className="text-sm text-gray-400">📍 {s.location} · {format(date, 'HH:mm')}</p>
+                      </div>
+                      {matches.length > 0 && (
+                        <div className="text-right shrink-0">
+                          <span className="text-sm font-bold text-forest-700">{wins}V</span>
+                          <span className="text-gray-300 mx-1">·</span>
+                          <span className="text-sm font-bold text-red-500">{losses}D</span>
+                        </div>
+                      )}
+                    </Link>
+
+                    {/* Matchs de cette session */}
+                    {matches.length > 0 && (
+                      <div className="space-y-1.5 pt-2 border-t border-gray-50">
+                        {matches.map((m, i) => (
+                          <div key={m.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${m.won ? 'bg-forest-50' : 'bg-red-50'}`}>
+                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ${m.won ? 'bg-forest-200 text-forest-900' : 'bg-red-200 text-red-700'}`}>
+                              {m.won ? 'V' : 'D'}
+                            </span>
+                            <span className="flex-1 truncate text-gray-700">
+                              <span className={m.won ? 'font-semibold' : ''}>{m.t1}</span>
+                              <span className="text-gray-400 mx-1">vs</span>
+                              <span className={!m.won ? 'font-semibold' : ''}>{m.t2}</span>
+                            </span>
+                            <span className="font-bold text-gray-700 shrink-0">
+                              {m.team1_score}–{m.team2_score}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {matches.length === 0 && past && (
+                      <p className="text-xs text-gray-400 pt-1 border-t border-gray-50">Aucun match enregistré pour cette partie</p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
-            <svg className="w-5 h-5 text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
+          )}
+
+          {/* ── TAB : Amis ── */}
+          {tab === 'amis' && <FriendsSection userId={user.id} />}
+
         </div>
-      )}
-
-      {/* Sign out */}
-      <div className="card">
-        <button onClick={signOut} className="btn-secondary w-full text-red-600 border-red-200 hover:bg-red-50">
-          Se déconnecter
-        </button>
       </div>
-
-      {/* Delete account */}
-      <DeleteAccountSection userEmail={user?.email} onDeleted={signOut} />
-
-      </> /* fin tab === 'info' */}
-      </div>{/* fin white sheet */}
     </div>
   )
 }

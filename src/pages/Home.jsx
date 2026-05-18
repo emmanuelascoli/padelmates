@@ -256,7 +256,11 @@ export default function Home() {
         eloH.push(elo)
         ptsH.push(pts)
       })
-      setEloHistory(eloH)
+      // Ancrer le dernier point sur le vrai rank_score (calculé par le serveur)
+      // pour que le graphe et la carte "Score ELO" affichent la même valeur finale.
+      const realElo = profile.rank_score ?? 1000
+      const offset  = realElo - eloH[eloH.length - 1]
+      setEloHistory(eloH.map(v => v + offset))
       setPtsHistory(ptsH)
     }
 
