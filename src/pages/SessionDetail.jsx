@@ -259,7 +259,7 @@ function PublicSessionTeaser({ session, participantCount }) {
           </div>
           <div className="shrink-0 text-right">
             {isFull
-              ? <span className="badge bg-orange-100 text-orange-600">Complet</span>
+              ? <span className="badge bg-red-100 text-red-600">Complet</span>
               : <span className="badge bg-forest-100 text-forest-800">Ouvert</span>
             }
           </div>
@@ -345,6 +345,7 @@ export default function SessionDetail() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [tab, setTab] = useState('info')
   const [removingPlayerId, setRemovingPlayerId] = useState(null)
+  const [showOrganizerLeaveConfirm, setShowOrganizerLeaveConfirm] = useState(false)
 
   useEffect(() => { fetchAll() }, [id])
 
@@ -416,8 +417,8 @@ export default function SessionDetail() {
   const levelTooHigh = playerLevel !== null && sessionLevelMax !== null && playerLevel > sessionLevelMax
   const levelBlocked = levelTooLow || levelTooHigh
 
-  const canJoin     = !isParticipant && !isOrganizer && !isFull  && !isPastSession && session?.status === 'open' && !levelBlocked
-  const canWaitlist = !isParticipant && !isOrganizer && isFull && !isOnWaitlist && !isPastSession && session?.status === 'open' && !levelBlocked
+  const canJoin     = !isParticipant && !isFull  && !isPastSession && session?.status === 'open' && !levelBlocked
+  const canWaitlist = !isParticipant && isFull && !isOnWaitlist && !isPastSession && session?.status === 'open' && !levelBlocked
 
   // Cancel restrictions: admin=anytime, organizer=2h, member=24h
   const hoursUntilSession = sessionDate
@@ -431,6 +432,8 @@ export default function SessionDetail() {
     && !isAdmin && hoursUntilSession < cancelHoursRequired
     ? `Désinscription impossible — il reste moins de ${cancelHoursRequired}h avant la partie.`
     : null
+
+  const canOrganizerLeave = isOrganizer && isParticipant && !isPastSession && session?.status !== 'cancelled'
 
   async function handleJoin() {
     setActionLoading(true)
@@ -502,6 +505,14 @@ export default function SessionDetail() {
   async function handleDeleteMatch(matchId) {
     await supabase.from('matches').delete().eq('id', matchId)
     await fetchMatches()
+  }
+
+  async function handleOrganizerLeave() {
+    setActionLoading(true)
+    setShowOrganizerLeaveConfirm(false)
+    await supabase.from('session_participants').delete().eq('session_id', id).eq('user_id', user.id)
+    await Promise.all([fetchParticipants(), fetchWaitlist()])
+    setActionLoading(false)
   }
 
   async function handleRemovePlayer(participantUserId) {
@@ -608,7 +619,7 @@ export default function SessionDetail() {
               {session.status === 'cancelled' && <span className="badge bg-red-100 text-red-600">Annulée</span>}
               {session.status !== 'cancelled' && isPastSession && <span className="badge bg-gray-100 text-gray-500">Terminée</span>}
               {session.status === 'open' && !isPastSession && !isFull && <span className="badge bg-forest-100 text-forest-900">Ouverte</span>}
-              {session.status === 'open' && !isPastSession && isFull && <span className="badge bg-orange-100 text-orange-600">Complet</span>}
+              {session.status === 'open' && !isPastSession && isFull && <span className="badge bg-red-100 text-red-600">Complet</span>}
             </div>
           </div>
         </div>
@@ -620,7 +631,12 @@ export default function SessionDetail() {
             const rows = [
               {
                 label: 'Date',
-                value: `${format(sessionDate, 'EEEE d MMMM yyyy', { locale: fr })} à ${session.time}`,
+                value: (() => {
+                  const timeFormatted = sessionDate.getMinutes() === 0
+                    ? `${sessionDate.getHours()}h`
+                    : `${sessionDate.getHours()}h${String(sessionDate.getMinutes()).padStart(2, '0')}`
+                  return `${format(sessionDate, 'EEEE d MMMM yyyy', { locale: fr })} · ${timeFormatted}`
+                })(),
                 icon: (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -785,6 +801,36 @@ export default function SessionDetail() {
           {leaveBlockedReason && (
             <div className="w-full bg-orange-50 border border-orange-200 text-orange-700 text-xs px-3 py-2 rounded-xl">
               ⏱ {leaveBlockedReason}
+            </div>
+          )}
+          {canOrganizerLeave && !showOrganizerLeaveConfirm && (
+            <button
+              onClick={() => setShowOrganizerLeaveConfirm(true)}
+              disabled={actionLoading}
+              className="flex-1 bg-white hover:bg-orange-50 text-orange-600 font-medium text-sm py-2.5 rounded-xl border border-orange-200 transition-colors disabled:opacity-50"
+            >
+              Me retirer de la partie
+            </button>
+          )}
+          {canOrganizerLeave && showOrganizerLeaveConfirm && (
+            <div className="w-full bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-2">
+              <p className="text-sm font-semibold text-orange-800">Te retirer en tant que joueur ?</p>
+              <p className="text-xs text-orange-600">Tu restes organisateur. Les joueurs te rembourseront toujours.</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleOrganizerLeave}
+                  disabled={actionLoading}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {actionLoading ? '…' : 'Oui, me retirer'}
+                </button>
+                <button
+                  onClick={() => setShowOrganizerLeaveConfirm(false)}
+                  className="flex-1 bg-white border border-orange-200 text-orange-700 text-sm font-medium py-2 rounded-xl"
+                >
+                  Annuler
+                </button>
+              </div>
             </div>
           )}
           {canCancelSession && !showCancelConfirm && (
@@ -970,116 +1016,100 @@ export default function SessionDetail() {
           {participants.length === 0 ? (
             <div className="card text-center py-8 text-gray-400">Aucun joueur inscrit</div>
           ) : (
-            participants.map(p => {
-              const isOrganizerRow  = p.user_id === session.organizer_id
-              const canBeRemoved    = isOrganizer && !isOrganizerRow && !isPastSession && session?.status !== 'cancelled'
-              const confirmingRemove = removingPlayerId === p.user_id
-              return (
-                <div key={p.id} className="bg-white p-5" style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.07)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 14 }}>
-                  {/* Confirmation suppression */}
-                  {confirmingRemove && (
-                    <div className="mb-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 flex items-center justify-between gap-3">
-                      <p className="text-sm text-red-800 font-medium">Retirer <strong>{p.profiles?.name}</strong> ?</p>
-                      <div className="flex gap-2 shrink-0">
-                        <button
-                          onClick={() => handleRemovePlayer(p.user_id)}
-                          disabled={actionLoading}
-                          className="text-xs bg-red-600 hover:bg-red-700 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-                        >
-                          {actionLoading ? '…' : 'Retirer'}
-                        </button>
-                        <button
-                          onClick={() => setRemovingPlayerId(null)}
-                          className="text-xs bg-white border border-gray-300 text-gray-600 font-medium px-3 py-1.5 rounded-lg"
-                        >
-                          Annuler
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <Link to={`/players/${p.user_id}`} className="shrink-0 hover:opacity-80 transition-opacity">
-                      {p.profiles?.avatar_url ? (
-                        <img
-                          src={p.profiles.avatar_url}
-                          alt={p.profiles.name}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 bg-forest-100 rounded-full flex items-center justify-center font-bold text-forest-800 text-sm">
-                          {p.profiles?.name?.charAt(0).toUpperCase()}
+            <div className="card">
+              <div className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">{participants.length} inscrit{participants.length > 1 ? 's' : ''}</div>
+              {participants.map((p, idx) => {
+                const isOrganizerRow = p.user_id === session.organizer_id
+                const canBeRemoved = isAdmin && !isOrganizerRow && !isPastSession && session?.status !== 'cancelled'
+                const confirmingRemove = removingPlayerId === p.user_id
+                return (
+                  <div key={p.id}>
+                    {confirmingRemove && (
+                      <div className="mb-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 flex items-center justify-between gap-3">
+                        <p className="text-sm text-red-800 font-medium">Retirer <strong>{p.profiles?.name}</strong> ?</p>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => handleRemovePlayer(p.user_id)}
+                            disabled={actionLoading}
+                            className="text-xs bg-red-600 hover:bg-red-700 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {actionLoading ? '…' : 'Retirer'}
+                          </button>
+                          <button
+                            onClick={() => setRemovingPlayerId(null)}
+                            className="text-xs bg-white border border-gray-300 text-gray-600 font-medium px-3 py-1.5 rounded-lg"
+                          >
+                            Annuler
+                          </button>
                         </div>
-                      )}
-                    </Link>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Link to={`/players/${p.user_id}`} className="font-medium text-gray-900 hover:text-forest-800 transition-colors">
-                          {p.profiles?.name}
-                        </Link>
-                        {isOrganizerRow && (
-                          <span className="badge bg-gray-100 text-gray-500 text-xs">Organisateur</span>
-                        )}
-                        {p.profiles?.role === 'admin' && (
-                          <span className="badge bg-purple-100 text-purple-700 text-xs border border-purple-200">👑</span>
-                        )}
-                        {p.profiles?.role === 'organizer' && (
-                          <span className="badge bg-forest-100 text-forest-800 text-xs border border-forest-200">✓ Vérifié</span>
-                        )}
                       </div>
-                      <p className="text-xs text-gray-400">{LEVEL_LABEL[p.profiles?.level] ?? '—'}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      {session.cost_per_player > 0 && (
-                        <button
-                          onClick={() => isOrganizer && togglePayment(p.id, p.payment_status)}
-                          disabled={!isOrganizer}
-                          className={`badge ${p.payment_status !== 'confirmed' ? paymentStatusColor[p.payment_status] : ''} ${isOrganizer ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
-                          style={p.payment_status === 'confirmed' ? paymentConfirmedStyle : undefined}
-                        >
-                          {paymentStatusLabel[p.payment_status]}
-                        </button>
-                      )}
-                      {p.profiles?.phone && (
-                        <div className="flex gap-1">
+                    )}
+                    <div
+                      className="flex items-center gap-3 py-3"
+                      style={{ borderBottom: idx < participants.length - 1 ? '0.5px solid #F3F4F6' : 'none' }}
+                    >
+                      <Link to={`/players/${p.user_id}`} className="shrink-0 hover:opacity-80 transition-opacity">
+                        {p.profiles?.avatar_url ? (
+                          <img src={p.profiles.avatar_url} alt={p.profiles.name} className="w-9 h-9 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-9 h-9 bg-forest-100 rounded-full flex items-center justify-center font-bold text-forest-800 text-sm">
+                            {p.profiles?.name?.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Link to={`/players/${p.user_id}`} className="text-sm font-medium text-gray-900 hover:text-forest-800 transition-colors">
+                            {p.profiles?.name}
+                          </Link>
+                          {isOrganizerRow && <span className="badge bg-gray-100 text-gray-500 text-xs">Organisateur</span>}
+                          {p.profiles?.role === 'admin' && <span className="badge bg-purple-100 text-purple-700 text-xs">👑</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-xs text-gray-400">{LEVEL_LABEL[p.profiles?.level] ?? '—'}</span>
+                          {session.cost_per_player > 0 && (
+                            <button
+                              onClick={() => isOrganizer && togglePayment(p.id, p.payment_status)}
+                              disabled={!isOrganizer}
+                              className={`badge text-xs ${p.payment_status !== 'confirmed' ? paymentStatusColor[p.payment_status] : ''} ${isOrganizer ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                              style={p.payment_status === 'confirmed' ? paymentConfirmedStyle : undefined}
+                            >
+                              {paymentStatusLabel[p.payment_status]}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {p.profiles?.phone && (
                           <a
                             href={`https://wa.me/${p.profiles.phone.replace(/\D/g, '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="WhatsApp"
-                            className="w-7 h-7 rounded-lg bg-[#25D366] flex items-center justify-center hover:opacity-80 transition-opacity"
+                            className="w-8 h-8 rounded-lg bg-[#25D366] flex items-center justify-center hover:opacity-80 transition-opacity"
                           >
-                            <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                             </svg>
                           </a>
-                          <a
-                            href={`tel:${p.profiles.phone}`}
-                            title="Appeler"
-                            className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                        )}
+                        {canBeRemoved && (
+                          <button
+                            onClick={() => setRemovingPlayerId(confirmingRemove ? null : p.user_id)}
+                            title="Retirer ce joueur"
+                            className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
                           >
-                            <svg className="w-3.5 h-3.5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 7V5z" />
+                            <svg className="w-3.5 h-3.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                          </a>
-                        </div>
-                      )}
-                      {/* Bouton retirer (organisateur seulement, hors soi-même) */}
-                      {canBeRemoved && (
-                        <button
-                          onClick={() => setRemovingPlayerId(confirmingRemove ? null : p.user_id)}
-                          title="Retirer ce joueur"
-                          className="w-6 h-6 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })
+                )
+              })}
+            </div>
           )}
 
           {/* ── PAYMENT SECTION ───────────────────────────────── */}
@@ -1179,31 +1209,40 @@ export default function SessionDetail() {
             ) : isOrganizer && participants.length > 1 ? (
               /* ── Organisateur : récapitulatif des paiements ── */
               <div className="card border-gray-100 bg-gray-50">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-semibold text-gray-800">💳 Paiements reçus</h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-800">💳 Paiements</h4>
                   <span className="text-xs text-gray-400">
-                    {participants.filter(p => p.payment_status === 'confirmed').length}/{participants.length} confirmés
+                    {participants.filter(p => p.payment_status === 'confirmed').length}/{participants.filter(p => p.user_id !== session.organizer_id).length} confirmés
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 mb-3">
-                  Clique sur <strong>💸 Déclaré</strong> pour confirmer la réception d'un paiement.
-                </p>
                 <div className="space-y-2">
                   {participants.filter(p => p.user_id !== session.organizer_id).map(p => (
-                    <div key={p.id} className="flex items-center justify-between gap-3">
-                      <span className="text-sm text-gray-700 font-medium truncate">{p.profiles?.name}</span>
-                      <button
-                        onClick={() => togglePayment(p.id, p.payment_status)}
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all hover:opacity-80 ${p.payment_status !== 'confirmed' ? paymentStatusColor[p.payment_status] : ''}`}
-                        style={p.payment_status === 'confirmed' ? paymentConfirmedStyle : undefined}
-                      >
-                        {paymentStatusLabel[p.payment_status]}
-                      </button>
+                    <div key={p.id} className="flex items-center gap-3 py-1.5">
+                      <div className="w-7 h-7 rounded-full bg-forest-100 flex items-center justify-center text-xs font-bold text-forest-800 shrink-0">
+                        {p.profiles?.name?.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="flex-1 text-sm text-gray-700 font-medium truncate">{p.profiles?.name}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`badge text-xs ${p.payment_status !== 'confirmed' ? paymentStatusColor[p.payment_status] : ''}`}
+                          style={p.payment_status === 'confirmed' ? paymentConfirmedStyle : undefined}
+                        >
+                          {paymentStatusLabel[p.payment_status]}
+                        </span>
+                        {p.payment_status === 'paid' && (
+                          <button
+                            onClick={() => togglePayment(p.id, p.payment_status)}
+                            className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition-colors"
+                          >
+                            Confirmer
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-3">
-                  Total attendu : <strong>{((participants.length - 1) * session.cost_per_player).toFixed(2)} CHF</strong>
+                <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-200">
+                  Total attendu : <strong>{((participants.filter(p => p.user_id !== session.organizer_id).length) * session.cost_per_player).toFixed(2)} CHF</strong>
                 </p>
               </div>
             ) : null
@@ -1212,24 +1251,39 @@ export default function SessionDetail() {
           {/* Liste d'attente */}
           {waitlist.length > 0 && (
             <div className="card border-orange-100">
-              <h4 className="text-sm font-semibold text-orange-700 mb-3">
-                ⏳ Liste d'attente ({waitlist.length})
-              </h4>
-              <div className="space-y-2">
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="text-sm font-semibold text-orange-700">⏳ Liste d'attente ({waitlist.length})</h4>
+              </div>
+              <p className="text-xs text-orange-500 mb-3">
+                Ajout automatique si une place se libère
+              </p>
+              <div className="space-y-0">
                 {waitlist.map((w, i) => (
-                  <div key={w.id} className="flex items-center gap-3">
-                    <span className="text-xs text-gray-400 w-4">{i + 1}.</span>
-                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-xs font-bold text-orange-600">
+                  <div key={w.id} className="flex items-center gap-3 py-2.5" style={{ borderBottom: i < waitlist.length - 1 ? '0.5px solid #FEF3C7' : 'none' }}>
+                    <span className="text-xs text-gray-400 w-4 shrink-0">{i + 1}.</span>
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-xs font-bold text-orange-600 shrink-0">
                       {w.profiles?.name?.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm text-gray-700">{w.profiles?.name}</span>
-                    <span className="text-xs text-gray-400 ml-auto">{LEVEL_LABEL[w.profiles?.level] ?? '—'}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-gray-700 font-medium">{w.profiles?.name}</span>
+                      <span className="text-xs text-gray-400 ml-2">{LEVEL_LABEL[w.profiles?.level] ?? '—'}</span>
+                    </div>
+                    {isOrganizer && w.profiles?.phone && (
+                      <a
+                        href={`https://wa.me/${w.profiles.phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="WhatsApp"
+                        className="w-7 h-7 rounded-lg bg-[#25D366] flex items-center justify-center hover:opacity-80 transition-opacity shrink-0"
+                      >
+                        <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-orange-500 mt-3">
-                La première personne sera automatiquement inscrite si une place se libère.
-              </p>
             </div>
           )}
         </div>
