@@ -135,14 +135,31 @@ export default function NewSession() {
 
       <form onSubmit={handleSubmit} className="card space-y-4 overflow-hidden">
 
-        {/* Date (pleine largeur) */}
+        {/* Date (pleine largeur) — input natif caché derrière un div pour éviter l'overflow iOS */}
         <div>
           <label className="label">Date *</label>
-          <input
-            type="date" name="date" value={form.date} onChange={handleChange} required
-            min={new Date().toISOString().split('T')[0]} className="input"
-            style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-          />
+          <div style={{ position: 'relative' }}>
+            {/* Affichage custom : jour de semaine + date */}
+            <div className="input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pointerEvents: 'none', userSelect: 'none' }}>
+              <span style={{ textTransform: 'capitalize', color: form.date ? '#111827' : '#9CA3AF' }}>
+                {form.date
+                  ? format(new Date(form.date + 'T12:00'), 'EEEE d MMMM yyyy', { locale: fr })
+                  : 'Choisir une date'}
+              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2}>
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            </div>
+            {/* Input natif invisible mais cliquable par-dessus */}
+            <input
+              type="date" name="date" value={form.date} onChange={handleChange} required
+              min={new Date().toISOString().split('T')[0]}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 1 }}
+            />
+          </div>
         </div>
 
         {/* Heure (select 15 min) + Durée sur la même ligne */}
