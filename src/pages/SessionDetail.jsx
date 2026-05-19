@@ -1040,12 +1040,6 @@ export default function SessionDetail() {
                 const canBeRemoved = isAdmin && !isOrganizerRow && !isPastSession && session?.status !== 'cancelled'
                 const confirmingRemove = removingPlayerId === p.user_id
 
-                const payDotColor = {
-                  pending: '#D1D5DB',
-                  paid: '#F59E0B',
-                  confirmed: '#10B981',
-                }[p.payment_status] ?? '#D1D5DB'
-
                 return (
                   <div key={p.id}>
                     {confirmingRemove && (
@@ -1109,21 +1103,34 @@ export default function SessionDetail() {
 
                       {/* Actions */}
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {/* Payment dot (clickable for organizer) */}
-                        {session.cost_per_player > 0 && (
-                          <button
-                            onClick={() => isOrganizer ? togglePayment(p.id, p.payment_status) : undefined}
-                            title={isOrganizer ? 'Changer le statut de paiement' : undefined}
-                            style={{
-                              width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-                              background: 'transparent', border: 'none', padding: 0,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              cursor: isOrganizer ? 'pointer' : 'default',
-                            }}
-                          >
-                            <div style={{ width: 9, height: 9, borderRadius: '50%', background: payDotColor }} />
-                          </button>
-                        )}
+                        {/* Payment pill (clickable for organizer) */}
+                        {session.cost_per_player > 0 && (() => {
+                          const pillStyle = {
+                            pending:   { background: '#F3F4F6', color: '#9CA3AF' },
+                            paid:      { background: '#FEF3C7', color: '#92400E' },
+                            confirmed: { background: '#D1FAE5', color: '#065F46' },
+                          }[p.payment_status] ?? { background: '#F3F4F6', color: '#9CA3AF' }
+                          const pillLabel = {
+                            pending:   'En attente',
+                            paid:      'Déclaré',
+                            confirmed: '✓ Réglé',
+                          }[p.payment_status] ?? '—'
+                          return (
+                            <button
+                              onClick={() => isOrganizer ? togglePayment(p.id, p.payment_status) : undefined}
+                              title={isOrganizer ? 'Changer le statut de paiement' : undefined}
+                              style={{
+                                ...pillStyle,
+                                fontSize: 11, fontWeight: 500,
+                                borderRadius: 6, padding: '3px 8px',
+                                border: 'none', whiteSpace: 'nowrap', flexShrink: 0,
+                                cursor: isOrganizer ? 'pointer' : 'default',
+                              }}
+                            >
+                              {pillLabel}
+                            </button>
+                          )
+                        })()}
 
                         {/* WhatsApp */}
                         {p.profiles?.phone && (
@@ -1170,21 +1177,6 @@ export default function SessionDetail() {
                 )
               })}
 
-              {/* Legend (only when there's a cost) */}
-              {session.cost_per_player > 0 && (
-                <div className="flex items-center gap-4 px-4 py-2.5" style={{ borderTop: '0.5px solid #F3F4F6' }}>
-                  {[
-                    { color: '#D1D5DB', label: 'En attente' },
-                    { color: '#F59E0B', label: 'Déclaré' },
-                    { color: '#10B981', label: 'Confirmé' },
-                  ].map(({ color, label }) => (
-                    <div key={label} className="flex items-center gap-1.5">
-                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 11, color: '#9CA3AF' }}>{label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
