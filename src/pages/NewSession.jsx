@@ -133,7 +133,7 @@ export default function NewSession() {
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>
       )}
 
-      <form onSubmit={handleSubmit} className="card space-y-4">
+      <form onSubmit={handleSubmit} className="card space-y-4 overflow-hidden">
 
         {/* Date (pleine largeur) */}
         <div>
@@ -141,6 +141,7 @@ export default function NewSession() {
           <input
             type="date" name="date" value={form.date} onChange={handleChange} required
             min={new Date().toISOString().split('T')[0]} className="input"
+            style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}
           />
         </div>
 
