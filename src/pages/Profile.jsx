@@ -603,11 +603,11 @@ export default function Profile() {
                 {pwSaved && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm mb-3">Mot de passe mis à jour !</div>}
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 5, fontWeight: 500, display: 'block' }}>Nouveau mot de passe</label>
-                  <PasswordInput value={pwForm.newPw} minLength={6} onChange={e => { setPwForm({ ...pwForm, newPw: e.target.value }); setPwError(''); setPwSaved(false) }} placeholder="Minimum 6 caractères" required />
+                  <PasswordInput value={pwForm.newPw} onChange={e => { setPwForm({ ...pwForm, newPw: e.target.value }); setPwError(''); setPwSaved(false) }} placeholder="Minimum 6 caractères" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 5, fontWeight: 500, display: 'block' }}>Confirmer</label>
-                  <PasswordInput value={pwForm.confirm} minLength={6} onChange={e => { setPwForm({ ...pwForm, confirm: e.target.value }); setPwError('') }} placeholder="Répète le nouveau mot de passe" required />
+                  <PasswordInput value={pwForm.confirm} onChange={e => { setPwForm({ ...pwForm, confirm: e.target.value }); setPwError('') }} placeholder="Répète le nouveau mot de passe" />
                 </div>
                 <button type="button" onClick={handlePwChange} disabled={pwLoading} className="btn-secondary w-full" style={{ marginTop: 10 }}>
                   {pwLoading ? 'Mise à jour...' : 'Changer le mot de passe'}
