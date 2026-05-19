@@ -289,10 +289,13 @@ export default function Profile() {
       .from('session_participants')
       .select('*, sessions(id, date, time, location, title, status, max_players)')
       .eq('user_id', user.id)
-      .order('joined_at', { ascending: false })
       .limit(20)
 
-    const sessions = (parts || []).filter(p => p.sessions).map(p => p.sessions)
+    // Tri par date de partie décroissante (plus récente en premier)
+    const sessions = (parts || [])
+      .filter(p => p.sessions)
+      .map(p => p.sessions)
+      .sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))
     setHistory(sessions)
 
     if (!sessions.length) return
@@ -321,11 +324,16 @@ export default function Profile() {
       if (!bySession[m.session_id]) bySession[m.session_id] = []
       const isTeam1 = m.team1_player1 === user.id || m.team1_player2 === user.id
       const won = (isTeam1 && m.winner_team === 1) || (!isTeam1 && m.winner_team === 2)
+      const t1 = [nameMap[m.team1_player1], nameMap[m.team1_player2]].filter(Boolean).join(' & ')
+      const t2 = [nameMap[m.team2_player1], nameMap[m.team2_player2]].filter(Boolean).join(' & ')
       bySession[m.session_id].push({
         ...m,
         won,
-        t1: [nameMap[m.team1_player1], nameMap[m.team1_player2]].filter(Boolean).join(' & '),
-        t2: [nameMap[m.team2_player1], nameMap[m.team2_player2]].filter(Boolean).join(' & '),
+        t1, t2,
+        myTeam:   isTeam1 ? t1 : t2,
+        oppTeam:  isTeam1 ? t2 : t1,
+        myScore:  isTeam1 ? m.team1_score : m.team2_score,
+        oppScore: isTeam1 ? m.team2_score : m.team1_score,
       })
     })
     setHistoryMatches(bySession)
@@ -675,26 +683,52 @@ export default function Profile() {
 
                     {/* Matchs de cette session */}
                     {matches.length > 0 && (
-                      <div className="space-y-1.5 pt-2 border-t border-gray-50">
-                        {matches.map((m, i) => (
-                          <div key={m.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${m.won ? 'bg-forest-50' : 'bg-red-50'}`}>
-                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ${m.won ? 'bg-forest-200 text-forest-900' : 'bg-red-200 text-red-700'}`}>
+                      <div style={{ borderTop: '0.5px solid #F3F4F6' }}>
+                        {matches.map((m) => (
+                          <div
+                            key={m.id}
+                            className="flex items-center gap-3"
+                            style={{ padding: '9px 14px', borderBottom: '0.5px solid #F9FAFB' }}
+                          >
+                            {/* Badge V / D */}
+                            <div style={{
+                              width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 11, fontWeight: 700,
+                              background: m.won ? '#D1FAE5' : '#FEE2E2',
+                              color: m.won ? '#065F46' : '#991B1B',
+                            }}>
                               {m.won ? 'V' : 'D'}
-                            </span>
-                            <span className="flex-1 truncate text-gray-700">
-                              <span className={m.won ? 'font-semibold' : ''}>{m.t1}</span>
-                              <span className="text-gray-400 mx-1">vs</span>
-                              <span className={!m.won ? 'font-semibold' : ''}>{m.t2}</span>
-                            </span>
-                            <span className="font-bold text-gray-700 shrink-0">
-                              {m.team1_score}–{m.team2_score}
-                            </span>
+                            </div>
+
+                            {/* Mon équipe / adversaires */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 12, fontWeight: 500, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {m.myTeam}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                vs {m.oppTeam}
+                              </div>
+                            </div>
+
+                            {/* Score */}
+                            <div style={{ flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                              <span style={{ fontSize: 15, fontWeight: 700, color: m.won ? '#15803D' : '#EF4444' }}>
+                                {m.myScore}
+                              </span>
+                              <span style={{ fontSize: 12, color: '#D1D5DB', margin: '0 2px' }}>–</span>
+                              <span style={{ fontSize: 15, fontWeight: 700, color: m.won ? '#9CA3AF' : '#374151' }}>
+                                {m.oppScore}
+                              </span>
+                            </div>
                           </div>
                         ))}
                       </div>
                     )}
                     {matches.length === 0 && past && (
-                      <p className="text-xs text-gray-400 pt-1 border-t border-gray-50">Aucun match enregistré pour cette partie</p>
+                      <p style={{ fontSize: 12, color: '#9CA3AF', padding: '8px 14px', borderTop: '0.5px solid #F3F4F6' }}>
+                        Aucun match enregistré
+                      </p>
                     )}
                   </div>
                 )
