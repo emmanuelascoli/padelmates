@@ -122,6 +122,7 @@ const ICON_CONFIG = {
   player_joined:            { bg: '#E8F5EE', color: '#2D6A4F', icon: ICON_BALL },
   player_promoted:          { bg: '#F5F3FF', color: '#7C3AED', icon: ICON_STAR },
   payment_reminder:         { bg: '#FFFBEB', color: '#D97706', icon: ICON_CARD },
+  payment_confirmed:        { bg: '#E8F5EE', color: '#2D6A4F', icon: ICON_CARD },
   missing_players_reminder: { bg: '#FFF7ED', color: '#EA580C', icon: ICON_PEOPLE },
   player_left:              { bg: '#FEF2F2', color: '#DC2626', icon: ICON_USER_MINUS },
   player_left_peer:         { bg: '#FEF2F2', color: '#DC2626', icon: ICON_USER_MINUS },
@@ -174,6 +175,8 @@ function notifContent(notif) {
       const prefix = count > 1 ? `${count} matchs ont été enregistrés` : `${data.recorder_name} a enregistré le score`
       return { text: `${prefix} pour votre partie${data.session_date ? ` du ${formatDate(data.session_date)}` : ''}`, href: `/sessions/${data.session_id}` }
     }
+    case 'payment_confirmed':
+      return { text: `Ton paiement${data.amount ? ` de ${data.amount} CHF` : ''} a été confirmé pour la partie${data.session_date ? ` du ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''} ✓`, href: `/sessions/${data.session_id}` }
     case 'payment_reminder':
       return { text: `Rappel — ta partie de demain${data.location ? ` à ${data.location}` : ''} : pense à régler ta part${data.amount ? ` (${data.amount} CHF)` : ''} avant la partie.`, href: `/sessions/${data.session_id}` }
     case 'missing_players_reminder': {
