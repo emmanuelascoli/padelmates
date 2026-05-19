@@ -14,6 +14,48 @@ function avatarColor(str = '') {
   return colors[Math.abs(h) % colors.length]
 }
 
+// ── Photo nudge banner ────────────────────────────────────────
+function PhotoNudge() {
+  const [dismissed, setDismissed] = useState(false)
+  if (dismissed) return null
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 13, border: '0.5px solid #E5E7EB',
+      padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 10,
+      marginBottom: 14, position: 'relative',
+    }}>
+      {/* Avatar placeholder avec icône caméra */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#F3F4F6', border: '1.5px dashed #D1D5DB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </div>
+        <div style={{ position: 'absolute', bottom: -4, right: -4, width: 16, height: 16, background: '#4ade80', borderRadius: '50%', border: '2px solid #F5F4F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#14532d" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </div>
+      </div>
+      {/* Texte */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 1 }}>Ajoute ta photo de profil</div>
+        <div style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 1.35 }}>Tes coéquipiers te reconnaîtront mieux.</div>
+      </div>
+      {/* CTA */}
+      <Link to="/profile" style={{ background: '#14532d', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 10px', fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, textDecoration: 'none' }}>
+        Ajouter →
+      </Link>
+      {/* Dismiss */}
+      <button
+        onClick={() => setDismissed(true)}
+        style={{ position: 'absolute', top: 6, right: 6, width: 16, height: 16, borderRadius: 5, background: '#F3F4F6', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#9CA3AF' }}
+      >✕</button>
+    </div>
+  )
+}
+
 // ── Inline SVG Chart ──────────────────────────────────────────
 function EvoChart({ points }) {
   if (!points || points.length < 2) return (
@@ -370,6 +412,9 @@ export default function Home() {
             Voir tout
           </Link>
         </div>
+
+        {/* Photo nudge — visible seulement si pas de photo */}
+        {!profile?.avatar_url && <PhotoNudge />}
 
         {/* Mes prochaines parties (seulement celles où je suis inscrit) */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>

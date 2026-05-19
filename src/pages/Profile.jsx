@@ -508,6 +508,43 @@ export default function Profile() {
       {/* ── Sheet ── */}
       <div style={{ background: '#F5F4F0', borderRadius: '20px 20px 0 0', marginTop: -12, position: 'relative', zIndex: 2 }}>
 
+        {/* ── Jauge de complétion du profil ── */}
+        {(() => {
+          const checks = [
+            !!profile?.avatar_url,
+            !!profile?.level,
+            !!profile?.revolut_tag,
+          ]
+          const score = checks.filter(Boolean).length
+          const pct = Math.round((score / checks.length) * 100)
+          if (pct === 100) return null
+          return (
+            <div style={{ background: '#fff', padding: '10px 16px 12px', borderBottom: '0.5px solid #F3F4F6' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                <span style={{ fontSize: 11, color: '#6B7280' }}>Profil complété</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#F59E0B' }}>{pct}%</span>
+              </div>
+              <div style={{ height: 4, background: '#F3F4F6', borderRadius: 99, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: '#F59E0B', borderRadius: 99, transition: 'width 0.4s ease' }} />
+              </div>
+              {!profile?.avatar_url && (
+                <div style={{ fontSize: 10, color: '#F59E0B', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Clique sur ta photo ci-dessus pour en ajouter une
+                </div>
+              )}
+              {profile?.avatar_url && !profile?.revolut_tag && (
+                <div style={{ fontSize: 10, color: '#F59E0B', marginTop: 5 }}>
+                  💳 Renseigne ton tag Revolut pour recevoir les remboursements
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
         {/* Tabs bar */}
         <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', borderBottom: '0.5px solid #E2E0D8' }}>
           <div style={{ display: 'flex' }}>
