@@ -489,6 +489,19 @@ export default function SessionDetail() {
     setActionLoading(false)
   }
 
+  // Participant cancels their payment declaration (back to pending)
+  async function handleUndeclarePayment() {
+    const me = participants.find(p => p.user_id === user?.id)
+    if (!me) return
+    setActionLoading(true)
+    await supabase.from('session_participants').update({
+      payment_status: 'pending',
+      payment_declared_at: null,
+    }).eq('id', me.id)
+    await fetchParticipants()
+    setActionLoading(false)
+  }
+
   async function handleCancelSession() {
     setActionLoading(true)
     setShowCancelConfirm(false)
@@ -1213,7 +1226,7 @@ export default function SessionDetail() {
                       </div>
                     </div>
                     <button
-                      onClick={handleDeclarePayment}
+                      onClick={handleUndeclarePayment}
                       disabled={actionLoading}
                       className="w-full text-xs text-gray-400 hover:text-gray-600 underline text-center py-1 transition-colors"
                     >
@@ -1229,12 +1242,13 @@ export default function SessionDetail() {
                       Rembourse <strong>{session.organizer?.name}</strong> via :
                     </p>
 
-                    {/* Bouton de paiement Revolut */}
+                    {/* Bouton de paiement Revolut — auto-déclare au clic */}
                     {session.organizer?.revolut_tag ? (
                       <a
                         href={`https://revolut.me/${session.organizer.revolut_tag.replace(/^@/, '')}?amount=${Math.round(session.cost_per_player * 100)}&currency=CHF`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={handleDeclarePayment}
                         className="flex items-center justify-center gap-2 w-full bg-[#191C1F] hover:bg-[#2e3338] text-white text-sm font-semibold py-3.5 px-4 rounded-xl transition-colors shadow-sm"
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
