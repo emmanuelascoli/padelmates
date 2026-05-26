@@ -1236,8 +1236,69 @@ export default function SessionDetail() {
                 )}
 
                 {/* Status : En attente — afficher les boutons de paiement */}
-                {myParticipant?.payment_status === 'pending' && (
+                {myParticipant?.payment_status === 'pending' && (() => {
+                  // Deadline = 48h avant la partie
+                  const paymentDeadline = sessionDate
+                    ? new Date(sessionDate.getTime() - 48 * 3600000)
+                    : null
+                  const isDeadlinePast = paymentDeadline ? new Date() > paymentDeadline : false
+                  const deadlineStr = paymentDeadline
+                    ? format(paymentDeadline, "EEEE d MMMM 'à' HH'h'mm", { locale: fr })
+                    : null
+
+                  return (
                   <div className="space-y-3">
+
+                    {/* Bannière deadline */}
+                    {deadlineStr && !isPastSession && (
+                      isDeadlinePast ? (
+                        <div style={{
+                          background: '#FEF2F2',
+                          border: '1.5px solid #FECACA',
+                          borderRadius: 14,
+                          padding: '11px 14px',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 10,
+                        }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                          </svg>
+                          <div>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', marginBottom: 2 }}>Délai de paiement dépassé</p>
+                            <p style={{ fontSize: 11, color: '#DC2626', lineHeight: 1.4 }}>Ta place n'est plus garantie. Paye maintenant pour la conserver.</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{
+                          background: '#FFF7ED',
+                          border: '1.5px solid #FED7AA',
+                          borderRadius: 14,
+                          padding: '11px 14px',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          gap: 10,
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 11, color: '#9A3412', marginBottom: 2 }}>Paiement requis avant le</p>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: '#EA580C', textTransform: 'capitalize', marginBottom: 2 }}>{deadlineStr}</p>
+                            <p style={{ fontSize: 10, color: '#C2410C', lineHeight: 1.4 }}>Place non garantie passé ce délai</p>
+                          </div>
+                          <span style={{
+                            background: '#F97316', color: '#fff',
+                            fontSize: 10, fontWeight: 700,
+                            padding: '3px 8px', borderRadius: 20,
+                            whiteSpace: 'nowrap', flexShrink: 0, marginTop: 2,
+                          }}>
+                            {Math.ceil((paymentDeadline.getTime() - new Date().getTime()) / 3600000 / 24) > 0
+                              ? `J-${Math.ceil((paymentDeadline.getTime() - new Date().getTime()) / 3600000 / 24)}`
+                              : 'Aujourd\'hui'}
+                          </span>
+                        </div>
+                      )
+                    )}
+
                     <p className="text-sm text-gray-600">
                       Rembourse <strong>{session.organizer?.name}</strong> via :
                     </p>
@@ -1249,7 +1310,8 @@ export default function SessionDetail() {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={handleDeclarePayment}
-                        className="flex items-center justify-center gap-2 w-full bg-[#191C1F] hover:bg-[#2e3338] text-white text-sm font-semibold py-3.5 px-4 rounded-xl transition-colors shadow-sm"
+                        className="flex items-center justify-center gap-2 w-full text-white text-sm font-semibold py-3.5 px-4 rounded-xl transition-colors shadow-sm"
+                        style={{ background: isDeadlinePast ? '#DC2626' : '#191C1F' }}
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M21.507 8.442c-.07-4.715-3.85-8.44-8.507-8.44H3v24l4-4V4h5.674c2.52 0 4.593 1.912 4.826 4.37a4.76 4.76 0 0 1-4.75 5.13H9.5V17h3.5l4 4h4l-4-4.322A8.454 8.454 0 0 0 21.507 8.442z"/>
@@ -1285,7 +1347,8 @@ export default function SessionDetail() {
                       {actionLoading ? '…' : '✓ J\'ai payé — en attente de confirmation'}
                     </button>
                   </div>
-                )}
+                  )
+                })()}
               </div>
 
             ) : isOrganizer && participants.length > 1 ? (
