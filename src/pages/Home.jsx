@@ -341,26 +341,27 @@ export default function Home() {
     setTopPartners(topP)
     setTopRivals(topR)
 
-    // ── Derniers résultats (dernières sessions avec matchs) ──────
+    // ── Derniers résultats (dernière session avec matchs) ────────
     const recentMatchesSorted = [...matches].reverse()
-    const seenSessions = []
-    for (const m of recentMatchesSorted) {
-      if (m.session_id && !seenSessions.includes(m.session_id)) {
-        seenSessions.push(m.session_id)
-        if (seenSessions.length >= 3) break
-      }
-    }
-    if (seenSessions.length > 0) {
+    const lastSessionId = recentMatchesSorted.find(m => m.session_id)?.session_id
+    if (lastSessionId) {
+      const lastSessionMatches = recentMatchesSorted.filter(m => m.session_id === lastSessionId)
       const { data: sessData } = await supabase
-        .from('sessions')
-        .select('id, date, time, location')
-        .in('id', seenSessions)
-      const sessMap = Object.fromEntries((sessData || []).map(s => [s.id, s]))
-      const groups = seenSessions.map(sid => ({
-        session: sessMap[sid],
-        matches: recentMatchesSorted.filter(m => m.session_id === sid),
-      })).filter(g => g.session)
-      setLastSessionGroups(groups)
+        .from('sessions').select('id, date, time, location').eq('id', lastSessionId).single()
+      // Enrichir les noms
+      const playerIds = [...new Set(lastSessionMatches.flatMap(m =>
+        [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2].filter(Boolean)
+      ))]
+      const { data: pData } = await supabase.from('profiles').select('id, name').in('id', playerIds)
+      const nameMap = Object.fromEntries((pData || []).map(p => [p.id, p.name]))
+      const enriched = lastSessionMatches.map(m => ({
+        ...m,
+        t1p1_name: nameMap[m.team1_player1] ?? '?',
+        t1p2_name: nameMap[m.team1_player2] ?? '?',
+        t2p1_name: nameMap[m.team2_player1] ?? '?',
+        t2p2_name: nameMap[m.team2_player2] ?? '?',
+      }))
+      if (sessData) setLastSessionGroups([{ session: sessData, matches: enriched }])
     }
 
     setLoading(false)
