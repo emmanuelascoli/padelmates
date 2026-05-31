@@ -1037,6 +1037,193 @@ function TabActivite() {
 }
 
 // ── Tab ELO ──────────────────────────────────────────────────
+// ── Tab Paiements ────────────────────────────────────────────
+function TabPaiements() {
+  const [sessions, setSessions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [confirming, setConfirming] = useState(null)
+
+  useEffect(() => { fetchSessions() }, [])
+
+  async function fetchSessions() {
+    setLoading(true)
+    const today = new Date().toISOString().split('T')[0]
+    const { data: sessionsData } = await supabase
+      .from('sessions')
+      .select('id, date, time, location, cost_per_player, organizer_id')
+      .gte('date', today)
+      .eq('status', 'open')
+      .gt('cost_per_player', 0)
+      .order('date', { ascending: true })
+
+    if (!sessionsData?.length) { setSessions([]); setLoading(false); return }
+
+    const sessionIds = sessionsData.map(s => s.id)
+    const { data: participants } = await supabase
+      .from('session_participants')
+      .select('id, session_id, user_id, payment_status, profiles(id, name)')
+      .in('session_id', sessionIds)
+
+    const participantMap = {}
+    ;(participants || []).forEach(p => {
+      if (!participantMap[p.session_id]) participantMap[p.session_id] = []
+      participantMap[p.session_id].push(p)
+    })
+
+    setSessions(sessionsData.map(s => ({
+      ...s,
+      participants: participantMap[s.id] || [],
+    })))
+    setLoading(false)
+  }
+
+  async function confirmPayment(participantId) {
+    setConfirming(participantId)
+    await supabase.from('session_participants').update({
+      payment_status: 'confirmed',
+      payment_confirmed_at: new Date().toISOString(),
+    }).eq('id', participantId)
+    await fetchSessions()
+    setConfirming(null)
+  }
+
+  if (loading) return (
+    <div className="flex justify-center py-12">
+      <div className="w-8 h-8 border-4 border-forest-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  const totalDeclared = sessions.reduce((acc, s) =>
+    acc + s.participants.filter(p => p.payment_status === 'paid').length, 0)
+
+  return (
+    <div className="space-y-4">
+      {/* Résumé */}
+      <div className="card flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">Parties à venir</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {sessions.length} session{sessions.length > 1 ? 's' : ''} ·{' '}
+            {sessions.reduce((acc, s) => acc + s.participants.filter(p => p.payment_status !== 'confirmed').length, 0)} paiement{sessions.length !== 1 ? 's' : ''} en attente
+          </p>
+        </div>
+        {totalDeclared > 0 && (
+          <div className="text-right">
+            <div className="text-xl font-bold text-orange-500">{totalDeclared}</div>
+            <div className="text-xs text-gray-400">à confirmer</div>
+          </div>
+        )}
+      </div>
+
+      {sessions.length === 0 && (
+        <div className="card text-center py-10 text-gray-400 text-sm">
+          Aucune partie à venir avec paiement configuré
+        </div>
+      )}
+
+      {sessions.map(session => {
+        const declared  = session.participants.filter(p => p.payment_status === 'paid')
+        const pending   = session.participants.filter(p => p.payment_status === 'pending')
+        const confirmed = session.participants.filter(p => p.payment_status === 'confirmed')
+        const allConfirmed = session.participants.length > 0 && declared.length === 0 && pending.length === 0
+        const sessionDate = new Date(`${session.date}T${session.time}`)
+        const payeurs = session.participants.filter(p => p.user_id !== session.organizer_id)
+
+        return (
+          <div key={session.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ padding: '11px 16px', borderBottom: '0.5px solid #F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">{session.location}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {format(sessionDate, 'EEE d MMM', { locale: fr })} · {session.time?.substring(0, 5)} · {formatDistanceToNow(sessionDate, { locale: fr, addSuffix: true })}
+                </p>
+              </div>
+              {allConfirmed ? (
+                <span style={{ background: '#D1FAE5', color: '#065F46', fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>Tous payés</span>
+              ) : declared.length > 0 ? (
+                <span style={{ background: '#FEF3C7', color: '#92400E', fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                  {declared.length} déclaré{declared.length > 1 ? 's' : ''}
+                </span>
+              ) : null}
+            </div>
+
+            {/* À confirmer */}
+            {declared.length > 0 && (
+              <>
+                <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9CA3AF', padding: '6px 16px 2px' }}>À confirmer</p>
+                {declared.map(p => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '0.5px solid #F9FAFB' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#FEF3C7', color: '#92400E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                      {p.profiles?.name?.charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: '#111827' }}>{p.profiles?.name}</span>
+                    <span style={{ background: '#FEF3C7', color: '#92400E', fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 6, marginRight: 6, whiteSpace: 'nowrap' }}>
+                      Déclaré · {session.cost_per_player} CHF
+                    </span>
+                    <button
+                      onClick={() => confirmPayment(p.id)}
+                      disabled={confirming === p.id}
+                      className="text-xs font-semibold px-3 py-1.5 bg-forest-900 hover:bg-forest-800 text-white rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      {confirming === p.id ? '…' : 'Confirmer'}
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* En attente */}
+            {pending.length > 0 && (
+              <>
+                <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9CA3AF', padding: '6px 16px 2px' }}>En attente</p>
+                {pending.map(p => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '0.5px solid #F9FAFB' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#F3F4F6', color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                      {p.profiles?.name?.charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: '#9CA3AF' }}>{p.profiles?.name}</span>
+                    <span style={{ background: '#F3F4F6', color: '#9CA3AF', fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                      En attente · {session.cost_per_player} CHF
+                    </span>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* Confirmés */}
+            {confirmed.length > 0 && (
+              <>
+                <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9CA3AF', padding: '6px 16px 2px' }}>Confirmés</p>
+                {confirmed.map(p => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '0.5px solid #F9FAFB' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#D1FAE5', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                      {p.profiles?.name?.charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: '#6B7280' }}>{p.profiles?.name}</span>
+                    <span style={{ background: '#D1FAE5', color: '#065F46', fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                      ✓ Réglé · {session.cost_per_player} CHF
+                    </span>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* Footer total */}
+            <div style={{ padding: '8px 16px', background: '#F9FAFB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: '#9CA3AF' }}>Total attendu</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#14532d' }}>
+                {confirmed.filter(p => p.user_id !== session.organizer_id).length} / {payeurs.length} confirmés · {(payeurs.length * session.cost_per_player).toFixed(0)} CHF
+              </span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Tab ELO (conservé pour référence mais retiré de l'UI) ────
 function TabElo() {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1260,7 +1447,7 @@ export default function Admin() {
           { key: 'members',  label: '👥 Membres' },
           { key: 'sessions', label: '📅 Parties' },
           { key: 'stats',    label: '📊 Stats' },
-          { key: 'elo',      label: '🏆 ELO' },
+          { key: 'payments', label: '💳 Paiements' },
           { key: 'activity', label: '📡 Activité' },
         ].map(({ key, label }) => (
           <button
@@ -1279,7 +1466,7 @@ export default function Admin() {
       {tab === 'members'  && <TabMembres />}
       {tab === 'sessions' && <TabParties />}
       {tab === 'stats'    && <TabStats />}
-      {tab === 'elo'      && <TabElo />}
+      {tab === 'payments' && <TabPaiements />}
       {tab === 'activity' && <TabActivite />}
     </div>
   )
