@@ -24,6 +24,8 @@ export default function PlayerProfile() {
   const [recentSessions, setRecentSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('h2h')
+  const [matchFilter, setMatchFilter] = useState('all')
+  const [sessionMap, setSessionMap] = useState({})
   const [friendship, setFriendship] = useState(null)
   const [friendLoading, setFriendLoading] = useState(false)
 
@@ -126,13 +128,24 @@ export default function PlayerProfile() {
     const { data: allProfiles } = await supabase.from('profiles').select('id, name').in('id', allPlayerIds)
     const nameMap = Object.fromEntries((allProfiles || []).map(p => [p.id, p.name]))
 
-    setRecentMatches(matches.slice(0, 15).map(m => ({
+    const enriched = matches.slice(0, 15).map(m => ({
       ...m,
       t1p1_name: nameMap[m.team1_player1] || '?',
       t1p2_name: nameMap[m.team1_player2] || '?',
       t2p1_name: nameMap[m.team2_player1] || '?',
       t2p2_name: nameMap[m.team2_player2] || '?',
-    })))
+    }))
+    setRecentMatches(enriched)
+
+    // Fetch session details for grouping
+    const sessionIds = [...new Set(enriched.map(m => m.session_id).filter(Boolean))]
+    if (sessionIds.length > 0) {
+      const { data: sessions } = await supabase
+        .from('sessions')
+        .select('id, date, time, location')
+        .in('id', sessionIds)
+      setSessionMap(Object.fromEntries((sessions || []).map(s => [s.id, s])))
+    }
   }
 
   async function fetchSessions() {
@@ -420,47 +433,185 @@ export default function PlayerProfile() {
         </div>
       )}
 
-      {/* Tab Matchs récents */}
-      {tab === 'matches' && (
-        <div className="space-y-2">
-          {recentMatches.length === 0 ? (
-            <div className="card text-center py-10 text-gray-400">
-              <p>Aucun match enregistré</p>
+      {/* Tab Matchs — groupés par session */}
+      {tab === 'matches' && (() => {
+        if (recentMatches.length === 0) return (
+          <div className="card text-center py-10 text-gray-400">
+            <div className="text-4xl mb-2">🎾</div>
+            <p>Aucun match enregistré</p>
+          </div>
+        )
+
+        // Helpers relation viewer / viewed player
+        const userInMatch = (m) => !!user && [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2].includes(user.id)
+        const isTeammateMatch = (m) => {
+          if (!user || !userInMatch(m)) return false
+          const viewedT1 = m.team1_player1 === id || m.team1_player2 === id
+          const userT1   = m.team1_player1 === user.id || m.team1_player2 === user.id
+          return viewedT1 === userT1
+        }
+
+        const teammateCount = recentMatches.filter(m => isTeammateMatch(m)).length
+        const opponentCount = recentMatches.filter(m => userInMatch(m) && !isTeammateMatch(m)).length
+
+        // Stats viewer vs viewed
+        const sharedMatches = recentMatches.filter(m => userInMatch(m))
+        const sharedWins = sharedMatches.filter(m => {
+          const uT1 = m.team1_player1 === user?.id || m.team1_player2 === user?.id
+          return (uT1 && m.winner_team === 1) || (!uT1 && m.winner_team === 2)
+        }).length
+        const sharedLosses = sharedMatches.length - sharedWins
+        const sharedWinRate = sharedMatches.length > 0 ? Math.round(sharedWins / sharedMatches.length * 100) : 0
+
+        // Filter
+        const filtered = recentMatches.filter(m => {
+          if (matchFilter === 'teammate') return isTeammateMatch(m)
+          if (matchFilter === 'opponent') return userInMatch(m) && !isTeammateMatch(m)
+          return true
+        })
+
+        // Group by session
+        const groups = {}
+        filtered.forEach(m => {
+          const sid = m.session_id || 'no-session'
+          if (!groups[sid]) groups[sid] = []
+          groups[sid].push(m)
+        })
+        const sortedSids = Object.keys(groups).sort((a, b) => {
+          const sa = sessionMap[a], sb = sessionMap[b]
+          if (!sa || !sb) return 0
+          return new Date(`${sb.date}T${sb.time}`) - new Date(`${sa.date}T${sa.time}`)
+        })
+
+        // Render name with highlight
+        const renderName = (name, playerId, align = 'left') => {
+          const isViewed = playerId === id
+          const isViewer = playerId === user?.id
+          return (
+            <span key={playerId} style={{
+              display: 'block', lineHeight: 1.4, fontSize: 12,
+              fontWeight: isViewed ? 700 : 500,
+              color: isViewed ? '#14532d' : '#374151',
+              textAlign: align,
+            }}>
+              {name}{isViewer && !isViewed ? ' (vous)' : ''}
+            </span>
+          )
+        }
+
+        return (
+          <div>
+            {/* Filtres */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+              {[
+                { key: 'all',      label: `Tous (${recentMatches.length})` },
+                { key: 'teammate', label: `Coéquipier (${teammateCount})` },
+                { key: 'opponent', label: `Adversaire (${opponentCount})` },
+              ].map(f => (
+                <button key={f.key} onClick={() => setMatchFilter(f.key)} style={{
+                  fontSize: 11, fontWeight: 600,
+                  padding: '5px 11px', borderRadius: 20, cursor: 'pointer',
+                  border: matchFilter === f.key ? 'none' : '1px solid #E5E7EB',
+                  background: matchFilter === f.key ? '#14532d' : '#fff',
+                  color: matchFilter === f.key ? '#fff' : '#6B7280',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {f.label}
+                </button>
+              ))}
             </div>
-          ) : (
-            recentMatches.map((m, i) => {
-              const isTeam1 = m.team1_player1 === id || m.team1_player2 === id
-              const won = (isTeam1 && m.winner_team === 1) || (!isTeam1 && m.winner_team === 2)
-              const T1 = [m.t1p1_name, m.t1p2_name].filter(Boolean).join(' & ')
-              const T2 = [m.t2p1_name, m.t2p2_name].filter(Boolean).join(' & ')
-              return (
-                <div key={m.id} className={`card border-l-4 ${won ? 'border-l-forest-500' : 'border-l-red-400'}`}>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${won ? 'bg-forest-100 text-forest-800' : 'bg-red-100 text-red-600'}`}>
-                          {won ? 'Victoire' : 'Défaite'}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {format(new Date(m.played_at), 'd MMM', { locale: fr })}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-700 truncate">
-                        <span className={isTeam1 && won ? 'font-semibold text-forest-800' : ''}>{T1}</span>
-                        <span className="text-gray-400 mx-1">vs</span>
-                        <span className={!isTeam1 && won ? 'font-semibold text-forest-800' : ''}>{T2}</span>
-                      </p>
-                    </div>
-                    <div className="text-lg font-bold text-gray-900 shrink-0">
-                      {m.team1_score} — {m.team2_score}
-                    </div>
+
+            {/* Stats partagées */}
+            {user && sharedMatches.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                {[
+                  { val: `${sharedWins}V`,       color: '#16A34A', lbl: 'Victoires' },
+                  { val: `${sharedLosses}D`,      color: '#EF4444', lbl: 'Défaites' },
+                  { val: `${sharedWinRate}%`,     color: '#111827', lbl: 'Win rate' },
+                ].map(s => (
+                  <div key={s.lbl} style={{ flex: 1, background: '#fff', borderRadius: 10, border: '0.5px solid #E5E7EB', padding: '8px 10px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.val}</div>
+                    <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>{s.lbl}</div>
                   </div>
+                ))}
+              </div>
+            )}
+
+            {filtered.length === 0 && (
+              <div className="card text-center py-8 text-gray-400 text-sm">Aucun match pour ce filtre</div>
+            )}
+
+            {/* Groupes par session */}
+            {sortedSids.map(sid => {
+              const session = sessionMap[sid]
+              const sessionDt = session ? new Date(`${session.date}T${session.time}`) : null
+
+              return (
+                <div key={sid} style={{ marginBottom: 10 }}>
+                  {/* Header session */}
+                  {session && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 2px 6px' }}>
+                      <span style={{ background: '#14532d', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20, whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
+                        {format(sessionDt, 'EEE d MMM', { locale: fr })}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#6B7280', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                        {session.location} · {format(sessionDt, 'HH:mm')}
+                      </span>
+                      <Link to={`/sessions/${sid}`} style={{ flexShrink: 0 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Match cards */}
+                  {groups[sid].map(m => {
+                    const isViewedT1 = m.team1_player1 === id || m.team1_player2 === id
+                    const viewedWon = (isViewedT1 && m.winner_team === 1) || (!isViewedT1 && m.winner_team === 2)
+                    const t1Won = m.winner_team === 1
+
+                    return (
+                      <div key={m.id} style={{
+                        background: '#fff', borderRadius: 13,
+                        border: '0.5px solid #E5E7EB',
+                        borderLeft: `3px solid ${viewedWon ? '#16A34A' : '#EF4444'}`,
+                        padding: '11px 12px', marginBottom: 6,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {/* Équipe 1 */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3, color: t1Won ? '#16A34A' : '#9CA3AF' }}>
+                              {t1Won ? 'Victoire' : 'Défaite'}
+                            </div>
+                            {renderName(m.t1p1_name, m.team1_player1)}
+                            {m.team1_player2 && renderName(m.t1p2_name, m.team1_player2)}
+                          </div>
+                          {/* Score */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, padding: '0 4px' }}>
+                            <span style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, color: t1Won ? '#16A34A' : '#9CA3AF' }}>{m.team1_score}</span>
+                            <span style={{ fontSize: 13, color: '#D1D5DB' }}>—</span>
+                            <span style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, color: !t1Won ? '#16A34A' : '#9CA3AF' }}>{m.team2_score}</span>
+                          </div>
+                          {/* Équipe 2 */}
+                          <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                            <div style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3, color: !t1Won ? '#16A34A' : '#9CA3AF', textAlign: 'right' }}>
+                              {!t1Won ? 'Victoire' : 'Défaite'}
+                            </div>
+                            {renderName(m.t2p1_name, m.team2_player1, 'right')}
+                            {m.team2_player2 && renderName(m.t2p2_name, m.team2_player2, 'right')}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               )
-            })
-          )}
-        </div>
-      )}
+            })}
+          </div>
+        )
+      })()}
 
       {/* Tab Parties */}
       {tab === 'sessions' && (
