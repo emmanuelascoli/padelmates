@@ -165,6 +165,7 @@ export default function Home() {
   const [myStats, setMyStats]       = useState({ wins: 0, losses: 0, played: 0, points: 0 })
   const [eloRank, setEloRank]       = useState(null)
   const [recentForm, setRecentForm] = useState([])
+  const [lastSessionGroups, setLastSessionGroups] = useState([])
   const [topPartners, setTopPartners]   = useState([])
   const [topRivals, setTopRivals]       = useState([])
   const [eloHistory, setEloHistory]     = useState([])
@@ -339,6 +340,29 @@ export default function Home() {
     }
     setTopPartners(topP)
     setTopRivals(topR)
+
+    // ── Derniers résultats (dernières sessions avec matchs) ──────
+    const recentMatchesSorted = [...matches].reverse()
+    const seenSessions = []
+    for (const m of recentMatchesSorted) {
+      if (m.session_id && !seenSessions.includes(m.session_id)) {
+        seenSessions.push(m.session_id)
+        if (seenSessions.length >= 3) break
+      }
+    }
+    if (seenSessions.length > 0) {
+      const { data: sessData } = await supabase
+        .from('sessions')
+        .select('id, date, time, location')
+        .in('id', seenSessions)
+      const sessMap = Object.fromEntries((sessData || []).map(s => [s.id, s]))
+      const groups = seenSessions.map(sid => ({
+        session: sessMap[sid],
+        matches: recentMatchesSorted.filter(m => m.session_id === sid),
+      })).filter(g => g.session)
+      setLastSessionGroups(groups)
+    }
+
     setLoading(false)
   }
 
@@ -449,37 +473,77 @@ export default function Home() {
           </div>
         )}
 
-        {/* Ma forme récente */}
-        {!loading && (
+        {/* Derniers résultats */}
+        {!loading && lastSessionGroups.length > 0 && (
           <>
-            <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Ma forme récente</div>
-            <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:12, marginBottom:14, display:'flex', gap:5, alignItems:'center' }}>
-              {recentForm.length === 0 ? (
-                <>
-                  {[0,1,2,3,4].map(i => (
-                    <span key={i} style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, background:'#F3F4F6', color:'#9CA3AF' }}>·</span>
-                  ))}
-                  <span style={{ flex:1, height:1, background:'#E5E7EB' }} />
-                  <span style={{ fontSize:10, color:'#9CA3AF', whiteSpace:'nowrap' }}>Aucun match joué</span>
-                </>
-              ) : (
-                <>
-                  {recentForm.map((r, i) => (
-                    <span key={i} style={{
-                      width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:10, fontWeight:500,
-                      background: r === 'W' ? '#DCFCE7' : '#FEE2E2',
-                      color:      r === 'W' ? '#166534' : '#B91C1C',
-                    }}>{r === 'W' ? 'V' : 'D'}</span>
-                  ))}
-                  {recentForm.length < 5 && Array.from({ length: 5 - recentForm.length }).map((_, i) => (
-                    <span key={`e${i}`} style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, background:'#F3F4F6', color:'#9CA3AF' }}>·</span>
-                  ))}
-                  <span style={{ flex:1, height:1, background:'#E5E7EB' }} />
-                  {streak && <span style={{ fontSize:10, color:'#6B7280', whiteSpace:'nowrap' }}>{streak}</span>}
-                </>
-              )}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+              <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Derniers résultats</div>
+              {streak && <div style={{ fontSize:11, color:'#6B7280' }}>{streak}</div>}
             </div>
+            {lastSessionGroups.map(({ session, matches: sMatches }) => {
+              const sessionDt = new Date(`${session.date}T${session.time}`)
+              return (
+                <div key={session.id} style={{ marginBottom:14 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 2px 6px' }}>
+                    <span style={{ background:'#14532d', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 9px', borderRadius:20, whiteSpace:'nowrap', textTransform:'capitalize' }}>
+                      {format(sessionDt, 'EEE d MMM', { locale: fr })}
+                    </span>
+                    <span style={{ fontSize:11, color:'#6B7280', flex:1, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis' }}>
+                      {session.location} · {format(sessionDt, 'HH:mm')}
+                    </span>
+                    <Link to={`/sessions/${session.id}`} style={{ flexShrink:0 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                        <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                      </svg>
+                    </Link>
+                  </div>
+                  <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', overflow:'hidden' }}>
+                    {sMatches.map((m, idx) => {
+                      const isT1  = m.team1_player1 === profile.id || m.team1_player2 === profile.id
+                      const myWon = (isT1 && m.winner_team === 1) || (!isT1 && m.winner_team === 2)
+                      const t1Won = m.winner_team === 1
+                      const renderName = (name, pid, align = 'left') => (
+                        <span key={pid} style={{ display:'block', lineHeight:1.4, fontSize:12,
+                          fontWeight: pid === profile.id ? 700 : 500,
+                          color: pid === profile.id ? (myWon ? '#14532d' : '#B91C1C') : '#374151',
+                          textAlign: align,
+                        }}>{name ?? 'Joueur'}</span>
+                      )
+                      return (
+                        <div key={m.id} style={{
+                          borderLeft: `3px solid ${myWon ? '#16A34A' : '#EF4444'}`,
+                          padding:'11px 12px',
+                          borderBottom: idx < sMatches.length - 1 ? '0.5px solid #E5E7EB' : 'none',
+                        }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:9, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:3, color: t1Won ? '#16A34A' : '#9CA3AF' }}>
+                                {t1Won ? 'Victoire' : 'Défaite'}
+                              </div>
+                              {renderName(m.t1p1_name, m.team1_player1)}
+                              {m.team1_player2 && renderName(m.t1p2_name, m.team1_player2)}
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:4, flexShrink:0, padding:'0 4px' }}>
+                              <span style={{ fontSize:20, fontWeight:800, lineHeight:1, color: t1Won ? '#16A34A' : '#9CA3AF' }}>{m.team1_score}</span>
+                              <span style={{ fontSize:13, color:'#D1D5DB' }}>—</span>
+                              <span style={{ fontSize:20, fontWeight:800, lineHeight:1, color: !t1Won ? '#16A34A' : '#9CA3AF' }}>{m.team2_score}</span>
+                            </div>
+                            <div style={{ flex:1, minWidth:0, textAlign:'right' }}>
+                              <div style={{ fontSize:9, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:3, color: !t1Won ? '#16A34A' : '#9CA3AF', textAlign:'right' }}>
+                                {!t1Won ? 'Victoire' : 'Défaite'}
+                              </div>
+                              {renderName(m.t2p1_name, m.team2_player1, 'right')}
+                              {m.team2_player2 && renderName(m.t2p2_name, m.team2_player2, 'right')}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </>
         )}
 
