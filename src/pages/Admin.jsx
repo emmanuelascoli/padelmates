@@ -1238,7 +1238,7 @@ function TabPaiements() {
                   <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9CA3AF', padding: '6px 16px 2px' }}>Désinscriptions</p>
                   {sessionDeps.map(d => {
                     const hadPaid = d.payment_status === 'paid' || d.payment_status === 'confirmed'
-                    const name = (d.profiles as unknown as { name: string })?.name ?? 'Joueur'
+                    const name = d.profiles?.name ?? 'Joueur'
                     const leftAt = new Date(d.left_at)
                     return (
                       <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '0.5px solid #F9FAFB', background: hadPaid && !d.refund_handled ? '#FFF7ED' : 'transparent' }}>
