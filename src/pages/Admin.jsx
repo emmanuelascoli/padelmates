@@ -1040,8 +1040,10 @@ function TabActivite() {
 // ── Tab Paiements ────────────────────────────────────────────
 function TabPaiements() {
   const [sessions, setSessions] = useState([])
+  const [departures, setDepartures] = useState([])
   const [loading, setLoading] = useState(true)
   const [confirming, setConfirming] = useState(null)
+  const [handlingRefund, setHandlingRefund] = useState(null)
 
   useEffect(() => { fetchSessions() }, [])
 
@@ -1059,10 +1061,17 @@ function TabPaiements() {
     if (!sessionsData?.length) { setSessions([]); setLoading(false); return }
 
     const sessionIds = sessionsData.map(s => s.id)
-    const { data: participants } = await supabase
-      .from('session_participants')
-      .select('id, session_id, user_id, payment_status, profiles(id, name)')
-      .in('session_id', sessionIds)
+    const [{ data: participants }, { data: deps }] = await Promise.all([
+      supabase
+        .from('session_participants')
+        .select('id, session_id, user_id, payment_status, profiles(id, name)')
+        .in('session_id', sessionIds),
+      supabase
+        .from('session_departures')
+        .select('id, session_id, user_id, payment_status, refund_handled, left_at, profiles(name)')
+        .in('session_id', sessionIds)
+        .order('left_at', { ascending: false }),
+    ])
 
     const participantMap = {}
     ;(participants || []).forEach(p => {
@@ -1074,6 +1083,7 @@ function TabPaiements() {
       ...s,
       participants: participantMap[s.id] || [],
     })))
+    setDepartures(deps || [])
     setLoading(false)
   }
 
@@ -1085,6 +1095,16 @@ function TabPaiements() {
     }).eq('id', participantId)
     await fetchSessions()
     setConfirming(null)
+  }
+
+  async function handleRefund(departureId) {
+    setHandlingRefund(departureId)
+    await supabase.from('session_departures').update({
+      refund_handled: true,
+      refund_handled_at: new Date().toISOString(),
+    }).eq('id', departureId)
+    await fetchSessions()
+    setHandlingRefund(null)
   }
 
   if (loading) return (
@@ -1208,6 +1228,49 @@ function TabPaiements() {
                 ))}
               </>
             )}
+
+            {/* Désinscriptions */}
+            {(() => {
+              const sessionDeps = departures.filter(d => d.session_id === session.id)
+              if (!sessionDeps.length) return null
+              return (
+                <>
+                  <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9CA3AF', padding: '6px 16px 2px' }}>Désinscriptions</p>
+                  {sessionDeps.map(d => {
+                    const hadPaid = d.payment_status === 'paid' || d.payment_status === 'confirmed'
+                    const name = (d.profiles as unknown as { name: string })?.name ?? 'Joueur'
+                    const leftAt = new Date(d.left_at)
+                    return (
+                      <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '0.5px solid #F9FAFB', background: hadPaid && !d.refund_handled ? '#FFF7ED' : 'transparent' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#F3F4F6', color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0, textDecoration: 'line-through' }}>
+                          {name.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: '#9CA3AF', textDecoration: 'line-through', display: 'block' }}>{name}</span>
+                          <span style={{ fontSize: 10, color: '#9CA3AF' }}>
+                            {format(leftAt, 'EEE d MMM à HH:mm', { locale: fr })}
+                            {hadPaid ? ' · avait payé' : ' · n\'avait pas payé'}
+                          </span>
+                        </div>
+                        {hadPaid && !d.refund_handled && (
+                          <button
+                            onClick={() => handleRefund(d.id)}
+                            disabled={handlingRefund === d.id}
+                            className="text-xs font-semibold px-3 py-1.5 bg-forest-900 hover:bg-forest-800 text-white rounded-xl transition-colors disabled:opacity-50"
+                            style={{ whiteSpace: 'nowrap' }}
+                          >
+                            {handlingRefund === d.id ? '…' : 'Remboursé ✓'}
+                          </button>
+                        )}
+                        {hadPaid && d.refund_handled && (
+                          <span style={{ fontSize: 10, color: '#6B7280', whiteSpace: 'nowrap' }}>Remboursé</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </>
+              )
+            })()}
 
             {/* Footer total */}
             <div style={{ padding: '8px 16px', background: '#F9FAFB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
