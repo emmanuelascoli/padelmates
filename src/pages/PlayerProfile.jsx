@@ -159,6 +159,11 @@ export default function PlayerProfile() {
     const sessions = (data || [])
       .filter(p => p.sessions)
       .map(p => p.sessions)
+      .sort((a, b) => {
+        const da = new Date(`${a.date}T${a.time}`)
+        const db = new Date(`${b.date}T${b.time}`)
+        return db - da
+      })
 
     setRecentSessions(sessions) // Keep all for display (cancelled shown with badge)
     setStats(s => ({ ...s, sessionCount: sessions.filter(s => s.status !== 'cancelled').length }))
