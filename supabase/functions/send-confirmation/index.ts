@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
       </div>
     `
 
-    const html = emailWrapper('✅', 'Tu es inscrit !', body)
+    const html = emailWrapper('Tu es inscrit à la partie !', body)
 
     // ── 6. Envoi ─────────────────────────────────────────────────────────────
     const ok = await sendEmail({

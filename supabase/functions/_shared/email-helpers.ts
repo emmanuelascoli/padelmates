@@ -1,4 +1,5 @@
 // ─── Helpers partagés entre les Edge Functions email ────────────────────────
+// Design aligné sur PadelMates : vert #14532d, fond #F5F4F0, cards blanches
 
 export const APP_URL = Deno.env.get('APP_URL') || 'https://padelmates.ch'
 
@@ -6,7 +7,7 @@ export const APP_URL = Deno.env.get('APP_URL') || 'https://padelmates.ch'
 export function formatDateFr(dateStr: string, timeStr: string): string {
   const date = new Date(`${dateStr}T${timeStr}`)
   return new Intl.DateTimeFormat('fr-CH', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    weekday: 'long', day: 'numeric', month: 'long',
   }).format(date)
 }
 
@@ -24,20 +25,14 @@ export function buildICS(session: Record<string, unknown>): string {
   const end   = new Date(start.getTime() + durationToMinutes(session.duration as string) * 60000)
   const fmt   = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
   const org   = (session.organizer as Record<string, string>)?.name ?? ''
-
   return [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//PadelMates//FR',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PadelMates//FR',
     'BEGIN:VEVENT',
-    `DTSTART:${fmt(start)}`,
-    `DTEND:${fmt(end)}`,
+    `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`,
     `SUMMARY:🎾 Padel — ${session.location}`,
     `DESCRIPTION:Partie PadelMates\\nOrganisateur : ${org}\\n${APP_URL}/sessions/${session.id}`,
-    `LOCATION:${session.location}`,
-    `URL:${APP_URL}/sessions/${session.id}`,
-    'END:VEVENT',
-    'END:VCALENDAR',
+    `LOCATION:${session.location}`, `URL:${APP_URL}/sessions/${session.id}`,
+    'END:VEVENT', 'END:VCALENDAR',
   ].join('\r\n')
 }
 
@@ -47,12 +42,10 @@ export function googleCalendarUrl(session: Record<string, unknown>): string {
   const end   = new Date(start.getTime() + durationToMinutes(session.duration as string) * 60000)
   const fmt   = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
   const org   = (session.organizer as Record<string, string>)?.name ?? ''
-
   const p = new URLSearchParams({
-    action:   'TEMPLATE',
-    text:     `🎾 Padel — ${session.location}`,
-    dates:    `${fmt(start)}/${fmt(end)}`,
-    details:  `Partie PadelMates | Organisateur : ${org}\n${APP_URL}/sessions/${session.id}`,
+    action: 'TEMPLATE', text: `🎾 Padel — ${session.location}`,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: `Partie PadelMates | Organisateur : ${org}\n${APP_URL}/sessions/${session.id}`,
     location: session.location as string,
   })
   return `https://calendar.google.com/calendar/render?${p}`
@@ -63,23 +56,18 @@ export function outlookCalendarUrl(session: Record<string, unknown>): string {
   const start = new Date(`${session.date}T${session.time}`)
   const end   = new Date(start.getTime() + durationToMinutes(session.duration as string) * 60000)
   const org   = (session.organizer as Record<string, string>)?.name ?? ''
-
   const p = new URLSearchParams({
-    rru:      'addevent',
-    startdt:  start.toISOString(),
-    enddt:    end.toISOString(),
-    subject:  `🎾 Padel — ${session.location}`,
+    rru: 'addevent', startdt: start.toISOString(), enddt: end.toISOString(),
+    subject: `🎾 Padel — ${session.location}`,
     location: session.location as string,
-    body:     `Partie PadelMates | Organisateur : ${org}\n${APP_URL}/sessions/${session.id}`,
+    body: `Partie PadelMates | Organisateur : ${org}\n${APP_URL}/sessions/${session.id}`,
   })
   return `https://outlook.live.com/calendar/0/deeplink/compose?${p}`
 }
 
 // ── Envoi email via Resend ───────────────────────────────────────────────────
 export async function sendEmail(opts: {
-  to: string
-  subject: string
-  html: string
+  to: string; subject: string; html: string
   attachments?: { filename: string; content: string }[]
 }): Promise<boolean> {
   const res = await fetch('https://api.resend.com/emails', {
@@ -90,40 +78,49 @@ export async function sendEmail(opts: {
     },
     body: JSON.stringify({
       from: 'PadelMates <noreply@padelmates.ch>',
-      to: opts.to,
-      subject: opts.subject,
-      html: opts.html,
+      to: opts.to, subject: opts.subject, html: opts.html,
       attachments: opts.attachments,
     }),
   })
   return res.ok
 }
 
-// ── Template de base partagé ─────────────────────────────────────────────────
-export function emailWrapper(headerEmoji: string, headerTitle: string, body: string): string {
+// ── Template de base — design vert PadelMates ────────────────────────────────
+export function emailWrapper(headerTitle: string, body: string): string {
   return `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
+<body style="margin:0;padding:0;background:#F5F4F0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F4F0;padding:32px 0;">
   <tr><td align="center">
-    <table width="100%" style="max-width:560px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <table width="100%" style="max-width:520px;">
 
-      <!-- HEADER -->
-      <tr><td style="background:linear-gradient(135deg,#2563eb,#4f46e5);padding:32px 24px;text-align:center;">
-        <div style="font-size:44px;margin-bottom:8px;">${headerEmoji}</div>
-        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">${headerTitle}</h1>
+      <!-- LOGO / EN-TÊTE -->
+      <tr><td style="padding:0 0 16px 0;text-align:center;">
+        <span style="font-size:13px;font-weight:600;color:#14532d;letter-spacing:0.05em;text-transform:uppercase;">🎾 PadelMates</span>
       </td></tr>
 
-      <!-- BODY -->
-      <tr><td style="padding:28px 24px;">
-        ${body}
+      <!-- CARTE PRINCIPALE -->
+      <tr><td style="background:#ffffff;border-radius:20px;border:0.5px solid #E5E7EB;overflow:hidden;">
+
+        <!-- Bande verte -->
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr><td style="background:#14532d;padding:24px;text-align:center;">
+            <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:500;line-height:1.3;">${headerTitle}</h1>
+          </td></tr>
+
+          <!-- Corps -->
+          <tr><td style="padding:24px;">
+            ${body}
+          </td></tr>
+        </table>
+
       </td></tr>
 
       <!-- FOOTER -->
-      <tr><td style="background:#f9fafb;padding:16px 24px;text-align:center;border-top:1px solid #e5e7eb;">
-        <p style="margin:0;color:#9ca3af;font-size:12px;">
-          PadelMates · <a href="${APP_URL}" style="color:#6b7280;text-decoration:none;">${APP_URL.replace('https://', '')}</a>
+      <tr><td style="padding:20px 0 0 0;text-align:center;">
+        <p style="margin:0;color:#9CA3AF;font-size:11px;">
+          PadelMates · <a href="${APP_URL}" style="color:#9CA3AF;text-decoration:none;">${APP_URL.replace('https://', '')}</a>
         </p>
       </td></tr>
 
@@ -136,22 +133,17 @@ export function emailWrapper(headerEmoji: string, headerTitle: string, body: str
 // ── Bloc infos session ───────────────────────────────────────────────────────
 export function sessionInfoBlock(session: Record<string, unknown>, dateStr: string): string {
   const cost = (session.cost_per_player as number) > 0
-    ? `<tr><td style="padding:4px 0;color:#1e40af;">💰 <strong>${session.cost_per_player} CHF / joueur</strong></td></tr>`
-    : ''
-  const duration = session.duration
-    ? `<tr><td style="padding:4px 0;color:#1e40af;">⏱ Durée : ${session.duration}</td></tr>`
+    ? `<tr><td style="padding:3px 0;font-size:13px;color:#374151;">💰 <strong>${session.cost_per_player} CHF / joueur</strong></td></tr>`
     : ''
   const org = (session.organizer as Record<string, string>)?.name
-    ? `<tr><td style="padding:4px 0;color:#1e40af;">👤 Organisateur : ${(session.organizer as Record<string, string>).name}</td></tr>`
+    ? `<tr><td style="padding:3px 0;font-size:13px;color:#374151;">👤 Organisé par ${(session.organizer as Record<string, string>).name}</td></tr>`
     : ''
-
   return `
-<table width="100%" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;margin:16px 0;" cellpadding="0" cellspacing="0">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F4F0;border-radius:12px;padding:16px;margin:16px 0;">
   <tr><td>
     <table cellpadding="0" cellspacing="0">
-      <tr><td style="padding:4px 0;color:#1e40af;font-weight:600;font-size:15px;">📅 ${dateStr} à ${(session.time as string).substring(0, 5)}</td></tr>
-      ${duration}
-      <tr><td style="padding:4px 0;color:#1e40af;">📍 ${session.location}</td></tr>
+      <tr><td style="padding:3px 0;font-size:14px;font-weight:600;color:#111827;">📅 ${dateStr} à ${(session.time as string).substring(0, 5)}</td></tr>
+      <tr><td style="padding:3px 0;font-size:13px;color:#374151;">📍 ${session.location}</td></tr>
       ${cost}
       ${org}
     </table>
@@ -163,36 +155,36 @@ export function sessionInfoBlock(session: Record<string, unknown>, dateStr: stri
 export function playersBlock(names: string[]): string {
   if (!names.length) return ''
   const pills = names.map(n =>
-    `<span style="display:inline-block;background:#dbeafe;color:#1d4ed8;padding:4px 10px;border-radius:20px;font-size:13px;font-weight:600;margin:3px;">${n}</span>`
+    `<span style="display:inline-block;background:#DCFCE7;color:#166534;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;margin:3px;">${n}</span>`
   ).join('')
   return `
 <div style="margin:16px 0;">
-  <p style="margin:0 0 8px 0;font-size:13px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Joueurs inscrits</p>
+  <p style="margin:0 0 8px 0;font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.06em;">Joueurs inscrits</p>
   <div>${pills}</div>
 </div>`
 }
 
-// ── Bouton CTA ───────────────────────────────────────────────────────────────
-export function ctaButton(label: string, url: string, color = '#2563eb'): string {
+// ── Bouton CTA principal ─────────────────────────────────────────────────────
+export function ctaButton(label: string, url: string, color = '#14532d'): string {
   return `
 <div style="text-align:center;margin:20px 0;">
-  <a href="${url}" style="display:inline-block;background:${color};color:#ffffff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">${label}</a>
+  <a href="${url}" style="display:inline-block;background:${color};color:#ffffff;padding:13px 28px;border-radius:12px;text-decoration:none;font-weight:500;font-size:14px;">${label}</a>
 </div>`
 }
 
 // ── Boutons agenda ───────────────────────────────────────────────────────────
 export function calendarButtons(gcal: string, outlook: string): string {
   return `
-<div style="margin:20px 0;">
-  <p style="margin:0 0 10px 0;font-size:13px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Ajouter à mon agenda</p>
+<div style="margin:16px 0;">
+  <p style="margin:0 0 8px 0;font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.06em;">Ajouter à mon agenda</p>
   <table cellpadding="0" cellspacing="0"><tr>
     <td style="padding-right:8px;">
-      <a href="${gcal}" style="display:inline-block;background:#ffffff;border:1.5px solid #e5e7eb;color:#374151;padding:10px 16px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;">📅 Google Calendar</a>
+      <a href="${gcal}" style="display:inline-block;background:#ffffff;border:0.5px solid #E5E7EB;color:#374151;padding:9px 14px;border-radius:10px;text-decoration:none;font-size:12px;font-weight:500;">📅 Google Calendar</a>
     </td>
     <td>
-      <a href="${outlook}" style="display:inline-block;background:#ffffff;border:1.5px solid #e5e7eb;color:#374151;padding:10px 16px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;">📅 Outlook</a>
+      <a href="${outlook}" style="display:inline-block;background:#ffffff;border:0.5px solid #E5E7EB;color:#374151;padding:9px 14px;border-radius:10px;text-decoration:none;font-size:12px;font-weight:500;">📅 Outlook</a>
     </td>
   </tr></table>
-  <p style="margin:8px 0 0 0;font-size:12px;color:#9ca3af;">Le fichier .ics (Apple Calendar) est joint à cet email.</p>
+  <p style="margin:8px 0 0 0;font-size:11px;color:#9CA3AF;">Le fichier .ics (Apple Calendar) est joint à cet email.</p>
 </div>`
 }
