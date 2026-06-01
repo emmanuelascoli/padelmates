@@ -282,21 +282,43 @@ export default function Sessions() {
   async function fetchSessions() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
-    let query = supabase
-      .from('sessions')
-      .select('*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name)')
+    const asc   = tab === 'upcoming'
+    const base  = '*, session_participants(id, user_id), organizer:profiles!sessions_organizer_id_fkey(name)'
+
+    // Parties publiques
+    let pubQuery = supabase.from('sessions').select(base)
       .eq('is_private', false)
-      .order('date', { ascending: tab === 'upcoming' })
-      .order('time', { ascending: true })
+      .order('date', { ascending: asc }).order('time', { ascending: true })
+
+    // Parties privées où je suis organisateur ou inscrit
+    let privQuery = user?.id ? supabase.from('sessions').select(base)
+      .eq('is_private', true)
+      .or(`organizer_id.eq.${user.id},session_participants.user_id.eq.${user.id}`)
+      .order('date', { ascending: asc }).order('time', { ascending: true })
+      : null
 
     if (tab === 'upcoming') {
-      query = query.gte('date', today).neq('status', 'cancelled')
+      pubQuery  = pubQuery.gte('date', today).neq('status', 'cancelled')
+      if (privQuery) privQuery = privQuery.gte('date', today).neq('status', 'cancelled')
     } else {
-      query = query.lt('date', today)
+      pubQuery  = pubQuery.lt('date', today)
+      if (privQuery) privQuery = privQuery.lt('date', today)
     }
 
-    const { data } = await query.limit(60)
-    setSessions(data || [])
+    const [{ data: pub }, privResult] = await Promise.all([
+      pubQuery.limit(60),
+      privQuery ? privQuery.limit(20) : Promise.resolve({ data: [] }),
+    ])
+
+    // Fusion sans doublons
+    const all = [...(pub || []), ...(privResult.data || [])]
+    const unique = Array.from(new Map(all.map(s => [s.id, s])).values())
+    unique.sort((a, b) => {
+      const diff = a.date.localeCompare(b.date) || a.time.localeCompare(b.time)
+      return asc ? diff : -diff
+    })
+
+    setSessions(unique)
     setLoading(false)
   }
 
