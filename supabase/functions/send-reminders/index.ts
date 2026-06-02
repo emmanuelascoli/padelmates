@@ -15,6 +15,7 @@ import {
   APP_URL,
   formatDateFr,
   buildICS,
+  encodeBase64,
   googleCalendarUrl,
   outlookCalendarUrl,
   sendEmail,
@@ -38,6 +39,7 @@ Deno.serve(async () => {
   // ── 1. RAPPEL VEILLE À 8H ────────────────────────────────────────────────
   // Exécuté seulement entre 6h00 et 7h59 UTC (= 8h heure suisse été et hiver)
   // Cible : toutes les parties du lendemain (date = demain)
+  // TEST_MODE : condition d'heure désactivée temporairement
   try {
     const utcHour = now.getUTCHours()
     if (utcHour === 6 || utcHour === 7) {
@@ -67,7 +69,7 @@ Deno.serve(async () => {
         const dateLabel  = formatDateFr(session.date, session.time)
         const gcal       = googleCalendarUrl(session)
         const outlook    = outlookCalendarUrl(session)
-        const icsB64     = btoa(buildICS(session))
+        const icsB64     = encodeBase64(buildICS(session))
 
         for (const p of participants) {
           // Anti-doublon
@@ -178,7 +180,7 @@ ${ctaButton('Voir la partie →', sessionUrl)}
       const sessionUrl  = `${APP_URL}/sessions/${session.id}`
       const gcal        = googleCalendarUrl(session)
       const outlook     = outlookCalendarUrl(session)
-      const icsB64      = btoa(buildICS(session))
+      const icsB64      = encodeBase64(buildICS(session))
       const hasCost     = (session.cost_per_player as number) > 0
 
       // Rappel paiement : redirige vers la partie, pas de lien Revolut direct

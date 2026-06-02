@@ -11,6 +11,14 @@ export function formatDateFr(dateStr: string, timeStr: string): string {
   }).format(date)
 }
 
+// ── Encodage base64 Unicode-safe (btoa ne supporte pas les accents/emojis) ───
+export function encodeBase64(str: string): string {
+  const bytes = new TextEncoder().encode(str)
+  let binary = ''
+  bytes.forEach(b => binary += String.fromCharCode(b))
+  return btoa(binary)
+}
+
 // ── Durée → minutes ──────────────────────────────────────────────────────────
 export function durationToMinutes(duration?: string): number {
   if (duration === '1h')   return 60

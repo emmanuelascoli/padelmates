@@ -8,6 +8,7 @@ import {
   APP_URL,
   formatDateFr,
   buildICS,
+  encodeBase64,
   googleCalendarUrl,
   outlookCalendarUrl,
   sendEmail,
@@ -85,7 +86,7 @@ Deno.serve(async (req) => {
     const dateStr  = formatDateFr(session.date, session.time)
     const gcal     = googleCalendarUrl(session)
     const outlook  = outlookCalendarUrl(session)
-    const icsB64   = btoa(buildICS(session))
+    const icsB64   = encodeBase64(buildICS(session))
     const sessionUrl = `${APP_URL}/sessions/${session.id}`
     const leaveUrl   = `${sessionUrl}?action=leave`
     const spotsLeft  = session.max_players - (participants?.length ?? 0)
