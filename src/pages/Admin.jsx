@@ -129,6 +129,9 @@ function TabMembres() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [editingRevolutId, setEditingRevolutId] = useState(null)
+  const [revolutDraft, setRevolutDraft] = useState('')
+  const [savingRevolut, setSavingRevolut] = useState(false)
 
   useEffect(() => { fetchMembers() }, [])
 
@@ -136,10 +139,24 @@ function TabMembres() {
     setLoading(true)
     const { data } = await supabase
       .from('profiles')
-      .select('id, name, level, avatar_url, role, phone, badges')
+      .select('id, name, level, avatar_url, role, phone, badges, revolut_tag')
       .order('name', { ascending: true })
     setMembers(data || [])
     setLoading(false)
+  }
+
+  function startEditRevolut(m) {
+    setEditingRevolutId(m.id)
+    setRevolutDraft(m.revolut_tag ?? '')
+  }
+
+  async function saveRevolut(memberId) {
+    setSavingRevolut(true)
+    const tag = revolutDraft.replace(/^@/, '').trim()
+    await supabase.from('profiles').update({ revolut_tag: tag || null }).eq('id', memberId)
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, revolut_tag: tag || null } : m))
+    setEditingRevolutId(null)
+    setSavingRevolut(false)
   }
 
   function handleRoleChange(memberId, newRole) {
@@ -157,6 +174,7 @@ function TabMembres() {
 
   const filtered = members.filter(m => {
     if (!m.name?.toLowerCase().includes(search.toLowerCase())) return false
+    if (roleFilter === 'no_revolut') return !m.revolut_tag
     if (roleFilter !== 'all' && m.role !== roleFilter) return false
     return true
   })
@@ -166,6 +184,7 @@ function TabMembres() {
     admin: members.filter(m => m.role === 'admin').length,
     organizer: members.filter(m => m.role === 'organizer').length,
     member: members.filter(m => m.role === 'member' || !m.role).length,
+    no_revolut: members.filter(m => !m.revolut_tag).length,
   }
 
   return (
@@ -200,6 +219,7 @@ function TabMembres() {
           { key: 'admin', label: `👑 Admins (${counts.admin})` },
           { key: 'organizer', label: `✓ Organisateurs (${counts.organizer})` },
           { key: 'member', label: `Membres (${counts.member})` },
+          { key: 'no_revolut', label: `💸 Sans Revolut (${counts.no_revolut})` },
         ].map(f => (
           <button key={f.key} onClick={() => setRoleFilter(f.key)}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${
@@ -257,6 +277,35 @@ function TabMembres() {
               {/* Ligne contrôles */}
               <div className="flex items-center gap-1.5 flex-wrap pl-9">
                 <RoleSelector memberId={m.id} currentRole={m.role ?? 'member'} onChanged={handleRoleChange} />
+                {/* Revolut */}
+                {editingRevolutId === m.id ? (
+                  <div className="flex items-center gap-1 mt-1">
+                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>@</span>
+                    <input
+                      autoFocus
+                      value={revolutDraft}
+                      onChange={e => setRevolutDraft(e.target.value.replace(/^@/, ''))}
+                      placeholder="pseudo"
+                      style={{ fontSize: 11, border: '0.5px solid #D1D5DB', borderRadius: 6, padding: '3px 7px', width: 100, outline: 'none' }}
+                      onKeyDown={e => { if (e.key === 'Enter') saveRevolut(m.id); if (e.key === 'Escape') setEditingRevolutId(null) }}
+                    />
+                    <button onClick={() => saveRevolut(m.id)} disabled={savingRevolut}
+                      style={{ fontSize: 10, fontWeight: 600, background: '#14532d', color: '#fff', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}>
+                      {savingRevolut ? '…' : '✓'}
+                    </button>
+                    <button onClick={() => setEditingRevolutId(null)}
+                      style={{ fontSize: 10, color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                  </div>
+                ) : (
+                  <button onClick={() => startEditRevolut(m)}
+                    style={{ fontSize: 11, padding: '2px 7px', borderRadius: 6, border: '0.5px solid', cursor: 'pointer',
+                      background: m.revolut_tag ? '#F0FDF4' : '#FFF7ED',
+                      borderColor: m.revolut_tag ? '#BBF7D0' : '#FED7AA',
+                      color: m.revolut_tag ? '#166534' : '#9A3412',
+                    }}>
+                    {m.revolut_tag ? `@${m.revolut_tag}` : '+ Revolut'}
+                  </button>
+                )}
               </div>
             </div>
           ))}
