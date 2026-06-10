@@ -425,7 +425,7 @@ export default function Profile() {
   const levelLabel = profile?.level ? (LEVEL_LABEL[profile.level] ?? profile.level) : null
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto', marginLeft: -16, marginRight: -16, marginTop: -24 }}>
+    <div style={{ marginLeft: -16, marginRight: -16, marginTop: -24 }}>
 
       {/* ── Banner ── */}
       <div style={{ background: '#14532d', padding: '24px 16px 20px', position: 'relative', overflow: 'hidden' }}>
@@ -507,6 +507,7 @@ export default function Profile() {
 
       {/* ── Sheet ── */}
       <div style={{ background: '#F5F4F0', borderRadius: '20px 20px 0 0', marginTop: -12, position: 'relative', zIndex: 2 }}>
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
         {/* ── Jauge de complétion du profil ── */}
         {(() => {
@@ -777,7 +778,8 @@ export default function Profile() {
           {tab === 'amis' && <FriendsSection userId={user.id} />}
 
         </div>
-      </div>
+      </div>{/* maxWidth inner */}
+      </div>{/* sheet */}
     </div>
   )
 }
