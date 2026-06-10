@@ -6,6 +6,11 @@ import { LEVEL_LABEL, BADGES } from '../lib/constants'
 
 const MEDAL = ['🥇', '🥈', '🥉']
 
+// Ordinal français : 1er, 2e, 3e…
+function ordinal(n) {
+  return n === 1 ? '1er' : `${n}e`
+}
+
 // ── Tooltip points classiques ──────────────────────────────────
 function PointsTooltip() {
   const [open, setOpen] = useState(false)
@@ -554,7 +559,7 @@ export default function Leaderboard() {
         >
           <span className="text-2xl">{myClassicRank < 3 ? MEDAL[myClassicRank] : `#${myClassicRank + 1}`}</span>
           <div>
-            <p className="text-sm font-semibold text-white">Ta position : {myClassicRank + 1}ème</p>
+            <p className="text-sm font-semibold text-white">Ta position : {ordinal(myClassicRank + 1)}</p>
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
               {rankings[myClassicRank].points} pts · {rankings[myClassicRank].wins}V / {rankings[myClassicRank].losses}D
             </p>
@@ -569,7 +574,7 @@ export default function Leaderboard() {
         >
           <span className="text-2xl">{myEloRank < 3 ? MEDAL[myEloRank] : `#${myEloRank + 1}`}</span>
           <div>
-            <p className="text-sm font-semibold text-white">Ta position : {myEloRank + 1}ème</p>
+            <p className="text-sm font-semibold text-white">Ta position : {ordinal(myEloRank + 1)}</p>
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
               {(eloRankings[myEloRank].rank_score ?? 1000).toLocaleString('fr-FR')} pts ELO
               {eloRankings[myEloRank].rank_score_delta !== 0 && (
