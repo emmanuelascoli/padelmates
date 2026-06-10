@@ -299,18 +299,31 @@ export default function Leaderboard() {
       .select('id, name, level, avatar_url, badges, rank_score, rank_score_delta')
       .in('id', playerIds)
 
-    const ranked = (profiles || [])
-      .map(p => ({
-        ...p,
-        wins:    stats[p.id]?.wins    ?? 0,
-        losses:  stats[p.id]?.losses  ?? 0,
-        winRate: (stats[p.id]?.wins ?? 0) + (stats[p.id]?.losses ?? 0) > 0
-          ? Math.round(((stats[p.id]?.wins ?? 0) / ((stats[p.id]?.wins ?? 0) + (stats[p.id]?.losses ?? 0))) * 100)
-          : 0,
-      }))
-      .sort((a, b) => (b.rank_score ?? 1000) - (a.rank_score ?? 1000))
+    const withStats = (profiles || []).map(p => ({
+      ...p,
+      wins:    stats[p.id]?.wins    ?? 0,
+      losses:  stats[p.id]?.losses  ?? 0,
+      winRate: (stats[p.id]?.wins ?? 0) + (stats[p.id]?.losses ?? 0) > 0
+        ? Math.round(((stats[p.id]?.wins ?? 0) / ((stats[p.id]?.wins ?? 0) + (stats[p.id]?.losses ?? 0))) * 100)
+        : 0,
+    }))
 
-    setEloRankings(ranked)
+    // Classement actuel
+    const ranked = [...withStats].sort((a, b) => (b.rank_score ?? 1000) - (a.rank_score ?? 1000))
+
+    // Classement "avant dernier match" (score - delta) pour calculer le mouvement
+    const rankedBefore = [...withStats]
+      .sort((a, b) => ((b.rank_score ?? 1000) - (b.rank_score_delta ?? 0)) - ((a.rank_score ?? 1000) - (a.rank_score_delta ?? 0)))
+
+    const rankBefore = Object.fromEntries(rankedBefore.map((p, i) => [p.id, i]))
+
+    const rankedWithMove = ranked.map((p, i) => {
+      const before = rankBefore[p.id] ?? i
+      const move = before - i // positif = monté, négatif = descendu
+      return { ...p, rankMove: (p.rank_score_delta ?? 0) !== 0 ? move : null }
+    })
+
+    setEloRankings(rankedWithMove)
     setLoadingElo(false)
   }
 
@@ -321,6 +334,7 @@ export default function Leaderboard() {
   function PlayerRow({ player, rank, isElo }) {
     const isMe = player.id === user?.id
     const delta = player.rank_score_delta ?? 0
+    const move  = isElo ? (player.rankMove ?? null) : null
 
     return (
       <tr
@@ -329,9 +343,20 @@ export default function Leaderboard() {
       >
         {/* # */}
         <td className="py-3 pl-4 pr-1 w-8">
-          {rank < 3
-            ? <span className="text-base">{MEDAL[rank]}</span>
-            : <span className="text-xs font-semibold text-gray-400">{rank + 1}</span>}
+          <div className="flex flex-col items-center gap-0.5">
+            {rank < 3
+              ? <span className="text-base leading-none">{MEDAL[rank]}</span>
+              : <span className="text-xs font-semibold text-gray-400 leading-none">{rank + 1}</span>}
+            {move !== null && (
+              <span className={`text-[9px] font-bold px-1 py-px rounded leading-none ${
+                move > 0 ? 'bg-green-100 text-green-700'
+                : move < 0 ? 'bg-red-100 text-red-600'
+                : 'bg-gray-100 text-gray-400'
+              }`}>
+                {move > 0 ? `↑${move}` : move < 0 ? `↓${Math.abs(move)}` : '='}
+              </span>
+            )}
+          </div>
         </td>
 
         {/* Joueur */}
