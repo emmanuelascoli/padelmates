@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { LEVEL_LABEL, ROLES, CANCEL_HOURS } from '../lib/constants'
+import { getTagline } from '../lib/taglines'
 
 // ── WhatsApp helpers ─────────────────────────────────────────
 function getSessionUrl(session) {
@@ -20,7 +21,11 @@ function buildShareMessage(session, participantCount) {
   const spotsLeft = session.max_players - participantCount
   const url = getSessionUrl(session)
 
-  let msg = `🎾 *Nouvelle partie de padel !*\n\n`
+  // Phrase d'accroche déterministe — même phrase pour la même session
+  const tagline = getTagline(session.id)
+
+  let msg = `_${tagline}_\n\n`
+  msg += `🎾 *Nouvelle partie de padel !*\n\n`
   msg += `📅 ${dateStr}\n`
   if (session.duration) msg += `⏱ Durée : ${session.duration}\n`
   msg += `📍 ${session.location}\n`
