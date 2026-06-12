@@ -1110,17 +1110,29 @@ function TabPaiements() {
     if (!sessionsData?.length) { setSessions([]); setLoading(false); return }
 
     const sessionIds = sessionsData.map(s => s.id)
-    const [{ data: participants }, { data: deps }] = await Promise.all([
+    const [{ data: participants }, { data: depsRaw }] = await Promise.all([
       supabase
         .from('session_participants')
         .select('id, session_id, user_id, payment_status, profiles(id, name)')
         .in('session_id', sessionIds),
       supabase
         .from('session_departures')
-        .select('id, session_id, user_id, payment_status, refund_handled, left_at, profiles(name)')
+        .select('id, session_id, user_id, payment_status, refund_handled, left_at')
         .in('session_id', sessionIds)
         .order('left_at', { ascending: false }),
     ])
+
+    // Enrichir les noms des partants séparément
+    // (session_departures.user_id → auth.users, pas profiles → join direct impossible)
+    const depUserIds = [...new Set((depsRaw || []).map(d => d.user_id))]
+    const { data: depProfiles } = depUserIds.length
+      ? await supabase.from('profiles').select('id, name').in('id', depUserIds)
+      : { data: [] }
+    const depNameMap = Object.fromEntries((depProfiles || []).map(p => [p.id, p.name]))
+    const deps = (depsRaw || []).map(d => ({
+      ...d,
+      profiles: { name: depNameMap[d.user_id] ?? null },
+    }))
 
     const participantMap = {}
     ;(participants || []).forEach(p => {
@@ -1132,7 +1144,7 @@ function TabPaiements() {
       ...s,
       participants: participantMap[s.id] || [],
     })))
-    setDepartures(deps || [])
+    setDepartures(deps)
     setLoading(false)
   }
 
