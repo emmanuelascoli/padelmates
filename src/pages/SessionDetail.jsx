@@ -46,21 +46,6 @@ function buildShareMessage(session, participantCount) {
   return encodeURIComponent(msg)
 }
 
-function buildReminderMessage(session, participants) {
-  const date = new Date(`${session.date}T${session.time}`)
-  const dateStr = format(date, 'EEEE d MMMM à HH:mm', { locale: fr })
-  const url = `${window.location.origin}/sessions/${session.id}`
-
-  let msg = `🎾 *Rappel — Partie demain !*\n\n`
-  msg += `📅 ${dateStr}\n`
-  if (session.duration) msg += `⏱ Durée : ${session.duration}\n`
-  msg += `📍 ${session.location}\n`
-  if (session.cost_per_player > 0) msg += `💰 ${session.cost_per_player} CHF / joueur\n`
-  msg += `\n👥 Joueurs inscrits :\n`
-  participants.forEach(p => { msg += `• ${p.profiles?.name}\n` })
-  msg += `\n➡️ Voir la partie : ${getSessionUrl(session)}`
-  return encodeURIComponent(msg)
-}
 
 // ── Calendar helpers ─────────────────────────────────────────
 function getDurationMinutes(duration) {
@@ -351,9 +336,6 @@ export default function SessionDetail() {
   const [tab, setTab] = useState('info')
   const [removingPlayerId, setRemovingPlayerId] = useState(null)
   const [showOrganizerLeaveConfirm, setShowOrganizerLeaveConfirm] = useState(false)
-  const [editingCode, setEditingCode] = useState(false)
-  const [codeDraft, setCodeDraft] = useState('')
-  const [savingCode, setSavingCode] = useState(false)
 
   useEffect(() => { fetchAll() }, [id])
 
@@ -526,15 +508,6 @@ export default function SessionDetail() {
   async function handleDeleteMatch(matchId) {
     await supabase.from('matches').delete().eq('id', matchId)
     await fetchMatches()
-  }
-
-  async function saveAccessCode() {
-    setSavingCode(true)
-    const code = codeDraft.trim() || null
-    await supabase.from('sessions').update({ access_code: code }).eq('id', session.id)
-    setSession(prev => ({ ...prev, access_code: code }))
-    setEditingCode(false)
-    setSavingCode(false)
   }
 
   async function handleOrganizerLeave() {
@@ -942,65 +915,20 @@ export default function SessionDetail() {
           </div>
         )}
 
-        {/* Code d'accès terrain — édition organisateur/admin */}
-        {(isOrganizer || isAdmin) && !isPastSession && session.status !== 'cancelled' && (
-          <div className="mt-3 rounded-xl p-3" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
-            <p className="text-xs font-semibold mb-2" style={{ color: '#92400e' }}>🔐 Code d'accès terrain</p>
-            {editingCode ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={codeDraft}
-                  onChange={e => setCodeDraft(e.target.value.toUpperCase())}
-                  placeholder="ex : 1234#"
-                  maxLength={6}
-                  autoFocus
-                  className="flex-1 text-sm rounded-lg px-3 py-1.5 font-mono tracking-widest focus:outline-none"
-                  style={{ background: '#fff', border: '1px solid #fcd34d', color: '#92400e' }}
-                />
-                <button
-                  onClick={saveAccessCode}
-                  disabled={savingCode}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white disabled:opacity-50"
-                  style={{ background: '#d97706' }}
-                >
-                  {savingCode ? '…' : 'Sauver'}
-                </button>
-                <button onClick={() => setEditingCode(false)} className="text-xs px-2 py-1.5" style={{ color: '#9ca3af' }}>✕</button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                {session.access_code ? (
-                  <code className="flex-1 text-lg font-bold rounded-lg px-3 py-1.5 font-mono tracking-widest" style={{ background: '#fff', border: '1px solid #fcd34d', color: '#92400e' }}>
-                    {session.access_code}
-                  </code>
-                ) : (
-                  <span className="flex-1 text-xs" style={{ color: '#b45309' }}>Aucun code renseigné</span>
-                )}
-                <button
-                  onClick={() => { setCodeDraft(session.access_code ?? ''); setEditingCode(true) }}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-                  style={{ background: '#fff', border: '1px solid #fcd34d', color: '#b45309' }}
-                >
-                  {session.access_code ? 'Modifier' : '+ Ajouter'}
-                </button>
-              </div>
-            )}
-            <p className="text-xs mt-1.5" style={{ color: '#b45309' }}>Visible uniquement par les joueurs inscrits · envoyé par email la veille</p>
-          </div>
-        )}
-
-        {/* Code d'accès terrain — affichage participants inscrits */}
-        {isParticipant && !isOrganizer && !isAdmin && session.access_code && (
-          <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1.5px solid #f59e0b' }}>
-            <div className="px-4 py-2" style={{ background: '#f59e0b' }}>
-              <p className="text-xs font-semibold text-white uppercase tracking-wide">🔐 Code d'accès terrain</p>
-            </div>
-            <div className="px-4 py-3" style={{ background: '#fffbeb' }}>
-              <p className="font-mono font-bold tracking-widest" style={{ fontSize: 32, color: '#92400e', letterSpacing: '0.15em' }}>
+        {/* Code d'accès terrain — visible pour les inscrits uniquement */}
+        {isParticipant && session.access_code && (
+          <div className="mt-3 flex items-start gap-2.5 rounded-xl px-3 py-2.5" style={{ background: '#F0FDF4', border: '0.5px solid #BBF7D0' }}>
+            <span className="shrink-0 flex items-center" style={{ marginTop: 2 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#14532d" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </span>
+            <div>
+              <span style={{ fontSize: 11, color: '#166534', fontWeight: 600, display: 'block', marginBottom: 1 }}>Code d'accès terrain</span>
+              <span style={{ fontSize: 26, fontWeight: 700, color: '#14532d', fontFamily: 'monospace', letterSpacing: '0.12em', lineHeight: 1.2, display: 'block' }}>
                 {session.access_code}
-              </p>
-              <p className="text-xs mt-1" style={{ color: '#b45309' }}>Valide 15 min avant le début de ta réservation</p>
+              </span>
+              <span style={{ fontSize: 11, color: '#166534', display: 'block', marginTop: 2 }}>Valide 15 min avant le début de ta réservation</span>
             </div>
           </div>
         )}
@@ -1028,20 +956,6 @@ export default function SessionDetail() {
               Partager sur WhatsApp
             </a>
 
-            {/* Rappel (organisateur seulement) */}
-            {isOrganizer && participants.length > 0 && (
-              <a
-                href={`https://wa.me/?text=${buildReminderMessage(session, participants)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-white border border-[#25D366] text-[#25D366] hover:bg-green-50 text-sm font-semibold py-2.5 px-4 rounded-xl transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                Envoyer un rappel
-              </a>
-            )}
           </div>
         )}
 
