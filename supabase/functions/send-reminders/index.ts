@@ -99,11 +99,25 @@ Deno.serve(async () => {
 </table>
 ${ctaButton('Payer ma part →', sessionUrl)}` : ''
 
+          // Bloc code d'accès terrain (si renseigné)
+          const accessCode = session.access_code as string | null
+          const codeBlock = accessCode ? `
+<table width="100%" cellpadding="0" cellspacing="0" style="border-radius:14px;overflow:hidden;margin:20px 0;">
+  <tr><td style="background:#f59e0b;padding:12px 18px;">
+    <p style="margin:0;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.08em;">🔐 Code d'accès terrain</p>
+  </td></tr>
+  <tr><td style="background:#fffbeb;border:1.5px solid #f59e0b;border-top:none;border-radius:0 0 14px 14px;padding:16px 18px;">
+    <p style="margin:0 0 6px 0;font-size:38px;font-weight:800;color:#92400e;font-family:monospace;letter-spacing:0.15em;">${accessCode}</p>
+    <p style="margin:0;font-size:12px;color:#b45309;">Valide 15 min avant le début de ta réservation</p>
+  </td></tr>
+</table>` : ''
+
           const body = `
 <p style="margin:0 0 4px 0;font-size:14px;color:#374151;">Bonjour <strong>${displayName}</strong> 👋</p>
 <p style="margin:0 0 20px 0;font-size:14px;color:#6B7280;">Ta partie de padel est <strong>demain</strong> — tout est prêt ?</p>
 
 ${sessionInfoBlock(session, dateLabel)}
+${codeBlock}
 ${playersBlock(firstNames)}
 ${paymentBlock}
 ${calendarButtons(gcal, outlook)}
@@ -136,25 +150,19 @@ ${ctaButton('Voir la partie →', sessionUrl)}
   }
 
   // ── 2. EMAIL PROMOTION LISTE D'ATTENTE ───────────────────────────────────
-  // Cherche les joueurs récemment promus depuis la liste d'attente :
-  // joined_at dans les 2 dernières heures + payment_status pending
-  // + pas d'email de confirmation normale → c'est une promotion automatique via trigger DB
+  // Cherche les joueurs promus depuis la liste d'attente via le trigger DB :
+  // promoted_from_waitlist = true + joined_at dans les 2 dernières heures
+  // La colonne promoted_from_waitlist est posée par migration33
   try {
     const twoHoursAgo = new Date(now.getTime() - 2 * 3600000).toISOString()
 
     const { data: recentJoins } = await supabase
       .from('session_participants')
       .select('id, user_id, session_id, payment_status, joined_at, profiles(name)')
-      .eq('payment_status', 'pending')
+      .eq('promoted_from_waitlist', true)
       .gte('joined_at', twoHoursAgo)
 
     for (const p of recentJoins ?? []) {
-      // Inscription classique (email de confirmation déjà envoyé) → pas une promotion
-      const { data: confAlready } = await supabase
-        .from('notification_log').select('id')
-        .eq('type', 'confirmation').eq('user_id', p.user_id).eq('session_id', p.session_id)
-        .maybeSingle()
-      if (confAlready) continue
 
       // Anti-doublon
       const { data: promoAlready } = await supabase

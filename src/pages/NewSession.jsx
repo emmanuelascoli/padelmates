@@ -45,6 +45,7 @@ export default function NewSession() {
     duration: '1h30',
     location: '',
     court_number: '',
+    access_code: '',
     total_cost: '',
     level_min: '',
     level_max: '',
@@ -93,6 +94,7 @@ export default function NewSession() {
         max_players: 4,
         level_min: form.level_min || null,
         level_max: form.level_max || null,
+        access_code: form.access_code.trim() || null,
         status: 'open',
         is_private: form.isPrivate,
       })
@@ -220,6 +222,14 @@ export default function NewSession() {
               📍 Affiché comme : <strong>{form.location} — Terrain {form.court_number.trim()}</strong>
             </p>
           )}
+        </div>
+        <div>
+          <label className="label">Code d'accès terrain <span className="text-gray-400 font-normal">(optionnel)</span></label>
+          <input
+            type="text" name="access_code" value={form.access_code} onChange={handleChange}
+            className="input font-mono tracking-widest" placeholder="ex : 1234#" maxLength={6}
+          />
+          <p className="text-xs text-gray-400 mt-1">Envoyé uniquement aux joueurs inscrits par email la veille</p>
         </div>
 
         {/* Coût total */}

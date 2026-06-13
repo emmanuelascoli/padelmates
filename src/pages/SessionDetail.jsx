@@ -101,7 +101,7 @@ function downloadICS(session) {
     `DTSTART:${formatICSDate(start)}`,
     `DTEND:${formatICSDate(end)}`,
     `SUMMARY:🎾 Padel - ${session.location}`,
-    `DESCRIPTION:Partie de padel PadelMates\\nhttps://padelmates.ch/sessions/${session.id}`,
+    `DESCRIPTION:Partie de padel PadelMates${session.access_code ? `\\nCode terrain : ${session.access_code} (valide 15 min avant)` : ''}\\nhttps://padelmates.ch/sessions/${session.id}`,
     `LOCATION:${session.location}`,
     // Rappel 24h avant
     'BEGIN:VALARM',
@@ -351,6 +351,9 @@ export default function SessionDetail() {
   const [tab, setTab] = useState('info')
   const [removingPlayerId, setRemovingPlayerId] = useState(null)
   const [showOrganizerLeaveConfirm, setShowOrganizerLeaveConfirm] = useState(false)
+  const [editingCode, setEditingCode] = useState(false)
+  const [codeDraft, setCodeDraft] = useState('')
+  const [savingCode, setSavingCode] = useState(false)
 
   useEffect(() => { fetchAll() }, [id])
 
@@ -523,6 +526,15 @@ export default function SessionDetail() {
   async function handleDeleteMatch(matchId) {
     await supabase.from('matches').delete().eq('id', matchId)
     await fetchMatches()
+  }
+
+  async function saveAccessCode() {
+    setSavingCode(true)
+    const code = codeDraft.trim() || null
+    await supabase.from('sessions').update({ access_code: code }).eq('id', session.id)
+    setSession(prev => ({ ...prev, access_code: code }))
+    setEditingCode(false)
+    setSavingCode(false)
   }
 
   async function handleOrganizerLeave() {
@@ -927,6 +939,69 @@ export default function SessionDetail() {
               </button>
             </div>
             <p className="text-xs text-purple-500 mt-1.5">Partage ce lien uniquement avec les personnes que tu veux inviter.</p>
+          </div>
+        )}
+
+        {/* Code d'accès terrain — édition organisateur/admin */}
+        {(isOrganizer || isAdmin) && !isPastSession && session.status !== 'cancelled' && (
+          <div className="mt-3 rounded-xl p-3" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+            <p className="text-xs font-semibold mb-2" style={{ color: '#92400e' }}>🔐 Code d'accès terrain</p>
+            {editingCode ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={codeDraft}
+                  onChange={e => setCodeDraft(e.target.value.toUpperCase())}
+                  placeholder="ex : 1234#"
+                  maxLength={6}
+                  autoFocus
+                  className="flex-1 text-sm rounded-lg px-3 py-1.5 font-mono tracking-widest focus:outline-none"
+                  style={{ background: '#fff', border: '1px solid #fcd34d', color: '#92400e' }}
+                />
+                <button
+                  onClick={saveAccessCode}
+                  disabled={savingCode}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white disabled:opacity-50"
+                  style={{ background: '#d97706' }}
+                >
+                  {savingCode ? '…' : 'Sauver'}
+                </button>
+                <button onClick={() => setEditingCode(false)} className="text-xs px-2 py-1.5" style={{ color: '#9ca3af' }}>✕</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                {session.access_code ? (
+                  <code className="flex-1 text-lg font-bold rounded-lg px-3 py-1.5 font-mono tracking-widest" style={{ background: '#fff', border: '1px solid #fcd34d', color: '#92400e' }}>
+                    {session.access_code}
+                  </code>
+                ) : (
+                  <span className="flex-1 text-xs" style={{ color: '#b45309' }}>Aucun code renseigné</span>
+                )}
+                <button
+                  onClick={() => { setCodeDraft(session.access_code ?? ''); setEditingCode(true) }}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                  style={{ background: '#fff', border: '1px solid #fcd34d', color: '#b45309' }}
+                >
+                  {session.access_code ? 'Modifier' : '+ Ajouter'}
+                </button>
+              </div>
+            )}
+            <p className="text-xs mt-1.5" style={{ color: '#b45309' }}>Visible uniquement par les joueurs inscrits · envoyé par email la veille</p>
+          </div>
+        )}
+
+        {/* Code d'accès terrain — affichage participants inscrits */}
+        {isParticipant && !isOrganizer && !isAdmin && session.access_code && (
+          <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1.5px solid #f59e0b' }}>
+            <div className="px-4 py-2" style={{ background: '#f59e0b' }}>
+              <p className="text-xs font-semibold text-white uppercase tracking-wide">🔐 Code d'accès terrain</p>
+            </div>
+            <div className="px-4 py-3" style={{ background: '#fffbeb' }}>
+              <p className="font-mono font-bold tracking-widest" style={{ fontSize: 32, color: '#92400e', letterSpacing: '0.15em' }}>
+                {session.access_code}
+              </p>
+              <p className="text-xs mt-1" style={{ color: '#b45309' }}>Valide 15 min avant le début de ta réservation</p>
+            </div>
           </div>
         )}
 

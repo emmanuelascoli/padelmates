@@ -28,19 +28,39 @@ export function durationToMinutes(duration?: string): number {
 }
 
 // ── Contenu .ics ─────────────────────────────────────────────────────────────
+// Utilise TZID=Europe/Zurich pour éviter le décalage horaire UTC
 export function buildICS(session: Record<string, unknown>): string {
-  const start = new Date(`${session.date}T${session.time}`)
-  const end   = new Date(start.getTime() + durationToMinutes(session.duration as string) * 60000)
-  const fmt   = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-  const org   = (session.organizer as Record<string, string>)?.name ?? ''
+  // Format local YYYYMMDDTHHMMSS sans Z (heure suisse, pas UTC)
+  const fmtLocal = (dateStr: string, timeStr: string, addMinutes = 0) => {
+    const [h, m] = (timeStr as string).split(':').map(Number)
+    const totalMin = h * 60 + m + addMinutes
+    const newH = Math.floor(totalMin / 60) % 24
+    const newM = totalMin % 60
+    const d = (dateStr as string).replace(/-/g, '')
+    return `${d}T${String(newH).padStart(2,'0')}${String(newM).padStart(2,'0')}00`
+  }
+  const duration = durationToMinutes(session.duration as string)
+  const org = (session.organizer as Record<string, string>)?.name ?? ''
+  const dateStr = session.date as string
+  const timeStr = (session.time as string).substring(0, 5)
+
   return [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PadelMates//FR',
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//PadelMates//FR',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VTIMEZONE',
+    'TZID:Europe/Zurich',
+    'END:VTIMEZONE',
     'BEGIN:VEVENT',
-    `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`,
-    `SUMMARY:🎾 Padel — ${session.location}`,
-    `DESCRIPTION:Partie PadelMates\\nOrganisateur : ${org}\\n${APP_URL}/sessions/${session.id}`,
-    `LOCATION:${session.location}`, `URL:${APP_URL}/sessions/${session.id}`,
-    'END:VEVENT', 'END:VCALENDAR',
+    `DTSTART;TZID=Europe/Zurich:${fmtLocal(dateStr, timeStr)}`,
+    `DTEND;TZID=Europe/Zurich:${fmtLocal(dateStr, timeStr, duration)}`,
+    `SUMMARY:Padel - ${session.location}`,
+    `DESCRIPTION:Partie PadelMates - Organisateur : ${org}${(session.access_code as string) ? ` - Code terrain : ${session.access_code as string} (valide 15 min avant)` : ''} - ${APP_URL}/sessions/${session.id}`,
+    `LOCATION:${session.location}`,
+    `URL:${APP_URL}/sessions/${session.id}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
   ].join('\r\n')
 }
 
