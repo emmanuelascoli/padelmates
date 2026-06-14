@@ -6,12 +6,37 @@ import { format, isToday, isTomorrow, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { LEVEL_SHORT } from '../lib/constants'
 
-// Consistent avatar color from string
+// ── Helpers ───────────────────────────────────────────────────
 function avatarColor(str = '') {
   const colors = ['#2563EB','#059669','#7C3AED','#D97706','#DC2626','#0891B2','#9333EA','#16A34A']
   let h = 0
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffffffff
   return colors[Math.abs(h) % colors.length]
+}
+
+// Muted palette for feed avatars (not rainbow)
+const FEED_COLORS = ['#3B6D4E', '#5C6E7A', '#7A6556', '#4A6090']
+function feedColor(str = '') {
+  let h = 0
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffffffff
+  return FEED_COLORS[Math.abs(h) % FEED_COLORS.length]
+}
+
+function timeAgo(ts) {
+  if (!ts) return ''
+  const diff = Date.now() - new Date(ts).getTime()
+  const mins  = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days  = Math.floor(diff / 86400000)
+  if (mins  < 60) return `Il y a ${mins}min`
+  if (hours < 24) return `Il y a ${hours}h`
+  if (days  ===1) return 'Hier'
+  if (days  < 7)  return `Il y a ${days}j`
+  return format(new Date(ts), 'd MMM', { locale: fr })
+}
+
+function firstName(fullName = '') {
+  return fullName.split(' ')[0] ?? fullName
 }
 
 // ── Avatar ────────────────────────────────────────────────────
@@ -35,60 +60,241 @@ function Avatar({ name, avatarUrl, color, size = 32, radius = 10 }) {
   )
 }
 
-// ── Widget "Tes amis cette semaine" ──────────────────────────
-function FriendRow({ friend, isLast }) {
-  const hasSess = !!friend.session
-  const iAmIn   = friend.session?.iAmIn
-  const isFull  = friend.session?.isFull
-  const dateLabel = hasSess
-    ? format(new Date(`${friend.session.date}T${friend.session.time}`), 'EEE d', { locale: fr })
-    : null
-
-  let right = null
-  if (iAmIn) {
-    right = (
-      <div style={{ display:'flex', alignItems:'center', gap:4, background:'#DCFCE7', padding:'3px 8px', borderRadius:20, flexShrink:0 }}>
-        <div style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80' }} />
-        <span style={{ fontSize:9, fontWeight:600, color:'#166534' }}>Même partie</span>
-      </div>
-    )
-  } else if (hasSess && !isFull) {
-    right = (
-      <Link to={`/sessions/${friend.session.id}`}
-        style={{ fontSize:9, fontWeight:600, color:'#14532d', background:'#F0FDF4', border:'.5px solid #BBF7D0', padding:'3px 8px', borderRadius:20, textDecoration:'none', flexShrink:0 }}>
-        Rejoindre
-      </Link>
-    )
-  } else if (hasSess && isFull) {
-    right = (
-      <Link to={`/sessions/${friend.session.id}`}
-        style={{ fontSize:9, color:'#9CA3AF', background:'#F9FAFB', border:'.5px solid #E5E7EB', padding:'3px 8px', borderRadius:20, textDecoration:'none', flexShrink:0 }}>
-        Voir
-      </Link>
-    )
-  } else {
-    right = (
-      <Link to="/sessions"
-        style={{ fontSize:9, fontWeight:600, color:'#6B7280', background:'#F9FAFB', border:'.5px solid #E5E7EB', padding:'3px 8px', borderRadius:20, textDecoration:'none', flexShrink:0 }}>
-        Inviter
-      </Link>
-    )
+// Avatar for feed (muted palette, photo-ready)
+function FeedAvatar({ profile, size = 24 }) {
+  const p = profile ?? {}
+  const color    = feedColor(p.id || '')
+  const initials = (p.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const url      = p.avatar_url || p.avatarUrl
+  const r        = Math.round(size * 0.33)
+  if (url) {
+    return <img src={url} alt={p.name} style={{ width: size, height: size, borderRadius: r, objectFit: 'cover', flexShrink: 0 }} />
   }
+  return (
+    <div style={{ width: size, height: size, borderRadius: r, background: color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(size * 0.38), fontWeight: 600, color: '#fff' }}>
+      {initials}
+    </div>
+  )
+}
+
+// ── Kudos button (local state only — no DB persistence yet) ───
+function KudosButton({ itemId, kudosGiven, onKudos }) {
+  const given = !!kudosGiven[itemId]
+  return (
+    <button
+      onClick={() => onKudos(itemId)}
+      style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color: given ? '#15803d' : '#9CA3AF', background:'none', border:'none', cursor:'pointer', padding:0 }}
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill={given ? '#15803d' : 'none'} stroke="currentColor" strokeWidth="2">
+        <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/>
+        <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/>
+      </svg>
+      Kudos
+    </button>
+  )
+}
+
+// ── Feed card: Match result ───────────────────────────────────
+function MatchResultCard({ item, myId, kudosGiven, onKudos }) {
+  const { session, matches, timestamp, isMySession } = item
+  return (
+    <div style={{ background:'#fff', borderRadius:12, border:'.5px solid #E5E7EB', marginBottom:7, overflow:'hidden' }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', padding:'10px 12px 6px', gap:6 }}>
+        <span style={{ fontSize:9, fontWeight:600, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'.05em' }}>
+          Résultat{isMySession ? ' · Ta partie' : ''}
+        </span>
+        {isMySession && (
+          <span style={{ fontSize:9, fontWeight:600, color:'#14532d', background:'#F0FDF4', border:'.5px solid #BBF7D0', padding:'1px 6px', borderRadius:999 }}>
+            Inscrit
+          </span>
+        )}
+        <span style={{ marginLeft:'auto', fontSize:10, color:'#C4C2BC' }}>{timeAgo(timestamp)}</span>
+      </div>
+
+      {/* Matches */}
+      <div style={{ padding:'0 12px 10px' }}>
+        {session && (
+          <div style={{ fontSize:10, color:'#9CA3AF', marginBottom:7 }}>
+            {session.location} · {matches.length} match{matches.length > 1 ? 's' : ''} joué{matches.length > 1 ? 's' : ''}
+          </div>
+        )}
+
+        {matches.map((m, idx) => {
+          const t1Won = m.winner_team === 1
+          const t2Won = m.winner_team === 2
+          const t1Label = [m.t1p1, m.t1p2]
+            .filter(Boolean)
+            .map(p => p.id === myId ? 'Toi' : firstName(p.name))
+            .join(' + ')
+          const t2Label = [m.t2p1, m.t2p2]
+            .filter(Boolean)
+            .map(p => p.id === myId ? 'Toi' : firstName(p.name))
+            .join(' + ')
+          return (
+            <div key={m.id} style={{ display:'flex', alignItems:'center', gap:6, paddingTop: idx > 0 ? 6 : 0, borderTop: idx > 0 ? '.5px solid #F9F9F8' : 'none', paddingBottom:6 }}>
+              {/* Team 1 */}
+              <div style={{ flex:1, display:'flex', alignItems:'center', gap:4, minWidth:0, overflow:'hidden' }}>
+                <FeedAvatar profile={m.t1p1} size={20} />
+                {m.t1p2 && <FeedAvatar profile={m.t1p2} size={20} />}
+                <span style={{ fontSize:11, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis', fontWeight: t1Won ? 600 : 400, color: t1Won ? '#14532d' : '#B0AEA8' }}>
+                  {t1Label}
+                </span>
+              </div>
+
+              {/* Score */}
+              <div style={{ display:'flex', alignItems:'center', gap:3, flexShrink:0 }}>
+                <span style={{ fontSize:14, fontWeight:700, color: t1Won ? '#14532d' : '#D1D5DB', lineHeight:1 }}>{m.team1_score}</span>
+                <span style={{ fontSize:10, color:'#E5E7EB' }}>–</span>
+                <span style={{ fontSize:14, fontWeight:700, color: t2Won ? '#14532d' : '#D1D5DB', lineHeight:1 }}>{m.team2_score}</span>
+              </div>
+
+              {/* Team 2 */}
+              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4, minWidth:0, overflow:'hidden' }}>
+                <span style={{ fontSize:11, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis', textAlign:'right', fontWeight: t2Won ? 600 : 400, color: t2Won ? '#14532d' : '#B0AEA8' }}>
+                  {t2Label}
+                </span>
+                {m.t2p2 && <FeedAvatar profile={m.t2p2} size={20} />}
+                <FeedAvatar profile={m.t2p1} size={20} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Footer */}
+      <div style={{ borderTop:'.5px solid #F3F4F6', padding:'7px 12px', display:'flex', alignItems:'center' }}>
+        <KudosButton itemId={item.id} kudosGiven={kudosGiven} onKudos={onKudos} />
+      </div>
+    </div>
+  )
+}
+
+// ── Feed card: Friend upcoming session ────────────────────────
+function FriendSessionCard({ item }) {
+  const { friend, session, isFull } = item
+  const sessDate   = new Date(`${session.date}T${session.time}`)
+  const placesLeft = session.max_players - (session.session_participants?.length ?? 0)
+  const dayLabel   = isToday(sessDate) ? "aujourd'hui" : isTomorrow(sessDate) ? 'demain' : format(sessDate, 'EEE d', { locale: fr })
 
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:9, padding:'10px 12px', borderBottom: isLast ? 'none' : '.5px solid #F3F4F6' }}>
-      <Avatar name={friend.name} avatarUrl={friend.avatarUrl} color={friend.color} size={32} radius={10} />
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:12, fontWeight:500, color: hasSess ? '#111827' : '#9CA3AF', marginBottom:1, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis' }}>
-          {friend.name}
+    <div style={{ background:'#fff', borderRadius:12, border:'.5px solid #E5E7EB', marginBottom:7 }}>
+      <div style={{ display:'flex', alignItems:'center', padding:'10px 12px 6px' }}>
+        <span style={{ fontSize:9, fontWeight:600, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'.05em' }}>Ami disponible</span>
+        <span style={{ marginLeft:'auto', fontSize:10, color:'#C4C2BC' }}>{isToday(sessDate) ? "Auj." : isTomorrow(sessDate) ? 'Dem.' : format(sessDate, 'EEE d', { locale: fr })}</span>
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:9, padding:'0 12px 10px' }}>
+        <FeedAvatar profile={{ id: friend.id, name: friend.name, avatar_url: friend.avatarUrl }} size={28} />
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:12, fontWeight:500, color:'#111827', marginBottom:1 }}>
+            {firstName(friend.name)} joue {dayLabel}
+          </div>
+          <div style={{ fontSize:10, color:'#9CA3AF' }}>
+            {format(sessDate, 'HH:mm')} · {session.location}
+            {!isFull && ` · ${placesLeft} place${placesLeft > 1 ? 's' : ''} dispo`}
+            {isFull && ' · Complet'}
+          </div>
         </div>
-        <div style={{ fontSize:10, color: hasSess ? '#6B7280' : '#D1D5DB', overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis' }}>
-          {hasSess
-            ? `${dateLabel} · ${friend.session.location}${isFull ? ' · Complet' : ''}`
-            : 'Pas de partie cette semaine'}
+        {!isFull
+          ? <Link to={`/sessions/${session.id}`} style={{ fontSize:11, fontWeight:500, color:'#14532d', flexShrink:0, textDecoration:'none' }}>Rejoindre →</Link>
+          : <Link to={`/sessions/${session.id}`} style={{ fontSize:11, color:'#9CA3AF', flexShrink:0, textDecoration:'none' }}>Voir</Link>
+        }
+      </div>
+    </div>
+  )
+}
+
+// ── Feed card: Streak ─────────────────────────────────────────
+function StreakCard({ item, kudosGiven, onKudos }) {
+  const { player, count, isWin, isMine } = item
+  return (
+    <div style={{ background:'#fff', borderRadius:12, border:'.5px solid #E5E7EB', marginBottom:7, overflow:'hidden' }}>
+      <div style={{ display:'flex', alignItems:'center', padding:'10px 12px 6px' }}>
+        <span style={{ fontSize:9, fontWeight:600, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'.05em' }}>Série</span>
+        <span style={{ marginLeft:'auto', fontSize:10, color:'#C4C2BC' }}>{timeAgo(item.timestamp)}</span>
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:9, padding:'0 12px 10px' }}>
+        <FeedAvatar profile={{ id: player.id, name: player.name, avatar_url: player.avatarUrl }} size={28} />
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:12, fontWeight:500, color:'#111827' }}>
+            {isMine ? 'Tu enchaînes' : `${firstName(player.name)} enchaîne`} les {isWin ? 'victoires' : 'défaites'}
+          </div>
+          <div style={{ fontSize:10, color:'#9CA3AF', marginTop:1 }}>
+            {count} matchs consécutifs {isWin ? 'gagnés' : 'perdus'}
+          </div>
+        </div>
+        <span style={{ fontSize:11, fontWeight:700, color: isWin ? '#D97706' : '#9CA3AF', background: isWin ? '#FEF3C7' : '#F3F4F6', padding:'2px 8px', borderRadius:999, flexShrink:0 }}>
+          🔥 ×{count}
+        </span>
+      </div>
+      {!isMine && (
+        <div style={{ borderTop:'.5px solid #F3F4F6', padding:'7px 12px' }}>
+          <KudosButton itemId={item.id} kudosGiven={kudosGiven} onKudos={onKudos} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Feed card: Top 3 ──────────────────────────────────────────
+function Top3Card({ item }) {
+  const [first, second, third] = item.players
+  const cols = [
+    { p: second, bar: 30, bg: '#C7D9BE', label: '2' },
+    { p: first,  bar: 44, bg: '#2A5A3A', label: '1', crown: true },
+    { p: third,  bar: 20, bg: '#DDD9D0', label: '3', textColor: '#8A8880' },
+  ]
+  return (
+    <div style={{ background:'#fff', borderRadius:12, border:'.5px solid #E5E7EB', marginBottom:7 }}>
+      <div style={{ display:'flex', alignItems:'center', padding:'10px 12px 6px' }}>
+        <span style={{ fontSize:9, fontWeight:600, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'.05em' }}>Classement ELO</span>
+      </div>
+      <div style={{ padding:'0 12px 12px' }}>
+        <div style={{ fontSize:10, color:'#9CA3AF', marginBottom:10 }}>Top 3 du classement général</div>
+        <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:6 }}>
+          {cols.map(({ p, bar, bg, label, crown, textColor }) => p && (
+            <div key={p.id} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+              {crown && <span style={{ fontSize:12 }}>👑</span>}
+              <FeedAvatar profile={{ id: p.id, name: p.name, avatar_url: p.avatar_url }} size={28} />
+              <div style={{ fontSize:9, fontWeight: crown ? 700 : 500, color: crown ? '#111827' : '#374151' }}>{firstName(p.name)}</div>
+              <div style={{ fontSize:8, color:'#9CA3AF' }}>{p.rank_score} pts</div>
+              <div style={{ width:50, height:bar, borderRadius:'4px 4px 0 0', background: bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color: textColor ?? '#fff' }}>{label}</div>
+            </div>
+          ))}
         </div>
       </div>
-      {right}
+    </div>
+  )
+}
+
+// ── Activity Feed ─────────────────────────────────────────────
+function ActivityFeed({ items, loading, myId, kudosGiven, onKudos }) {
+  if (loading) {
+    return (
+      <div style={{ display:'flex', justifyContent:'center', padding:'20px 0', marginBottom:14 }}>
+        <div className="w-5 h-5 border-[2px] border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+  if (!items.length) return null
+
+  return (
+    <div style={{ marginBottom:14 }}>
+      <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:9 }}>Fil d'actu</div>
+      {items.map(item => {
+        switch (item.type) {
+          case 'match_result':
+            return <MatchResultCard key={item.id} item={item} myId={myId} kudosGiven={kudosGiven} onKudos={onKudos} />
+          case 'friend_session':
+            return <FriendSessionCard key={item.id} item={item} />
+          case 'streak':
+            return <StreakCard key={item.id} item={item} kudosGiven={kudosGiven} onKudos={onKudos} />
+          case 'top3':
+            return <Top3Card key={item.id} item={item} />
+          default:
+            return null
+        }
+      })}
     </div>
   )
 }
@@ -188,26 +394,6 @@ function FirstStepsCard({ hasJoinedSession, hasFriends }) {
   )
 }
 
-function FriendsThisWeek({ friendActivity }) {
-  if (!friendActivity.length) return null
-  const displayed = friendActivity.slice(0, 5)
-  return (
-    <>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-        <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Tes amis cette semaine</div>
-        <Link to="/sessions" style={{ fontSize:11, color:'#14532d', fontWeight:500, textDecoration:'none' }}>
-          Voir parties →
-        </Link>
-      </div>
-      <div style={{ background:'#fff', borderRadius:13, border:'.5px solid #E5E7EB', overflow:'hidden', marginBottom:14 }}>
-        {displayed.map((f, i) => (
-          <FriendRow key={f.userId} friend={f} isLast={i === displayed.length - 1} />
-        ))}
-      </div>
-    </>
-  )
-}
-
 // ── Photo nudge banner ────────────────────────────────────────
 function PhotoNudge() {
   const [dismissed, setDismissed] = useState(false)
@@ -218,7 +404,6 @@ function PhotoNudge() {
       padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 10,
       marginBottom: 14, position: 'relative',
     }}>
-      {/* Avatar placeholder avec icône caméra */}
       <div style={{ position: 'relative', flexShrink: 0 }}>
         <div style={{ width: 40, height: 40, borderRadius: 12, background: '#F3F4F6', border: '1.5px dashed #D1D5DB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2}>
@@ -232,16 +417,13 @@ function PhotoNudge() {
           </svg>
         </div>
       </div>
-      {/* Texte */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 1 }}>Ajoute ta photo de profil</div>
         <div style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 1.35 }}>Tes coéquipiers te reconnaîtront mieux.</div>
       </div>
-      {/* CTA */}
       <Link to="/profile" style={{ background: '#14532d', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 10px', fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, textDecoration: 'none' }}>
         Ajouter →
       </Link>
-      {/* Dismiss */}
       <button
         onClick={() => setDismissed(true)}
         style={{ position: 'absolute', top: 6, right: 6, width: 16, height: 16, borderRadius: 5, background: '#F3F4F6', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#9CA3AF' }}
@@ -356,67 +538,62 @@ export default function Home() {
 
   const [upcomingSessions, setUpcomingSessions] = useState([])
   const [totalUpcoming, setTotalUpcoming]       = useState(0)
-  const [myStats, setMyStats]       = useState({ wins: 0, losses: 0, played: 0, points: 0 })
-  const [eloRank, setEloRank]       = useState(null)
-  const [recentForm, setRecentForm] = useState([])
-  const [lastSessionGroups, setLastSessionGroups] = useState([])
-  const [topPartners, setTopPartners]   = useState([])
-  const [topRivals, setTopRivals]       = useState([])
-  const [eloHistory, setEloHistory]     = useState([])
-  const [ptsHistory, setPtsHistory]     = useState([])
-  const [chartTab, setChartTab]         = useState('elo')
-  const [playersTab, setPlayersTab]     = useState('partners')
-  const [loading, setLoading]           = useState(true)
-  const [friendActivity, setFriendActivity] = useState([])
+  const [myStats, setMyStats]     = useState({ wins: 0, losses: 0, played: 0, points: 0 })
+  const [eloRank, setEloRank]     = useState(null)
+  const [recentForm, setRecentForm]   = useState([])
+  const [topPartners, setTopPartners] = useState([])
+  const [topRivals, setTopRivals]     = useState([])
+  const [eloHistory, setEloHistory]   = useState([])
+  const [ptsHistory, setPtsHistory]   = useState([])
+  const [chartTab, setChartTab]       = useState('elo')
+  const [playersTab, setPlayersTab]   = useState('partners')
+  const [loading, setLoading]         = useState(true)
+
+  // Feed
+  const [feedItems, setFeedItems]     = useState([])
+  const [feedLoading, setFeedLoading] = useState(true)
+  const [kudosGiven, setKudosGiven]   = useState({})
+  const [hasFriends, setHasFriends]   = useState(false)
 
   useEffect(() => {
-    if (profile?.id) fetchData()
+    if (profile?.id) {
+      fetchData()
+      fetchFeedData()
+    }
   }, [profile?.id])
 
-  useEffect(() => {
-    if (user?.id) fetchFriendData()
-  }, [user?.id])
-
+  // ── Phase 1: user's own stats & sessions ─────────────────
   async function fetchData() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
 
-    // ── Phase 1 : requêtes parallèles indépendantes ─────────
     const [
       { data: myParticipations },
       { data: rawMatches },
       { data: allMatchRows },
     ] = await Promise.all([
-      // Sessions où le joueur est inscrit
       supabase
         .from('session_participants')
         .select('session_id')
         .eq('user_id', profile.id),
-      // Mes matchs (stats + historique)
       supabase
         .from('valid_matches')
         .select('*')
         .or(`team1_player1.eq.${profile.id},team1_player2.eq.${profile.id},team2_player1.eq.${profile.id},team2_player2.eq.${profile.id}`)
         .not('winner_team', 'is', null)
         .order('played_at', { ascending: true }),
-      // Tous les matchs → pour le classement ELO (identique à la page Communauté)
       supabase
         .from('valid_matches')
         .select('team1_player1,team1_player2,team2_player1,team2_player2')
         .not('winner_team', 'is', null),
     ])
 
-    // ── Phase 2 : requêtes dépendant de la phase 1 ──────────
     const mySessionIds = (myParticipations || []).map(p => p.session_id)
-
-    // Identifiants uniques de tous les joueurs ayant joué au moins 1 match
-    const allPlayerIds = [
-      ...new Set(
-        (allMatchRows || [])
-          .flatMap(m => [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2])
-          .filter(Boolean)
-      ),
-    ]
+    const allPlayerIds = [...new Set(
+      (allMatchRows || [])
+        .flatMap(m => [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2])
+        .filter(Boolean)
+    )]
 
     const [
       { data: sessions },
@@ -443,27 +620,18 @@ export default function Home() {
             .neq('status', 'cancelled')
         : Promise.resolve({ count: 0 }),
       allPlayerIds.length > 0
-        ? supabase
-            .from('profiles')
-            .select('id, rank_score')
-            .in('id', allPlayerIds)
+        ? supabase.from('profiles').select('id, rank_score').in('id', allPlayerIds)
         : Promise.resolve({ data: [] }),
     ])
 
     setUpcomingSessions(sessions || [])
     setTotalUpcoming(total ?? 0)
 
-    // ── Classement ELO (même logique que la page Communauté) ─
-    // Seuls les joueurs ayant joué ≥ 1 match sont pris en compte
-    const sortedElo = (rankedProfiles || []).sort(
-      (a, b) => (b.rank_score ?? 1000) - (a.rank_score ?? 1000)
-    )
-    const myEloIdx = sortedElo.findIndex(p => p.id === profile.id)
+    const sortedElo = (rankedProfiles || []).sort((a, b) => (b.rank_score ?? 1000) - (a.rank_score ?? 1000))
+    const myEloIdx  = sortedElo.findIndex(p => p.id === profile.id)
     setEloRank(myEloIdx >= 0 ? myEloIdx + 1 : null)
 
     const matches = rawMatches || []
-
-    // ── Stats ───────────────────────────────────────────────
     let wins = 0, losses = 0
     matches.forEach(m => {
       const isT1 = m.team1_player1 === profile.id || m.team1_player2 === profile.id
@@ -474,7 +642,6 @@ export default function Home() {
     const points = wins * 3 + losses * 1
     setMyStats({ wins, losses, played, points })
 
-    // ── Forme récente (5 derniers matchs) ───────────────────
     setRecentForm(
       [...matches].reverse().slice(0, 5).reverse().map(m => {
         const isT1 = m.team1_player1 === profile.id || m.team1_player2 === profile.id
@@ -482,7 +649,6 @@ export default function Home() {
       })
     )
 
-    // ── Historiques ELO & Points ─────────────────────────────
     if (matches.length >= 2) {
       let elo = 1000, pts = 0
       const eloH = [elo], ptsH = [pts]
@@ -498,15 +664,12 @@ export default function Home() {
         eloH.push(elo)
         ptsH.push(pts)
       })
-      // Ancrer le dernier point sur le vrai rank_score (calculé par le serveur)
-      // pour que le graphe et la carte "Score ELO" affichent la même valeur finale.
       const realElo = profile.rank_score ?? 1000
       const offset  = realElo - eloH[eloH.length - 1]
       setEloHistory(eloH.map(v => v + offset))
       setPtsHistory(ptsH)
     }
 
-    // ── Partenaires & Rivaux ─────────────────────────────────
     const partnerMap = {}, rivalMap = {}
     const getOrCreate = (map, id) => {
       if (!map[id]) map[id] = { id, games: 0, wins: 0 }
@@ -528,127 +691,228 @@ export default function Home() {
     })
     const topP = Object.values(partnerMap).sort((a, b) => b.games - a.games).slice(0, 4)
     const topR = Object.values(rivalMap).sort((a, b) => b.games - a.games).slice(0, 4)
-
     const allIds = [...new Set([...topP, ...topR].map(p => p.id).filter(Boolean))]
     if (allIds.length > 0) {
-      const { data: profileData } = await supabase
-        .from('profiles').select('id, name').in('id', allIds)
+      const { data: profileData } = await supabase.from('profiles').select('id, name').in('id', allIds)
       const nameMap = Object.fromEntries((profileData || []).map(p => [p.id, p.name]))
       topP.forEach(p => { p.name = nameMap[p.id] ?? 'Joueur' })
       topR.forEach(p => { p.name = nameMap[p.id] ?? 'Joueur' })
     }
     setTopPartners(topP)
     setTopRivals(topR)
-
-    // ── Derniers résultats (dernière session avec matchs) ────────
-    const recentMatchesSorted = [...matches].reverse()
-    const lastSessionId = recentMatchesSorted.find(m => m.session_id)?.session_id
-    if (lastSessionId) {
-      const lastSessionMatches = recentMatchesSorted.filter(m => m.session_id === lastSessionId)
-      const { data: sessData } = await supabase
-        .from('sessions').select('id, date, time, location').eq('id', lastSessionId).single()
-      // Enrichir les noms
-      const playerIds = [...new Set(lastSessionMatches.flatMap(m =>
-        [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2].filter(Boolean)
-      ))]
-      const { data: pData } = await supabase.from('profiles').select('id, name').in('id', playerIds)
-      const nameMap = Object.fromEntries((pData || []).map(p => [p.id, p.name]))
-      const enriched = lastSessionMatches.map(m => ({
-        ...m,
-        t1p1_name: nameMap[m.team1_player1] ?? '?',
-        t1p2_name: nameMap[m.team1_player2] ?? '?',
-        t2p1_name: nameMap[m.team2_player1] ?? '?',
-        t2p2_name: nameMap[m.team2_player2] ?? '?',
-      }))
-      if (sessData) setLastSessionGroups([{ session: sessData, matches: enriched }])
-    }
-
     setLoading(false)
   }
 
-  async function fetchFriendData() {
-    // 1. Fetch accepted friendships
+  // ── Phase 2: feed (friends + recent results + streaks) ───
+  async function fetchFeedData() {
+    setFeedLoading(true)
+
+    // 1. Get friend IDs
     const { data: fs } = await supabase
       .from('friendships')
       .select('requester_id, addressee_id')
       .eq('status', 'accepted')
-      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+      .or(`requester_id.eq.${profile.id},addressee_id.eq.${profile.id}`)
 
-    if (!fs?.length) return
+    const friendIds = (fs || []).map(f =>
+      f.requester_id === profile.id ? f.addressee_id : f.requester_id
+    )
+    setHasFriends(friendIds.length > 0)
 
-    const ids = fs.map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id)
+    const allParticipantIds = [profile.id, ...friendIds]
 
-    // 2. In parallel: friend profiles + upcoming sessions this week
+    // 2. Parallel fetches
+    const twoWeeksAgo = new Date()
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
     const today    = new Date().toISOString().split('T')[0]
     const nextWeek = new Date()
     nextWeek.setDate(nextWeek.getDate() + 7)
-    const nextWeekStr = nextWeek.toISOString().split('T')[0]
 
-    const [{ data: profiles }, { data: weekSessions }] = await Promise.all([
-      supabase.from('profiles').select('id, name, avatar_url').in('id', ids),
+    // Build OR clause for up to 20 participants
+    const orParts = allParticipantIds.slice(0, 20).flatMap(id => [
+      `team1_player1.eq.${id}`,
+      `team1_player2.eq.${id}`,
+      `team2_player1.eq.${id}`,
+      `team2_player2.eq.${id}`,
+    ])
+
+    const [
+      { data: recentMatches },
+      { data: friendProfiles },
+      { data: upcomingSessions },
+      { data: topProfiles },
+    ] = await Promise.all([
+      supabase
+        .from('valid_matches')
+        .select('*')
+        .or(orParts.join(','))
+        .gte('played_at', twoWeeksAgo.toISOString())
+        .not('winner_team', 'is', null)
+        .order('played_at', { ascending: false })
+        .limit(60),
+      friendIds.length > 0
+        ? supabase.from('profiles').select('id, name, avatar_url').in('id', friendIds)
+        : Promise.resolve({ data: [] }),
       supabase
         .from('sessions')
-        .select('id, date, time, location, max_players, session_participants(user_id)')
+        .select('id, date, time, location, title, max_players, session_participants(user_id)')
         .gte('date', today)
-        .lte('date', nextWeekStr)
+        .lte('date', nextWeek.toISOString().split('T')[0])
         .neq('status', 'cancelled')
         .order('date')
         .order('time'),
+      supabase
+        .from('profiles')
+        .select('id, name, avatar_url, rank_score')
+        .not('rank_score', 'is', null)
+        .order('rank_score', { ascending: false })
+        .limit(3),
     ])
 
-    // 3. Sessions where I'm registered this week
-    const mySessionIds = new Set(
-      (weekSessions || [])
-        .filter(s => s.session_participants?.some(p => p.user_id === user.id))
+    // 3. Enrich: player names + session infos
+    const playerIds = [...new Set(
+      (recentMatches || []).flatMap(m =>
+        [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2].filter(Boolean)
+      )
+    )]
+    const sessionIds = [...new Set((recentMatches || []).map(m => m.session_id).filter(Boolean))]
+
+    const [{ data: playerData }, { data: sessionInfos }] = await Promise.all([
+      playerIds.length > 0
+        ? supabase.from('profiles').select('id, name, avatar_url').in('id', playerIds)
+        : Promise.resolve({ data: [] }),
+      sessionIds.length > 0
+        ? supabase.from('sessions').select('id, date, time, location, title').in('id', sessionIds)
+        : Promise.resolve({ data: [] }),
+    ])
+
+    const profileMap    = Object.fromEntries((playerData    || []).map(p => [p.id, p]))
+    const friendMap     = Object.fromEntries((friendProfiles|| []).map(p => [p.id, p]))
+    const sessionInfoMap= Object.fromEntries((sessionInfos  || []).map(s => [s.id, s]))
+
+    const items = []
+
+    // 4. Match result items — grouped by session
+    const matchesBySession = {}
+    ;(recentMatches || []).forEach(m => {
+      const key = m.session_id || `solo-${m.id}`
+      if (!matchesBySession[key]) {
+        matchesBySession[key] = {
+          matches:     [],
+          session:     m.session_id ? sessionInfoMap[m.session_id] : null,
+          timestamp:   m.played_at,
+          isMySession: false,
+        }
+      }
+      matchesBySession[key].matches.push({
+        ...m,
+        t1p1: profileMap[m.team1_player1] ?? null,
+        t1p2: profileMap[m.team1_player2] ?? null,
+        t2p1: profileMap[m.team2_player1] ?? null,
+        t2p2: profileMap[m.team2_player2] ?? null,
+      })
+      if ([m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2].includes(profile.id)) {
+        matchesBySession[key].isMySession = true
+      }
+    })
+    Object.entries(matchesBySession).forEach(([key, data]) => {
+      items.push({ id: `match-${key}`, type: 'match_result', ...data })
+    })
+
+    // 5. Friend upcoming session items (only sessions I'm NOT in)
+    const myUpcomingIds = new Set(
+      (upcomingSessions || [])
+        .filter(s => s.session_participants?.some(p => p.user_id === profile.id))
         .map(s => s.id)
     )
-
-    // 4. Build one row per friend
-    const activity = ids.map(friendId => {
-      const prof = (profiles || []).find(p => p.id === friendId)
-      const friendSession = (weekSessions || []).find(s =>
+    friendIds.forEach(friendId => {
+      const friend = friendMap[friendId]
+      if (!friend) return
+      const friendSess = (upcomingSessions || []).find(s =>
         s.session_participants?.some(p => p.user_id === friendId)
       )
-      return {
-        userId:    friendId,
-        name:      prof?.name       ?? 'Joueur',
-        avatarUrl: prof?.avatar_url ?? null,
-        color:     avatarColor(friendId),
-        session:   friendSession ? {
-          id:       friendSession.id,
-          date:     friendSession.date,
-          time:     friendSession.time,
-          location: friendSession.location,
-          isFull:   (friendSession.session_participants?.length ?? 0) >= friendSession.max_players,
-          iAmIn:    mySessionIds.has(friendSession.id),
-        } : null,
+      if (friendSess && !myUpcomingIds.has(friendSess.id)) {
+        const sessDate = new Date(`${friendSess.date}T${friendSess.time}`)
+        items.push({
+          id:       `friend-${friendId}-${friendSess.id}`,
+          type:     'friend_session',
+          friend:   { id: friendId, name: friend.name, avatarUrl: friend.avatar_url },
+          session:  friendSess,
+          isFull:   (friendSess.session_participants?.length ?? 0) >= friendSess.max_players,
+          timestamp: sessDate.toISOString(),
+        })
       }
     })
 
-    // Sort: "même partie" → "rejoindre" → "complet" → "inviter"
-    activity.sort((a, b) => {
-      const score = f => f.session?.iAmIn ? 3 : (f.session && !f.session.isFull) ? 2 : f.session ? 1 : 0
-      return score(b) - score(a)
+    // 6. Streak items (user + friends, ≥ 3 consecutive wins)
+    const computeStreak = (pid, matches) => {
+      const mine = matches
+        .filter(m => [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2].includes(pid))
+        .slice(0, 5)
+      if (mine.length < 3) return null
+      const results = mine.map(m => {
+        const isT1 = m.team1_player1 === pid || m.team1_player2 === pid
+        return (isT1 && m.winner_team === 1) || (!isT1 && m.winner_team === 2)
+      })
+      const last = results[0]
+      let count = 0
+      for (const r of results) { if (r === last) count++; else break }
+      return count >= 3 ? { count, isWin: last, timestamp: mine[0]?.played_at } : null
+    }
+
+    const myStreak = computeStreak(profile.id, recentMatches || [])
+    if (myStreak) {
+      items.push({
+        id:        `streak-${profile.id}`,
+        type:      'streak',
+        player:    { id: profile.id, name: profile.name, avatarUrl: profile.avatar_url },
+        isMine:    true,
+        ...myStreak,
+      })
+    }
+    friendIds.forEach(friendId => {
+      const s = computeStreak(friendId, recentMatches || [])
+      if (!s) return
+      const friend = friendMap[friendId]
+      items.push({
+        id:     `streak-${friendId}`,
+        type:   'streak',
+        player: { id: friendId, name: friend?.name ?? 'Joueur', avatarUrl: friend?.avatar_url ?? null },
+        isMine: false,
+        ...s,
+      })
     })
 
-    setFriendActivity(activity)
+    // 7. Top 3 card (always, pinned at end)
+    if ((topProfiles || []).length >= 3) {
+      items.push({
+        id:        'top3',
+        type:      'top3',
+        players:   topProfiles.slice(0, 3),
+        timestamp: new Date(0).toISOString(), // pin to bottom
+      })
+    }
+
+    // 8. Sort: friend_session first (soonest date), then recency, top3 last
+    items.sort((a, b) => {
+      if (a.type === 'top3') return 1
+      if (b.type === 'top3') return -1
+      if (a.type === 'friend_session' && b.type !== 'friend_session') return -1
+      if (b.type === 'friend_session' && a.type !== 'friend_session') return  1
+      return new Date(b.timestamp) - new Date(a.timestamp)
+    })
+
+    setFeedItems(items)
+    setFeedLoading(false)
   }
 
-  const firstName  = profile?.name?.split(' ')[0] ?? 'Joueur'
-  const levelLabel = LEVEL_SHORT[profile?.level] ?? ''
-  const eloScore   = profile?.rank_score ?? 1000
-  const eloDelta   = profile?.rank_score_delta ?? 0
-  const winRate    = myStats.played > 0 ? Math.round((myStats.wins / myStats.played) * 100) : 0
+  const handleKudos = (id) => setKudosGiven(prev => ({ ...prev, [id]: !prev[id] }))
 
-  const streak = (() => {
-    if (!recentForm.length) return null
-    const last = recentForm[recentForm.length - 1]
-    let count = 0
-    for (let i = recentForm.length - 1; i >= 0; i--) {
-      if (recentForm[i] === last) count++; else break
-    }
-    return count >= 2 ? `${count} ${last === 'W' ? 'victoires' : 'défaites'} d'affilée` : null
-  })()
+  const eloScore  = profile?.rank_score ?? 1000
+  const eloDelta  = profile?.rank_score_delta ?? 0
+  const winRate   = myStats.played > 0 ? Math.round((myStats.wins / myStats.played) * 100) : 0
+  const levelLabel = LEVEL_SHORT[profile?.level] ?? ''
+  const myFirstName = profile?.name?.split(' ')[0] ?? 'Joueur'
 
   const chartPoints = chartTab === 'elo' ? eloHistory : ptsHistory
   const playersList = playersTab === 'partners' ? topPartners : topRivals
@@ -665,7 +929,7 @@ export default function Home() {
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
             <div>
               <div style={{ fontSize:12, color:'#6B9B7A', fontWeight:500, letterSpacing:'0.05em', marginBottom:4 }}>Bonjour,</div>
-              <div style={{ fontSize:34, fontWeight:500, color:'#fff', lineHeight:1.05 }}>{firstName}</div>
+              <div style={{ fontSize:34, fontWeight:500, color:'#fff', lineHeight:1.05 }}>{myFirstName}</div>
             </div>
             <div style={{ width:48, height:48, background:'rgba(255,255,255,0.08)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>🎾</div>
           </div>
@@ -705,10 +969,10 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Photo nudge — visible seulement si pas de photo */}
+        {/* Photo nudge */}
         {!profile?.avatar_url && <PhotoNudge />}
 
-        {/* Mes prochaines parties (seulement celles où je suis inscrit) */}
+        {/* Mes prochaines parties */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
           <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Mes prochaines parties</div>
         </div>
@@ -741,93 +1005,25 @@ export default function Home() {
           </div>
         )}
 
-        {/* Tes amis cette semaine */}
-        {!loading && <FriendsThisWeek friendActivity={friendActivity} />}
+        {/* ── Fil d'actu ─────────────────────────────────── */}
+        <ActivityFeed
+          items={feedItems}
+          loading={feedLoading}
+          myId={profile?.id}
+          kudosGiven={kudosGiven}
+          onKudos={handleKudos}
+        />
 
         {/* ── Sections nouveau joueur (0 partie jouée) ─────── */}
-        {!loading && myStats.played === 0 && friendActivity.length === 0 && <FindFriendsCard />}
+        {!loading && myStats.played === 0 && !hasFriends && <FindFriendsCard />}
         {!loading && myStats.played === 0 && (
           <FirstStepsCard
             hasJoinedSession={upcomingSessions.length > 0}
-            hasFriends={friendActivity.length > 0}
+            hasFriends={hasFriends}
           />
         )}
 
-        {/* Derniers résultats */}
-        {!loading && lastSessionGroups.length > 0 && (
-          <>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-              <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Derniers résultats</div>
-              {streak && <div style={{ fontSize:11, color:'#6B7280' }}>{streak}</div>}
-            </div>
-            {lastSessionGroups.map(({ session, matches: sMatches }) => {
-              const sessionDt = new Date(`${session.date}T${session.time}`)
-              return (
-                <div key={session.id} style={{ marginBottom:14 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 2px 6px' }}>
-                    <span style={{ background:'#14532d', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 9px', borderRadius:20, whiteSpace:'nowrap', textTransform:'capitalize' }}>
-                      {format(sessionDt, 'EEE d MMM', { locale: fr })}
-                    </span>
-                    <span style={{ fontSize:11, color:'#6B7280', flex:1, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis' }}>
-                      {session.location} · {format(sessionDt, 'HH:mm')}
-                    </span>
-                    <Link to={`/sessions/${session.id}`} style={{ flexShrink:0 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                        <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                      </svg>
-                    </Link>
-                  </div>
-                  <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', overflow:'hidden' }}>
-                    {sMatches.map((m, idx) => {
-                      const isT1  = m.team1_player1 === profile.id || m.team1_player2 === profile.id
-                      const myWon = (isT1 && m.winner_team === 1) || (!isT1 && m.winner_team === 2)
-                      const t1Won = m.winner_team === 1
-                      const renderName = (name, pid, align = 'left') => (
-                        <span key={pid} style={{ display:'block', lineHeight:1.4, fontSize:12,
-                          fontWeight: pid === profile.id ? 700 : 500,
-                          color: pid === profile.id ? (myWon ? '#14532d' : '#B91C1C') : '#374151',
-                          textAlign: align,
-                        }}>{name ?? 'Joueur'}</span>
-                      )
-                      return (
-                        <div key={m.id} style={{
-                          borderLeft: `3px solid ${myWon ? '#16A34A' : '#EF4444'}`,
-                          padding:'11px 12px',
-                          borderBottom: idx < sMatches.length - 1 ? '0.5px solid #E5E7EB' : 'none',
-                        }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontSize:9, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:3, color: t1Won ? '#16A34A' : '#9CA3AF' }}>
-                                {t1Won ? 'Victoire' : 'Défaite'}
-                              </div>
-                              {renderName(m.t1p1_name, m.team1_player1)}
-                              {m.team1_player2 && renderName(m.t1p2_name, m.team1_player2)}
-                            </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:4, flexShrink:0, padding:'0 4px' }}>
-                              <span style={{ fontSize:20, fontWeight:800, lineHeight:1, color: t1Won ? '#16A34A' : '#9CA3AF' }}>{m.team1_score}</span>
-                              <span style={{ fontSize:13, color:'#D1D5DB' }}>—</span>
-                              <span style={{ fontSize:20, fontWeight:800, lineHeight:1, color: !t1Won ? '#16A34A' : '#9CA3AF' }}>{m.team2_score}</span>
-                            </div>
-                            <div style={{ flex:1, minWidth:0, textAlign:'right' }}>
-                              <div style={{ fontSize:9, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:3, color: !t1Won ? '#16A34A' : '#9CA3AF', textAlign:'right' }}>
-                                {!t1Won ? 'Victoire' : 'Défaite'}
-                              </div>
-                              {renderName(m.t2p1_name, m.team2_player1, 'right')}
-                              {m.team2_player2 && renderName(m.t2p2_name, m.team2_player2, 'right')}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-          </>
-        )}
-
-        {/* Mes stats 2×2 — masquées si jamais joué */}
+        {/* Mes stats 2×2 */}
         {!loading && myStats.played > 0 && (
           <>
             <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Mes stats</div>
@@ -858,7 +1054,7 @@ export default function Home() {
                   badgeGood: false,
                 },
               ].map((s, i) => (
-                <div key={i} style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:12, opacity: myStats.played === 0 && i > 0 ? 0.4 : 1 }}>
+                <div key={i} style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:12 }}>
                   <div style={{ fontSize:22, fontWeight:500, color:'#111827', lineHeight:1 }}>{s.val}</div>
                   <div style={{ fontSize:10, color:'#6B7280', marginTop:3 }}>{s.lbl}</div>
                   <div style={{ fontSize:9, fontWeight:500, padding:'2px 6px', borderRadius:999, marginTop:5, display:'inline-block',
@@ -871,7 +1067,7 @@ export default function Home() {
           </>
         )}
 
-        {/* Évolution — masquée si jamais joué */}
+        {/* Évolution */}
         {!loading && myStats.played > 0 && (
           <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:'12px 12px 8px', marginBottom:14, overflow:'hidden' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
@@ -894,7 +1090,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Partenaires & Rivaux — masqués si jamais joué */}
+        {/* Partenaires & Rivaux */}
         {!loading && myStats.played > 0 && (
           <>
             <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Partenaires &amp; Rivaux</div>
@@ -917,9 +1113,9 @@ export default function Home() {
                 </div>
               ) : playersList.map((p, i) => {
                 const pWinRate = p.games > 0 ? Math.round((p.wins / p.games) * 100) : 0
-                const pLosses = p.games - p.wins
+                const pLosses  = p.games - p.wins
                 const initials = (p.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 1)
-                const color = avatarColor(p.id || '')
+                const color    = avatarColor(p.id || '')
                 return (
                   <Link key={p.id} to={`/players/${p.id}`}
                     style={{ display:'flex', alignItems:'center', gap:9, padding:'9px 12px', borderBottom: i < playersList.length - 1 ? '0.5px solid #E5E7EB' : 'none', textDecoration:'none' }}
