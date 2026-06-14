@@ -219,11 +219,25 @@ function Pill({ active, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className="h-9 px-4 rounded-full text-[12px] font-medium transition-all shrink-0 whitespace-nowrap"
-      style={active
-        ? { background: '#14532d', color: '#fff', border: '1px solid #14532d' }
-        : { background: '#F9F9F8', border: '0.5px solid #E5E7EB', color: '#374151' }
-      }
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        height: 36,
+        padding: '0 14px',
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 500,
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+        cursor: 'pointer',
+        transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+        ...(active
+          ? { background: '#14532d', color: '#fff', border: '1px solid #14532d' }
+          : { background: '#F9F9F8', border: '0.5px solid #E5E7EB', color: '#374151' }
+        ),
+      }}
     >
       {children}
     </button>
@@ -377,7 +391,7 @@ export default function Sessions() {
             {/* Places dispo */}
             <Pill active={openOnly} onClick={() => setOpenOnly(v => !v)}>
               {openOnly && (
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} style={{ marginRight: 2 }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
                 </svg>
               )}
@@ -386,7 +400,7 @@ export default function Sessions() {
 
             {/* Amis */}
             <Pill active={friendsOnly} onClick={() => setFriendsOnly(v => !v)}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ marginRight: 2 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M23 21v-2a4 4 0 00-3-3.87"/>
