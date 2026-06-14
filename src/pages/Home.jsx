@@ -172,33 +172,46 @@ function MatchResultCard({ item, myId, kudosGiven, onKudos }) {
 
 // ── Feed card: Friend upcoming session ────────────────────────
 function FriendSessionCard({ item }) {
-  const { friend, session, isFull } = item
+  const { friends, session } = item
   const sessDate   = new Date(`${session.date}T${session.time}`)
   const placesLeft = session.max_players - (session.session_participants?.length ?? 0)
-  const dayLabel   = isToday(sessDate) ? "aujourd'hui" : isTomorrow(sessDate) ? 'demain' : format(sessDate, 'EEE d', { locale: fr })
+  const when       = isToday(sessDate) ? "aujourd'hui" : isTomorrow(sessDate) ? 'demain' : format(sessDate, 'EEE d MMM', { locale: fr })
+
+  const names = friends.map(f => firstName(f.name))
+  const nameLabel = names.length === 1
+    ? `${names[0]} joue ${when}`
+    : names.length === 2
+      ? `${names[0]} et ${names[1]} jouent ${when}`
+      : `${names[0]}, ${names[1]} et ${names.length - 2} autre${names.length > 3 ? 's' : ''} jouent ${when}`
 
   return (
     <div style={{ background:'#fff', borderRadius:12, border:'.5px solid #E5E7EB', marginBottom:7 }}>
       <div style={{ display:'flex', alignItems:'center', padding:'10px 12px 6px' }}>
-        <span style={{ fontSize:9, fontWeight:600, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'.05em' }}>Ami disponible</span>
-        <span style={{ marginLeft:'auto', fontSize:10, color:'#C4C2BC' }}>{isToday(sessDate) ? "Auj." : isTomorrow(sessDate) ? 'Dem.' : format(sessDate, 'EEE d', { locale: fr })}</span>
+        <span style={{ fontSize:9, fontWeight:600, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'.05em' }}>
+          {friends.length > 1 ? 'Amis disponibles' : 'Ami disponible'}
+        </span>
+        <span style={{ marginLeft:'auto', fontSize:10, color:'#C4C2BC' }}>
+          {isToday(sessDate) ? 'Auj.' : isTomorrow(sessDate) ? 'Dem.' : format(sessDate, 'EEE d', { locale: fr })}
+        </span>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:9, padding:'0 12px 10px' }}>
-        <FeedAvatar profile={{ id: friend.id, name: friend.name, avatar_url: friend.avatarUrl }} size={28} />
+        {/* Avatar stack — overlap quand plusieurs amis */}
+        <div style={{ display:'flex', flexShrink:0 }}>
+          {friends.slice(0, 3).map((f, i) => (
+            <div key={f.id} style={{ marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i, position:'relative' }}>
+              <FeedAvatar profile={{ id: f.id, name: f.name, avatar_url: f.avatarUrl }} size={28} />
+            </div>
+          ))}
+        </div>
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:12, fontWeight:500, color:'#111827', marginBottom:1 }}>
-            {firstName(friend.name)} joue {dayLabel}
-          </div>
+          <div style={{ fontSize:12, fontWeight:500, color:'#111827', marginBottom:1 }}>{nameLabel}</div>
           <div style={{ fontSize:10, color:'#9CA3AF' }}>
-            {format(sessDate, 'HH:mm')} · {session.location}
-            {!isFull && ` · ${placesLeft} place${placesLeft > 1 ? 's' : ''} dispo`}
-            {isFull && ' · Complet'}
+            {format(sessDate, 'HH:mm')} · {session.location} · {placesLeft} place{placesLeft > 1 ? 's' : ''} dispo
           </div>
         </div>
-        {!isFull
-          ? <Link to={`/sessions/${session.id}`} style={{ fontSize:11, fontWeight:500, color:'#14532d', flexShrink:0, textDecoration:'none' }}>Rejoindre →</Link>
-          : <Link to={`/sessions/${session.id}`} style={{ fontSize:11, color:'#9CA3AF', flexShrink:0, textDecoration:'none' }}>Voir</Link>
-        }
+        <Link to={`/sessions/${session.id}`} style={{ fontSize:11, fontWeight:500, color:'#14532d', flexShrink:0, textDecoration:'none' }}>
+          Rejoindre →
+        </Link>
       </div>
     </div>
   )
@@ -247,7 +260,9 @@ function Top3Card({ item }) {
   return (
     <div style={{ background:'#fff', borderRadius:12, border:'.5px solid #E5E7EB', marginBottom:7 }}>
       <div style={{ display:'flex', alignItems:'center', padding:'10px 12px 6px' }}>
-        <span style={{ fontSize:9, fontWeight:600, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'.05em' }}>Classement ELO</span>
+        <Link to="/leaderboard" style={{ fontSize:9, fontWeight:600, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'.05em', textDecoration:'none' }}>
+          Classement ELO →
+        </Link>
       </div>
       <div style={{ padding:'0 12px 12px' }}>
         <div style={{ fontSize:10, color:'#9CA3AF', marginBottom:10 }}>Top 3 du classement général</div>
@@ -255,7 +270,9 @@ function Top3Card({ item }) {
           {cols.map(({ p, bar, bg, label, crown, textColor }) => p && (
             <div key={p.id} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
               {crown && <span style={{ fontSize:12 }}>👑</span>}
-              <FeedAvatar profile={{ id: p.id, name: p.name, avatar_url: p.avatar_url }} size={28} />
+              <Link to={`/players/${p.id}`} style={{ textDecoration:'none' }}>
+                <FeedAvatar profile={{ id: p.id, name: p.name, avatar_url: p.avatar_url }} size={28} />
+              </Link>
               <div style={{ fontSize:9, fontWeight: crown ? 700 : 500, color: crown ? '#111827' : '#374151' }}>{firstName(p.name)}</div>
               <div style={{ fontSize:8, color:'#9CA3AF' }}>{p.rank_score} pts</div>
               <div style={{ width:50, height:bar, borderRadius:'4px 4px 0 0', background: bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color: textColor ?? '#fff' }}>{label}</div>
@@ -815,34 +832,44 @@ export default function Home() {
         matchesBySession[key].isMySession = true
       }
     })
-    Object.entries(matchesBySession).forEach(([key, data]) => {
-      items.push({ id: `match-${key}`, type: 'match_result', ...data })
-    })
+    // Max 3 sessions de résultats, les plus récentes d'abord
+    Object.entries(matchesBySession)
+      .map(([key, data]) => ({ id: `match-${key}`, type: 'match_result', ...data }))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 3)
+      .forEach(item => items.push(item))
 
-    // 5. Friend upcoming session items (only sessions I'm NOT in)
+    // 5. Friend upcoming session items — groupées par session, sans les parties complètes, max 3
     const myUpcomingIds = new Set(
       (upcomingSessions || [])
         .filter(s => s.session_participants?.some(p => p.user_id === profile.id))
         .map(s => s.id)
     )
+    const sessToFriends = {}
     friendIds.forEach(friendId => {
       const friend = friendMap[friendId]
       if (!friend) return
-      const friendSess = (upcomingSessions || []).find(s =>
+      const sess = (upcomingSessions || []).find(s =>
         s.session_participants?.some(p => p.user_id === friendId)
       )
-      if (friendSess && !myUpcomingIds.has(friendSess.id)) {
-        const sessDate = new Date(`${friendSess.date}T${friendSess.time}`)
-        items.push({
-          id:       `friend-${friendId}-${friendSess.id}`,
-          type:     'friend_session',
-          friend:   { id: friendId, name: friend.name, avatarUrl: friend.avatar_url },
-          session:  friendSess,
-          isFull:   (friendSess.session_participants?.length ?? 0) >= friendSess.max_players,
-          timestamp: sessDate.toISOString(),
-        })
-      }
+      if (!sess) return
+      const isFull = (sess.session_participants?.length ?? 0) >= sess.max_players
+      if (isFull || myUpcomingIds.has(sess.id)) return
+      if (!sessToFriends[sess.id]) sessToFriends[sess.id] = { session: sess, friends: [] }
+      sessToFriends[sess.id].friends.push({ id: friendId, name: friend.name, avatarUrl: friend.avatar_url })
     })
+    Object.values(sessToFriends)
+      .sort((a, b) => new Date(`${a.session.date}T${a.session.time}`) - new Date(`${b.session.date}T${b.session.time}`))
+      .slice(0, 3)
+      .forEach(({ session, friends }) => {
+        items.push({
+          id:       `friend-sess-${session.id}`,
+          type:     'friend_session',
+          friends,
+          session,
+          timestamp: new Date(`${session.date}T${session.time}`).toISOString(),
+        })
+      })
 
     // 6. Streak items (user + friends, ≥ 3 consecutive wins)
     const computeStreak = (pid, matches) => {
@@ -861,7 +888,7 @@ export default function Home() {
     }
 
     const myStreak = computeStreak(profile.id, recentMatches || [])
-    if (myStreak) {
+    if (myStreak && myStreak.isWin) {
       items.push({
         id:        `streak-${profile.id}`,
         type:      'streak',
@@ -872,7 +899,7 @@ export default function Home() {
     }
     friendIds.forEach(friendId => {
       const s = computeStreak(friendId, recentMatches || [])
-      if (!s) return
+      if (!s || !s.isWin) return
       const friend = friendMap[friendId]
       items.push({
         id:     `streak-${friendId}`,

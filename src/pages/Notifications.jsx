@@ -6,6 +6,17 @@ import { useNotifications } from '../contexts/NotificationsContext'
 import { formatDistanceToNow, isToday, isYesterday } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+// ── Persistance "Pas maintenant" en localStorage ──────────────────────────────
+function getDismissedSuggestions(userId) {
+  try { return JSON.parse(localStorage.getItem(`pm_dismissed_${userId}`) || '[]') } catch { return [] }
+}
+function persistDismiss(userId, playerId) {
+  const current = getDismissedSuggestions(userId)
+  if (!current.includes(playerId)) {
+    localStorage.setItem(`pm_dismissed_${userId}`, JSON.stringify([...current, playerId]))
+  }
+}
+
 // ── Avatar color (même logique que Home.jsx) ─────────────────────────────────
 function avatarColor(str = '') {
   const colors = ['#2563EB','#059669','#7C3AED','#D97706','#DC2626','#0891B2','#9333EA','#16A34A']
@@ -301,7 +312,7 @@ function FriendRequestActions({ notif, onDone }) {
 
 // ── Suggestion d'ami (joueur rencontré récemment) ─────────────────────────────
 
-function FriendSuggestionRow({ suggestion, myProfile, onAdd, isLast }) {
+function FriendSuggestionRow({ suggestion, myProfile, onAdd, onDismiss, isLast }) {
   const [state, setState] = useState('idle') // idle | sent | dismissed
 
   async function handleAdd() {
@@ -352,7 +363,7 @@ function FriendSuggestionRow({ suggestion, myProfile, onAdd, isLast }) {
               style={{ fontSize:10, fontWeight:600, color:'#fff', background:'#14532d', border:'none', borderRadius:20, padding:'5px 12px', cursor:'pointer' }}>
               + Ajouter comme ami
             </button>
-            <button onClick={() => setState('dismissed')}
+            <button onClick={() => { setState('dismissed'); onDismiss(suggestion.userId) }}
               style={{ fontSize:10, fontWeight:500, color:'#6B7280', background:'#F3F4F6', border:'none', borderRadius:20, padding:'5px 10px', cursor:'pointer' }}>
               Pas maintenant
             </button>
@@ -421,7 +432,9 @@ export default function Notifications() {
         })
     })
 
-    const suggestionIds = Object.keys(coPlayers).slice(0, 4)
+    // Filtrer les joueurs déjà rejetés (persisté en localStorage)
+    const dismissed = new Set(getDismissedSuggestions(user.id))
+    const suggestionIds = Object.keys(coPlayers).filter(id => !dismissed.has(id)).slice(0, 4)
     if (!suggestionIds.length) return
 
     // Contexte : lieu de la dernière session partagée
@@ -504,6 +517,7 @@ export default function Notifications() {
                 suggestion={s}
                 myProfile={profile}
                 onAdd={handleAddFriend}
+                onDismiss={(playerId) => persistDismiss(user.id, playerId)}
                 isLast={i === suggestions.length - 1}
               />
             ))}
