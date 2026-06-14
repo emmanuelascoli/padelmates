@@ -53,6 +53,11 @@ function matchesOpen(s, openOnly) {
   return (s.session_participants?.length ?? 0) < s.max_players
 }
 
+function matchesFriends(s, friendsOnly, friendIds) {
+  if (!friendsOnly || !friendIds.length) return true
+  return (s.session_participants || []).some(p => friendIds.includes(p.user_id))
+}
+
 // ── Titre calculé depuis la date ──────────────────────────────
 function sessionTitle(date) {
   return 'Partie du ' + format(date, 'EEEE d MMMM', { locale: fr })
@@ -243,14 +248,19 @@ export default function Sessions() {
   const [timeActive, setTimeActive]         = useState(new Set())
   const [locationActive, setLocationActive] = useState(new Set())
   const [openOnly, setOpenOnly]             = useState(false)
+  const [friendsOnly, setFriendsOnly]       = useState(false)
+  const [showFilters, setShowFilters]       = useState(false)
 
-  const hasActiveFilters = levelActive.size > 0 || timeActive.size > 0 || locationActive.size > 0 || openOnly
+  const secondaryCount   = levelActive.size + timeActive.size + locationActive.size
+  const hasActiveFilters = secondaryCount > 0 || openOnly || friendsOnly
 
   function resetFilters() {
     setLevelActive(new Set())
     setTimeActive(new Set())
     setLocationActive(new Set())
     setOpenOnly(false)
+    setFriendsOnly(false)
+    setShowFilters(false)
   }
 
   function toggleSet(setter, key) {
@@ -327,7 +337,8 @@ export default function Sessions() {
     matchesLevel(s, levelActive) &&
     matchesTime(s, timeActive) &&
     matchesLocation(s, locationActive) &&
-    matchesOpen(s, openOnly)
+    matchesOpen(s, openOnly) &&
+    matchesFriends(s, friendsOnly, friendIds)
   )
 
   // Séparation mes parties / toutes les parties (uniquement sur "À venir")
@@ -359,54 +370,118 @@ export default function Sessions() {
 
       {/* Filtres (seulement sur À venir) */}
       {tab === 'upcoming' && (
-        <div className="bg-white rounded-2xl p-3 space-y-2.5" style={{ border: '0.5px solid #E5E7EB' }}>
+        <>
+          {/* ── Barre principale : 1 ligne ─────────────────── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
 
-          {/* Niveau */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] text-gray-400 font-medium w-10 shrink-0">Niveau</span>
-            <Pill active={levelActive.has('1-3')}  onClick={() => toggleSet(setLevelActive, '1-3')}>1–3</Pill>
-            <Pill active={levelActive.has('4-6')}  onClick={() => toggleSet(setLevelActive, '4-6')}>4–6</Pill>
-            <Pill active={levelActive.has('7-10')} onClick={() => toggleSet(setLevelActive, '7-10')}>7–10</Pill>
-          </div>
-
-          {/* Créneau */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] text-gray-400 font-medium w-10 shrink-0">Créneau</span>
-            <Pill active={timeActive.has('morning')} onClick={() => toggleSet(setTimeActive, 'morning')}>Matin</Pill>
-            <Pill active={timeActive.has('noon')}    onClick={() => toggleSet(setTimeActive, 'noon')}>Midi</Pill>
-            <Pill active={timeActive.has('evening')} onClick={() => toggleSet(setTimeActive, 'evening')}>Soir</Pill>
-          </div>
-
-          {/* Lieu (scroll horizontal) */}
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-gray-400 font-medium w-10 shrink-0">Lieu</span>
-            <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-0.5" style={{ flexWrap: 'nowrap' }}>
-              {KNOWN_VENUES.map(loc => (
-                <Pill key={loc} active={locationActive.has(loc)} onClick={() => toggleSet(setLocationActive, loc)}>
-                  {loc}
-                </Pill>
-              ))}
-            </div>
-          </div>
-
-          {/* Séparateur + Places dispo */}
-          <div className="border-t pt-2 flex items-center justify-between" style={{ borderColor: '#F3F4F6' }}>
+            {/* Places dispo */}
             <Pill active={openOnly} onClick={() => setOpenOnly(v => !v)}>
-              Places disponibles
+              {openOnly && (
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} style={{ marginRight: 2 }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+              )}
+              Places dispo
             </Pill>
+
+            {/* Amis */}
+            <Pill active={friendsOnly} onClick={() => setFriendsOnly(v => !v)}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ marginRight: 2 }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M23 21v-2a4 4 0 00-3-3.87"/>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 3.13a4 4 0 010 7.75"/>
+              </svg>
+              Amis
+            </Pill>
+
+            <div style={{ flex: 1 }} />
+
+            {/* Résultats si filtre actif */}
             {hasActiveFilters && (
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] text-gray-400">
-                  {filtered.length} résultat{filtered.length !== 1 ? 's' : ''}
-                </span>
-                <button onClick={resetFilters} className="text-[10px] text-forest-700 font-medium hover:underline">
-                  Effacer ×
-                </button>
-              </div>
+              <span style={{ fontSize: 10, color: '#9CA3AF', flexShrink: 0 }}>
+                {filtered.length} résultat{filtered.length !== 1 ? 's' : ''}
+              </span>
             )}
+
+            {/* Bouton filtres secondaires */}
+            <button
+              onClick={() => setShowFilters(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                height: 28, padding: '0 10px', borderRadius: 20,
+                fontSize: 10, fontWeight: 500, cursor: 'pointer',
+                background: showFilters ? '#F0FDF4' : '#fff',
+                color: secondaryCount > 0 ? '#14532d' : '#374151',
+                border: `.5px solid ${secondaryCount > 0 ? '#BBF7D0' : '#E5E7EB'}`,
+                flexShrink: 0,
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M7 12h10M11 20h2"/>
+              </svg>
+              Filtres
+              {secondaryCount > 0 && (
+                <span style={{
+                  background: '#14532d', color: '#fff',
+                  fontSize: 8, fontWeight: 700,
+                  width: 14, height: 14, borderRadius: '50%',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {secondaryCount}
+                </span>
+              )}
+            </button>
           </div>
 
-        </div>
+          {/* ── Panneau secondaire collapsible ─────────────── */}
+          {showFilters && (
+            <div style={{ background: '#fff', borderRadius: 14, border: '.5px solid #E5E7EB', padding: '12px 12px 10px' }}>
+
+              {/* Niveau */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+                <span style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 700, width: 44, flexShrink: 0, letterSpacing: '.05em', textTransform: 'uppercase' }}>Niveau</span>
+                <div style={{ display: 'flex', gap: 5 }}>
+                  {[['1-3','1–3'], ['4-6','4–6'], ['7-10','7–10']].map(([key, label]) => (
+                    <Pill key={key} active={levelActive.has(key)} onClick={() => toggleSet(setLevelActive, key)}>{label}</Pill>
+                  ))}
+                </div>
+              </div>
+
+              {/* Créneau */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+                <span style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 700, width: 44, flexShrink: 0, letterSpacing: '.05em', textTransform: 'uppercase' }}>Heure</span>
+                <div style={{ display: 'flex', gap: 5 }}>
+                  {[['morning','Matin'], ['noon','Midi'], ['evening','Soir']].map(([key, label]) => (
+                    <Pill key={key} active={timeActive.has(key)} onClick={() => toggleSet(setTimeActive, key)}>{label}</Pill>
+                  ))}
+                </div>
+              </div>
+
+              {/* Lieu */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 700, width: 44, flexShrink: 0, letterSpacing: '.05em', textTransform: 'uppercase' }}>Lieu</span>
+                <div className="no-scrollbar" style={{ display: 'flex', gap: 5, overflowX: 'auto', flexWrap: 'nowrap' }}>
+                  {KNOWN_VENUES.map(loc => (
+                    <Pill key={loc} active={locationActive.has(loc)} onClick={() => toggleSet(setLocationActive, loc)}>{loc}</Pill>
+                  ))}
+                </div>
+              </div>
+
+              {/* Effacer filtres secondaires */}
+              {secondaryCount > 0 && (
+                <div style={{ borderTop: '.5px solid #F3F4F6', marginTop: 10, paddingTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setLevelActive(new Set()); setTimeActive(new Set()); setLocationActive(new Set()) }}
+                    style={{ fontSize: 10, color: '#14532d', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    Effacer ×
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {/* Liste */}
