@@ -6,6 +6,14 @@ import { useNotifications } from '../contexts/NotificationsContext'
 import { formatDistanceToNow, isToday, isYesterday } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+// ── Avatar color (même logique que Home.jsx) ─────────────────────────────────
+function avatarColor(str = '') {
+  const colors = ['#2563EB','#059669','#7C3AED','#D97706','#DC2626','#0891B2','#9333EA','#16A34A']
+  let h = 0
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffffffff
+  return colors[Math.abs(h) % colors.length]
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(dateStr) {
@@ -291,11 +299,77 @@ function FriendRequestActions({ notif, onDone }) {
   )
 }
 
+// ── Suggestion d'ami (joueur rencontré récemment) ─────────────────────────────
+
+function FriendSuggestionRow({ suggestion, myProfile, onAdd, isLast }) {
+  const [state, setState] = useState('idle') // idle | sent | dismissed
+
+  async function handleAdd() {
+    setState('sent')
+    await onAdd(suggestion.userId)
+  }
+
+  if (state === 'dismissed') return null
+
+  const myInitials    = (myProfile?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const theirInitials = (suggestion.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+
+  return (
+    <div style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'12px 14px', borderBottom: isLast ? 'none' : '1px solid rgba(0,0,0,0.06)' }}>
+      {/* Double avatar */}
+      <div style={{ position:'relative', width:42, height:42, flexShrink:0 }}>
+        {/* Leur avatar (arrière) */}
+        <div style={{ position:'absolute', top:0, left:0, width:30, height:30, borderRadius:9,
+          background: suggestion.color, border:'2px solid #fff', overflow:'hidden',
+          display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:600, color:'#fff' }}>
+          {suggestion.avatarUrl
+            ? <img src={suggestion.avatarUrl} alt={suggestion.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+            : theirInitials}
+        </div>
+        {/* Mon avatar (avant) */}
+        <div style={{ position:'absolute', bottom:0, right:0, width:22, height:22, borderRadius:7,
+          background: avatarColor(myProfile?.id || ''), border:'2px solid #fff', overflow:'hidden',
+          display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:600, color:'#fff' }}>
+          {myProfile?.avatar_url
+            ? <img src={myProfile.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+            : myInitials}
+        </div>
+      </div>
+
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:12, fontWeight:600, color:'#111827', marginBottom:1 }}>
+          {suggestion.name}
+        </div>
+        <div style={{ fontSize:10, color:'#6B7280', marginBottom:8, lineHeight:1.4 }}>
+          {suggestion.context} · {timeAgo(suggestion.playedAt)}
+          {suggestion.matchCount > 1 && ` · ${suggestion.matchCount} parties en commun`}
+        </div>
+        {state === 'sent' ? (
+          <p style={{ fontSize:11, color:'#14532d', fontWeight:600 }}>✓ Demande envoyée</p>
+        ) : (
+          <div style={{ display:'flex', gap:6 }}>
+            <button onClick={handleAdd}
+              style={{ fontSize:10, fontWeight:600, color:'#fff', background:'#14532d', border:'none', borderRadius:20, padding:'5px 12px', cursor:'pointer' }}>
+              + Ajouter comme ami
+            </button>
+            <button onClick={() => setState('dismissed')}
+              style={{ fontSize:10, fontWeight:500, color:'#6B7280', background:'#F3F4F6', border:'none', borderRadius:20, padding:'5px 10px', cursor:'pointer' }}>
+              Pas maintenant
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Page principale ───────────────────────────────────────────────────────────
 
 export default function Notifications() {
-  const { notifications, loading, markAllRead, markOneRead } = useNotifications()
-  const [justRead, setJustRead] = useState(new Set())
+  const { user, profile }                                      = useAuth()
+  const { notifications, loading, markAllRead, markOneRead }   = useNotifications()
+  const [justRead, setJustRead]     = useState(new Set())
+  const [suggestions, setSuggestions] = useState([])
 
   useEffect(() => {
     const unreadIds = new Set(notifications.filter(n => !n.read).map(n => n.id))
@@ -306,6 +380,89 @@ export default function Notifications() {
       return () => clearTimeout(timer)
     }
   }, [])
+
+  useEffect(() => {
+    if (user?.id) fetchSuggestions()
+  }, [user?.id])
+
+  async function fetchSuggestions() {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const [{ data: recentMatches }, { data: friendships }] = await Promise.all([
+      supabase
+        .from('valid_matches')
+        .select('team1_player1, team1_player2, team2_player1, team2_player2, session_id, played_at')
+        .or(`team1_player1.eq.${user.id},team1_player2.eq.${user.id},team2_player1.eq.${user.id},team2_player2.eq.${user.id}`)
+        .gte('played_at', thirtyDaysAgo.toISOString())
+        .not('winner_team', 'is', null)
+        .order('played_at', { ascending: false }),
+      supabase
+        .from('friendships')
+        .select('requester_id, addressee_id')
+        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`),
+    ])
+
+    // IDs déjà connectés (amis acceptés OU demande en cours)
+    const connectedIds = new Set(
+      (friendships || [])
+        .flatMap(f => [f.requester_id, f.addressee_id])
+        .filter(id => id !== user.id)
+    )
+
+    // Co-joueurs des 30 derniers jours non encore amis
+    const coPlayers = {}
+    ;(recentMatches || []).forEach(m => {
+      [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2]
+        .filter(id => id && id !== user.id && !connectedIds.has(id))
+        .forEach(id => {
+          if (!coPlayers[id]) coPlayers[id] = { matchCount: 0, lastMatch: m }
+          coPlayers[id].matchCount++
+        })
+    })
+
+    const suggestionIds = Object.keys(coPlayers).slice(0, 4)
+    if (!suggestionIds.length) return
+
+    // Contexte : lieu de la dernière session partagée
+    const sessionIds = [...new Set(
+      Object.values(coPlayers).map(c => c.lastMatch.session_id).filter(Boolean)
+    )]
+
+    const [{ data: profiles }, { data: sessions }] = await Promise.all([
+      supabase.from('profiles').select('id, name, avatar_url').in('id', suggestionIds),
+      sessionIds.length
+        ? supabase.from('sessions').select('id, location').in('id', sessionIds)
+        : { data: [] },
+    ])
+
+    const sessionMap = Object.fromEntries((sessions || []).map(s => [s.id, s]))
+
+    setSuggestions(
+      suggestionIds.map(id => {
+        const prof      = (profiles || []).find(p => p.id === id)
+        const lastMatch = coPlayers[id].lastMatch
+        const sess      = sessionMap[lastMatch.session_id]
+        return {
+          userId:     id,
+          name:       prof?.name       ?? 'Joueur',
+          avatarUrl:  prof?.avatar_url ?? null,
+          color:      avatarColor(id),
+          matchCount: coPlayers[id].matchCount,
+          context:    sess ? `Joué ensemble à ${sess.location}` : 'Joué ensemble récemment',
+          playedAt:   lastMatch.played_at,
+        }
+      })
+    )
+  }
+
+  async function handleAddFriend(addresseeId) {
+    await supabase.from('friendships').insert({
+      requester_id: user.id,
+      addressee_id: addresseeId,
+      status: 'pending',
+    })
+  }
 
   function handleAction(notifId) {
     markOneRead(notifId)
@@ -333,6 +490,26 @@ export default function Notifications() {
           </button>
         )}
       </div>
+
+      {/* Suggestions de joueurs rencontrés */}
+      {suggestions.length > 0 && (
+        <div>
+          <p style={{ fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', color:'#9CA3AF', marginBottom:10 }}>
+            Joueurs rencontrés récemment
+          </p>
+          <div style={{ background:'#fff', borderRadius:16, border:'1px solid rgba(0,0,0,0.08)', boxShadow:'0 2px 10px rgba(0,0,0,0.07)', overflow:'hidden', marginBottom:20 }}>
+            {suggestions.map((s, i) => (
+              <FriendSuggestionRow
+                key={s.userId}
+                suggestion={s}
+                myProfile={profile}
+                onAdd={handleAddFriend}
+                isLast={i === suggestions.length - 1}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Liste */}
       {loading ? (

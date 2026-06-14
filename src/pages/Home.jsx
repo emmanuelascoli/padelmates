@@ -14,6 +14,105 @@ function avatarColor(str = '') {
   return colors[Math.abs(h) % colors.length]
 }
 
+// ── Avatar ────────────────────────────────────────────────────
+function Avatar({ name, avatarUrl, color, size = 32, radius = 10 }) {
+  const initials = (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  if (avatarUrl) {
+    return (
+      <img src={avatarUrl} alt={name}
+        style={{ width: size, height: size, borderRadius: radius, objectFit: 'cover', flexShrink: 0 }}
+      />
+    )
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: radius, background: color, flexShrink: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: Math.round(size * 0.38), fontWeight: 500, color: '#fff',
+    }}>
+      {initials}
+    </div>
+  )
+}
+
+// ── Widget "Tes amis cette semaine" ──────────────────────────
+function FriendRow({ friend, isLast }) {
+  const hasSess = !!friend.session
+  const iAmIn   = friend.session?.iAmIn
+  const isFull  = friend.session?.isFull
+  const dateLabel = hasSess
+    ? format(new Date(`${friend.session.date}T${friend.session.time}`), 'EEE d', { locale: fr })
+    : null
+
+  let right = null
+  if (iAmIn) {
+    right = (
+      <div style={{ display:'flex', alignItems:'center', gap:4, background:'#DCFCE7', padding:'3px 8px', borderRadius:20, flexShrink:0 }}>
+        <div style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80' }} />
+        <span style={{ fontSize:9, fontWeight:600, color:'#166534' }}>Même partie</span>
+      </div>
+    )
+  } else if (hasSess && !isFull) {
+    right = (
+      <Link to={`/sessions/${friend.session.id}`}
+        style={{ fontSize:9, fontWeight:600, color:'#14532d', background:'#F0FDF4', border:'.5px solid #BBF7D0', padding:'3px 8px', borderRadius:20, textDecoration:'none', flexShrink:0 }}>
+        Rejoindre
+      </Link>
+    )
+  } else if (hasSess && isFull) {
+    right = (
+      <Link to={`/sessions/${friend.session.id}`}
+        style={{ fontSize:9, color:'#9CA3AF', background:'#F9FAFB', border:'.5px solid #E5E7EB', padding:'3px 8px', borderRadius:20, textDecoration:'none', flexShrink:0 }}>
+        Voir
+      </Link>
+    )
+  } else {
+    right = (
+      <Link to="/sessions"
+        style={{ fontSize:9, fontWeight:600, color:'#6B7280', background:'#F9FAFB', border:'.5px solid #E5E7EB', padding:'3px 8px', borderRadius:20, textDecoration:'none', flexShrink:0 }}>
+        Inviter
+      </Link>
+    )
+  }
+
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:9, padding:'10px 12px', borderBottom: isLast ? 'none' : '.5px solid #F3F4F6' }}>
+      <Avatar name={friend.name} avatarUrl={friend.avatarUrl} color={friend.color} size={32} radius={10} />
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:12, fontWeight:500, color: hasSess ? '#111827' : '#9CA3AF', marginBottom:1, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis' }}>
+          {friend.name}
+        </div>
+        <div style={{ fontSize:10, color: hasSess ? '#6B7280' : '#D1D5DB', overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis' }}>
+          {hasSess
+            ? `${dateLabel} · ${friend.session.location}${isFull ? ' · Complet' : ''}`
+            : 'Pas de partie cette semaine'}
+        </div>
+      </div>
+      {right}
+    </div>
+  )
+}
+
+function FriendsThisWeek({ friendActivity }) {
+  if (!friendActivity.length) return null
+  const displayed = friendActivity.slice(0, 5)
+  return (
+    <>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+        <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Tes amis cette semaine</div>
+        <Link to="/sessions" style={{ fontSize:11, color:'#14532d', fontWeight:500, textDecoration:'none' }}>
+          Voir parties →
+        </Link>
+      </div>
+      <div style={{ background:'#fff', borderRadius:13, border:'.5px solid #E5E7EB', overflow:'hidden', marginBottom:14 }}>
+        {displayed.map((f, i) => (
+          <FriendRow key={f.userId} friend={f} isLast={i === displayed.length - 1} />
+        ))}
+      </div>
+    </>
+  )
+}
+
 // ── Photo nudge banner ────────────────────────────────────────
 function PhotoNudge() {
   const [dismissed, setDismissed] = useState(false)
@@ -173,10 +272,15 @@ export default function Home() {
   const [chartTab, setChartTab]         = useState('elo')
   const [playersTab, setPlayersTab]     = useState('partners')
   const [loading, setLoading]           = useState(true)
+  const [friendActivity, setFriendActivity] = useState([])
 
   useEffect(() => {
     if (profile?.id) fetchData()
   }, [profile?.id])
+
+  useEffect(() => {
+    if (user?.id) fetchFriendData()
+  }, [user?.id])
 
   async function fetchData() {
     setLoading(true)
@@ -367,6 +471,74 @@ export default function Home() {
     setLoading(false)
   }
 
+  async function fetchFriendData() {
+    // 1. Fetch accepted friendships
+    const { data: fs } = await supabase
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+
+    if (!fs?.length) return
+
+    const ids = fs.map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id)
+
+    // 2. In parallel: friend profiles + upcoming sessions this week
+    const today    = new Date().toISOString().split('T')[0]
+    const nextWeek = new Date()
+    nextWeek.setDate(nextWeek.getDate() + 7)
+    const nextWeekStr = nextWeek.toISOString().split('T')[0]
+
+    const [{ data: profiles }, { data: weekSessions }] = await Promise.all([
+      supabase.from('profiles').select('id, name, avatar_url').in('id', ids),
+      supabase
+        .from('sessions')
+        .select('id, date, time, location, max_players, session_participants(user_id)')
+        .gte('date', today)
+        .lte('date', nextWeekStr)
+        .neq('status', 'cancelled')
+        .order('date')
+        .order('time'),
+    ])
+
+    // 3. Sessions where I'm registered this week
+    const mySessionIds = new Set(
+      (weekSessions || [])
+        .filter(s => s.session_participants?.some(p => p.user_id === user.id))
+        .map(s => s.id)
+    )
+
+    // 4. Build one row per friend
+    const activity = ids.map(friendId => {
+      const prof = (profiles || []).find(p => p.id === friendId)
+      const friendSession = (weekSessions || []).find(s =>
+        s.session_participants?.some(p => p.user_id === friendId)
+      )
+      return {
+        userId:    friendId,
+        name:      prof?.name       ?? 'Joueur',
+        avatarUrl: prof?.avatar_url ?? null,
+        color:     avatarColor(friendId),
+        session:   friendSession ? {
+          id:       friendSession.id,
+          date:     friendSession.date,
+          time:     friendSession.time,
+          location: friendSession.location,
+          isFull:   (friendSession.session_participants?.length ?? 0) >= friendSession.max_players,
+          iAmIn:    mySessionIds.has(friendSession.id),
+        } : null,
+      }
+    })
+
+    // Sort: "même partie" → "rejoindre" → "complet" → "inviter"
+    activity.sort((a, b) => {
+      const score = f => f.session?.iAmIn ? 3 : (f.session && !f.session.isFull) ? 2 : f.session ? 1 : 0
+      return score(b) - score(a)
+    })
+
+    setFriendActivity(activity)
+  }
+
   const firstName  = profile?.name?.split(' ')[0] ?? 'Joueur'
   const levelLabel = LEVEL_SHORT[profile?.level] ?? ''
   const eloScore   = profile?.rank_score ?? 1000
@@ -473,6 +645,9 @@ export default function Home() {
             )}
           </div>
         )}
+
+        {/* Tes amis cette semaine */}
+        {!loading && <FriendsThisWeek friendActivity={friendActivity} />}
 
         {/* Derniers résultats */}
         {!loading && lastSessionGroups.length > 0 && (
