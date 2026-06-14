@@ -78,24 +78,25 @@ function FeedAvatar({ profile, size = 24 }) {
 }
 
 // ── Kudos button (local state only — no DB persistence yet) ───
-function KudosButton({ itemId, kudosGiven, onKudos }) {
-  const given = !!kudosGiven[itemId]
+function KudosButton({ item, kudosMap, onKudos }) {
+  const info  = kudosMap[item.id] ?? { count: 0, mine: false }
+  const color = info.mine ? '#15803d' : '#9CA3AF'
   return (
     <button
-      onClick={() => onKudos(itemId)}
-      style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color: given ? '#15803d' : '#9CA3AF', background:'none', border:'none', cursor:'pointer', padding:0 }}
+      onClick={() => onKudos(item)}
+      style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color, background:'none', border:'none', cursor:'pointer', padding:0 }}
     >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill={given ? '#15803d' : 'none'} stroke="currentColor" strokeWidth="2">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill={info.mine ? color : 'none'} stroke={color} strokeWidth="2">
         <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/>
         <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/>
       </svg>
-      Kudos
+      Kudos{info.count > 0 ? ` · ${info.count}` : ''}
     </button>
   )
 }
 
 // ── Feed card: Match result ───────────────────────────────────
-function MatchResultCard({ item, myId, kudosGiven, onKudos }) {
+function MatchResultCard({ item, myId, kudosMap, onKudos }) {
   const { session, matches, timestamp, isMySession } = item
   return (
     <div style={{ background:'#fff', borderRadius:12, border:'.5px solid #E5E7EB', marginBottom:7, overflow:'hidden' }}>
@@ -164,13 +165,58 @@ function MatchResultCard({ item, myId, kudosGiven, onKudos }) {
 
       {/* Footer */}
       <div style={{ borderTop:'.5px solid #F3F4F6', padding:'7px 12px', display:'flex', alignItems:'center' }}>
-        <KudosButton itemId={item.id} kudosGiven={kudosGiven} onKudos={onKudos} />
+        {item.targetType && <KudosButton item={item} kudosMap={kudosMap} onKudos={onKudos} />}
       </div>
     </div>
   )
 }
 
-// ── Feed card: Friend upcoming session ────────────────────────
+// ── Feed card: Friends available (unified card) ───────────────
+function FriendsAvailableCard({ item }) {
+  const { sessions } = item
+  return (
+    <div style={{ background:'#fff', borderRadius:12, border:'.5px solid #E5E7EB', marginBottom:7, overflow:'hidden' }}>
+      <div style={{ display:'flex', alignItems:'center', padding:'10px 12px 6px' }}>
+        <span style={{ fontSize:9, fontWeight:600, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'.05em' }}>
+          Amis disponibles
+        </span>
+      </div>
+      {sessions.map(({ session, friends }, idx) => {
+        const sessDate   = new Date(`${session.date}T${session.time}`)
+        const placesLeft = session.max_players - (session.session_participants?.length ?? 0)
+        const names      = friends.map(f => firstName(f.name))
+        const nameText   = names.length === 1 ? names[0]
+          : names.length === 2 ? `${names[0]} + ${names[1]}`
+          : `${names[0]} + ${names.length - 1} autre${names.length > 2 ? 's' : ''}`
+        const when = isToday(sessDate) ? "aujourd'hui"
+          : isTomorrow(sessDate) ? 'demain'
+          : format(sessDate, 'EEE d', { locale: fr })
+        return (
+          <div key={session.id} style={{ display:'flex', alignItems:'center', gap:9, padding:'8px 12px', borderTop: idx > 0 ? '.5px solid #F3F4F6' : 'none' }}>
+            <div style={{ display:'flex', flexShrink:0 }}>
+              {friends.slice(0, 2).map((f, i) => (
+                <div key={f.id} style={{ marginLeft: i > 0 ? -6 : 0, position:'relative', zIndex: 2 - i }}>
+                  <FeedAvatar profile={{ id: f.id, name: f.name, avatar_url: f.avatarUrl }} size={26} />
+                </div>
+              ))}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12, fontWeight:500, color:'#111827', marginBottom:1 }}>
+                {nameText} · {when}
+              </div>
+              <div style={{ fontSize:10, color:'#9CA3AF' }}>
+                {format(sessDate, 'HH:mm')} · {session.location} · {placesLeft} place{placesLeft > 1 ? 's' : ''} dispo
+              </div>
+            </div>
+            <Link to={`/sessions/${session.id}`} style={{ fontSize:11, fontWeight:500, color:'#14532d', flexShrink:0, textDecoration:'none' }}>→</Link>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Feed card: Friend upcoming session (legacy — replaced by FriendsAvailableCard) ──
 function FriendSessionCard({ item }) {
   const { friends, session } = item
   const sessDate   = new Date(`${session.date}T${session.time}`)
@@ -218,7 +264,7 @@ function FriendSessionCard({ item }) {
 }
 
 // ── Feed card: Streak ─────────────────────────────────────────
-function StreakCard({ item, kudosGiven, onKudos }) {
+function StreakCard({ item, kudosMap, onKudos }) {
   const { player, count, isWin, isMine } = item
   return (
     <div style={{ background:'#fff', borderRadius:12, border:'.5px solid #E5E7EB', marginBottom:7, overflow:'hidden' }}>
@@ -240,9 +286,9 @@ function StreakCard({ item, kudosGiven, onKudos }) {
           🔥 ×{count}
         </span>
       </div>
-      {!isMine && (
+      {!isMine && item.targetType && (
         <div style={{ borderTop:'.5px solid #F3F4F6', padding:'7px 12px' }}>
-          <KudosButton itemId={item.id} kudosGiven={kudosGiven} onKudos={onKudos} />
+          <KudosButton item={item} kudosMap={kudosMap} onKudos={onKudos} />
         </div>
       )}
     </div>
@@ -285,7 +331,7 @@ function Top3Card({ item }) {
 }
 
 // ── Activity Feed ─────────────────────────────────────────────
-function ActivityFeed({ items, loading, myId, kudosGiven, onKudos }) {
+function ActivityFeed({ items, loading, myId, kudosMap, onKudos }) {
   if (loading) {
     return (
       <div style={{ display:'flex', justifyContent:'center', padding:'20px 0', marginBottom:14 }}>
@@ -301,11 +347,13 @@ function ActivityFeed({ items, loading, myId, kudosGiven, onKudos }) {
       {items.map(item => {
         switch (item.type) {
           case 'match_result':
-            return <MatchResultCard key={item.id} item={item} myId={myId} kudosGiven={kudosGiven} onKudos={onKudos} />
+            return <MatchResultCard key={item.id} item={item} myId={myId} kudosMap={kudosMap} onKudos={onKudos} />
+          case 'friends_available':
+            return <FriendsAvailableCard key={item.id} item={item} />
           case 'friend_session':
             return <FriendSessionCard key={item.id} item={item} />
           case 'streak':
-            return <StreakCard key={item.id} item={item} kudosGiven={kudosGiven} onKudos={onKudos} />
+            return <StreakCard key={item.id} item={item} kudosMap={kudosMap} onKudos={onKudos} />
           case 'top3':
             return <Top3Card key={item.id} item={item} />
           default:
@@ -569,7 +617,7 @@ export default function Home() {
   // Feed
   const [feedItems, setFeedItems]     = useState([])
   const [feedLoading, setFeedLoading] = useState(true)
-  const [kudosGiven, setKudosGiven]   = useState({})
+  const [kudosMap, setKudosMap]       = useState({}) // { [itemId]: { count, mine } }
   const [hasFriends, setHasFriends]   = useState(false)
 
   useEffect(() => {
@@ -834,7 +882,13 @@ export default function Home() {
     })
     // Max 3 sessions de résultats, les plus récentes d'abord
     Object.entries(matchesBySession)
-      .map(([key, data]) => ({ id: `match-${key}`, type: 'match_result', ...data }))
+      .map(([key, data]) => ({
+        id:         `match-${key}`,
+        type:       'match_result',
+        targetType: data.session?.id ? 'session' : null,
+        targetId:   data.session?.id ?? null,
+        ...data,
+      }))
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(0, 3)
       .forEach(item => items.push(item))
@@ -858,18 +912,17 @@ export default function Home() {
       if (!sessToFriends[sess.id]) sessToFriends[sess.id] = { session: sess, friends: [] }
       sessToFriends[sess.id].friends.push({ id: friendId, name: friend.name, avatarUrl: friend.avatar_url })
     })
-    Object.values(sessToFriends)
+    const availableSessions = Object.values(sessToFriends)
       .sort((a, b) => new Date(`${a.session.date}T${a.session.time}`) - new Date(`${b.session.date}T${b.session.time}`))
-      .slice(0, 3)
-      .forEach(({ session, friends }) => {
-        items.push({
-          id:       `friend-sess-${session.id}`,
-          type:     'friend_session',
-          friends,
-          session,
-          timestamp: new Date(`${session.date}T${session.time}`).toISOString(),
-        })
+      .slice(0, 4)
+    if (availableSessions.length > 0) {
+      items.push({
+        id:       'friends-available',
+        type:     'friends_available',
+        sessions: availableSessions,
+        timestamp: new Date(`${availableSessions[0].session.date}T${availableSessions[0].session.time}`).toISOString(),
       })
+    }
 
     // 6. Streak items (user + friends, ≥ 3 consecutive wins)
     const computeStreak = (pid, matches) => {
@@ -890,10 +943,12 @@ export default function Home() {
     const myStreak = computeStreak(profile.id, recentMatches || [])
     if (myStreak && myStreak.isWin) {
       items.push({
-        id:        `streak-${profile.id}`,
-        type:      'streak',
-        player:    { id: profile.id, name: profile.name, avatarUrl: profile.avatar_url },
-        isMine:    true,
+        id:         `streak-${profile.id}`,
+        type:       'streak',
+        targetType: null,
+        targetId:   null,
+        player:     { id: profile.id, name: profile.name, avatarUrl: profile.avatar_url },
+        isMine:     true,
         ...myStreak,
       })
     }
@@ -902,10 +957,12 @@ export default function Home() {
       if (!s || !s.isWin) return
       const friend = friendMap[friendId]
       items.push({
-        id:     `streak-${friendId}`,
-        type:   'streak',
-        player: { id: friendId, name: friend?.name ?? 'Joueur', avatarUrl: friend?.avatar_url ?? null },
-        isMine: false,
+        id:         `streak-${friendId}`,
+        type:       'streak',
+        targetType: 'streak',
+        targetId:   friendId,
+        player:     { id: friendId, name: friend?.name ?? 'Joueur', avatarUrl: friend?.avatar_url ?? null },
+        isMine:     false,
         ...s,
       })
     })
@@ -920,20 +977,59 @@ export default function Home() {
       })
     }
 
-    // 8. Sort: friend_session first (soonest date), then recency, top3 last
+    // 8. Sort: friends_available first, then recency, top3 last
     items.sort((a, b) => {
       if (a.type === 'top3') return 1
       if (b.type === 'top3') return -1
-      if (a.type === 'friend_session' && b.type !== 'friend_session') return -1
-      if (b.type === 'friend_session' && a.type !== 'friend_session') return  1
+      if (a.type === 'friends_available' && b.type !== 'friends_available') return -1
+      if (b.type === 'friends_available' && a.type !== 'friends_available') return  1
       return new Date(b.timestamp) - new Date(a.timestamp)
     })
+
+    // 9. Fetch kudos for items that support them
+    const kudosTargetIds = items.map(i => i.targetId).filter(Boolean)
+    if (kudosTargetIds.length > 0) {
+      const { data: kudosData } = await supabase
+        .from('kudos')
+        .select('giver_id, target_type, target_id')
+        .in('target_id', kudosTargetIds)
+      const newKudosMap = {}
+      ;(kudosData || []).forEach(k => {
+        const item = items.find(i => i.targetId === k.target_id && i.targetType === k.target_type)
+        if (!item) return
+        if (!newKudosMap[item.id]) newKudosMap[item.id] = { count: 0, mine: false }
+        newKudosMap[item.id].count++
+        if (k.giver_id === profile.id) newKudosMap[item.id].mine = true
+      })
+      setKudosMap(newKudosMap)
+    }
 
     setFeedItems(items)
     setFeedLoading(false)
   }
 
-  const handleKudos = (id) => setKudosGiven(prev => ({ ...prev, [id]: !prev[id] }))
+  async function toggleKudos(item) {
+    if (!item?.targetType || !item?.targetId) return
+    const current = kudosMap[item.id] ?? { count: 0, mine: false }
+    const giving  = !current.mine
+    // Optimistic update
+    setKudosMap(prev => ({
+      ...prev,
+      [item.id]: { count: current.count + (giving ? 1 : -1), mine: giving },
+    }))
+    if (giving) {
+      await supabase.from('kudos').insert({
+        giver_id:    profile.id,
+        target_type: item.targetType,
+        target_id:   item.targetId,
+      })
+    } else {
+      await supabase.from('kudos').delete()
+        .eq('giver_id', profile.id)
+        .eq('target_type', item.targetType)
+        .eq('target_id', item.targetId)
+    }
+  }
 
   const eloScore  = profile?.rank_score ?? 1000
   const eloDelta  = profile?.rank_score_delta ?? 0
@@ -1037,8 +1133,8 @@ export default function Home() {
           items={feedItems}
           loading={feedLoading}
           myId={profile?.id}
-          kudosGiven={kudosGiven}
-          onKudos={handleKudos}
+          kudosMap={kudosMap}
+          onKudos={toggleKudos}
         />
 
         {/* ── Sections nouveau joueur (0 partie jouée) ─────── */}
