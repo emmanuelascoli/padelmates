@@ -130,6 +130,12 @@ const ICON_USER_MINUS = (
     <line x1="23" y1="11" x2="17" y2="11"/>
   </svg>
 )
+const ICON_KUDOS = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/>
+    <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/>
+  </svg>
+)
 
 // Icon config: { bg, color, icon }
 const ICON_CONFIG = {
@@ -145,6 +151,7 @@ const ICON_CONFIG = {
   missing_players_reminder: { bg: '#FFF7ED', color: '#EA580C', icon: ICON_PEOPLE },
   player_left:              { bg: '#FEF2F2', color: '#DC2626', icon: ICON_USER_MINUS },
   player_left_peer:         { bg: '#FEF2F2', color: '#DC2626', icon: ICON_USER_MINUS },
+  kudos_received:           { bg: '#E8F5EE', color: '#2D6A4F', icon: ICON_KUDOS },
 }
 
 function NotifIcon({ type }) {
@@ -212,6 +219,11 @@ function notifContent(notif) {
         text: `${data.player_name} s'est désinscrit${data.session_date ? ` de la partie du ${formatDate(data.session_date)}` : ''}${data.location ? ` à ${data.location}` : ''}`,
         href: `/sessions/${data.session_id}`,
       }
+    case 'kudos_received':
+      if (data.target_type === 'streak') {
+        return { text: `${data.giver_name} t'a envoyé des Kudos pour ta série de victoires 🔥`, href: '/' }
+      }
+      return { text: `${data.giver_name} t'a envoyé des Kudos pour votre partie`, href: data.session_id ? `/sessions/${data.session_id}` : '/' }
     default:
       return { text: 'Nouvelle notification', href: '/' }
   }
