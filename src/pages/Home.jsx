@@ -93,6 +93,101 @@ function FriendRow({ friend, isLast }) {
   )
 }
 
+// ── Trouve tes amis card (nouveau joueur) ────────────────────
+function FindFriendsCard() {
+  const avatarColors = ['#2563EB','#059669','#7C3AED','#D97706']
+  const avatarInitials = ['MD','SL','PT','RB']
+  return (
+    <>
+      <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Retrouve tes amis</div>
+      <div style={{ background:'#fff', borderRadius:13, border:'.5px solid #E5E7EB', overflow:'hidden', marginBottom:14 }}>
+        <div style={{ padding:'12px 14px 10px', borderBottom:'.5px solid #F3F4F6' }}>
+          <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:3 }}>Vos amis jouent peut-être déjà ici</div>
+          <div style={{ fontSize:11, color:'#9CA3AF', lineHeight:1.4 }}>Retrouve des joueurs que tu connais et rejoins-les sur le terrain.</div>
+        </div>
+        <div style={{ padding:'12px 14px' }}>
+          <div style={{ display:'flex', alignItems:'center', marginBottom:12 }}>
+            <div style={{ display:'flex' }}>
+              {avatarInitials.map((init, i) => (
+                <div key={i} style={{
+                  width:36, height:36, borderRadius:11, border:'2px solid #fff',
+                  background: avatarColors[i], display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:12, fontWeight:600, color:'#fff', flexShrink:0,
+                  marginLeft: i === 0 ? 0 : -10,
+                }}>{init}</div>
+              ))}
+              <div style={{
+                width:36, height:36, borderRadius:11, border:'2px solid #fff',
+                background:'#F3F4F6', display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:10, fontWeight:600, color:'#6B7280', marginLeft:-10, flexShrink:0,
+              }}>+12</div>
+            </div>
+            <div style={{ marginLeft:10, lineHeight:1.35 }}>
+              <div style={{ fontSize:12, fontWeight:500, color:'#111827' }}>15 joueurs actifs</div>
+              <div style={{ fontSize:11, color:'#9CA3AF' }}>dans la communauté</div>
+            </div>
+          </div>
+          <Link to="/community"
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+              padding:10, background:'#F0FDF4', border:'.5px solid #BBF7D0', borderRadius:10,
+              fontSize:12, fontWeight:500, color:'#14532d', textDecoration:'none',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+            </svg>
+            Parcourir les membres
+          </Link>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── Premiers pas card (nouveau joueur) ───────────────────────
+function FirstStepsCard({ hasJoinedSession, hasFriends }) {
+  const steps = [
+    { icon:'✅', label:'Créer ton compte',               sub:'Bienvenue sur PadelMates !',             done:true,             link:null },
+    { icon:'🎾', label:'Rejoindre ta première partie',   sub:'Inscris-toi à une partie à venir',       done:hasJoinedSession, link:'/sessions' },
+    { icon:'👥', label:'Ajouter un ami',                  sub:'Retrouve des joueurs que tu connais',    done:hasFriends,       link:'/community' },
+    { icon:'🏆', label:'Enregistrer ton premier score',  sub:'Apparais dans le classement',             done:false,            link:'/sessions' },
+  ]
+  return (
+    <>
+      <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Premiers pas</div>
+      <div style={{ background:'#fff', borderRadius:13, border:'.5px solid #E5E7EB', padding:'12px 14px', marginBottom:14 }}>
+        {steps.map((step, i) => (
+          <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom: i < steps.length - 1 ? 10 : 0 }}>
+            <div style={{
+              width:28, height:28, borderRadius:9, flexShrink:0,
+              background: step.done ? '#DCFCE7' : '#F3F4F6',
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:13,
+            }}>{step.icon}</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{
+                fontSize:12, fontWeight:500, marginBottom:1,
+                color: step.done ? '#14532d' : '#111827',
+                textDecoration: step.done ? 'line-through' : 'none',
+                opacity: step.done ? 0.6 : 1,
+              }}>{step.label}</div>
+              <div style={{ fontSize:10, color:'#9CA3AF' }}>{step.sub}</div>
+            </div>
+            <div style={{ flexShrink:0, marginTop:2 }}>
+              {step.done
+                ? <span style={{ fontSize:11, color:'#14532d' }}>✓</span>
+                : step.link
+                  ? <Link to={step.link} style={{ fontSize:11, color:'#9CA3AF', textDecoration:'none' }}>›</Link>
+                  : null
+              }
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function FriendsThisWeek({ friendActivity }) {
   if (!friendActivity.length) return null
   const displayed = friendActivity.slice(0, 5)
@@ -649,6 +744,15 @@ export default function Home() {
         {/* Tes amis cette semaine */}
         {!loading && <FriendsThisWeek friendActivity={friendActivity} />}
 
+        {/* ── Sections nouveau joueur (0 partie jouée) ─────── */}
+        {!loading && myStats.played === 0 && friendActivity.length === 0 && <FindFriendsCard />}
+        {!loading && myStats.played === 0 && (
+          <FirstStepsCard
+            hasJoinedSession={upcomingSessions.length > 0}
+            hasFriends={friendActivity.length > 0}
+          />
+        )}
+
         {/* Derniers résultats */}
         {!loading && lastSessionGroups.length > 0 && (
           <>
@@ -723,8 +827,8 @@ export default function Home() {
           </>
         )}
 
-        {/* Mes stats 2×2 */}
-        {!loading && (
+        {/* Mes stats 2×2 — masquées si jamais joué */}
+        {!loading && myStats.played > 0 && (
           <>
             <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Mes stats</div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:8, marginBottom:14 }}>
@@ -767,8 +871,8 @@ export default function Home() {
           </>
         )}
 
-        {/* Évolution */}
-        {!loading && (
+        {/* Évolution — masquée si jamais joué */}
+        {!loading && myStats.played > 0 && (
           <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', padding:'12px 12px 8px', marginBottom:14, overflow:'hidden' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
               <div style={{ fontSize:13, fontWeight:500, color:'#111827' }}>Évolution</div>
@@ -790,8 +894,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Partenaires & Rivaux */}
-        {!loading && (
+        {/* Partenaires & Rivaux — masqués si jamais joué */}
+        {!loading && myStats.played > 0 && (
           <>
             <div style={{ fontSize:13, fontWeight:500, color:'#111827', marginBottom:8 }}>Partenaires &amp; Rivaux</div>
             <div style={{ background:'#fff', borderRadius:13, border:'0.5px solid #E5E7EB', overflow:'hidden', marginBottom:14 }}>
