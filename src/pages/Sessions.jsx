@@ -219,7 +219,7 @@ function Pill({ active, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className="h-7 px-3 rounded-full text-[10px] font-medium transition-all shrink-0 whitespace-nowrap"
+      className="h-9 px-4 rounded-full text-[12px] font-medium transition-all shrink-0 whitespace-nowrap"
       style={active
         ? { background: '#14532d', color: '#fff', border: '1px solid #14532d' }
         : { background: '#F9F9F8', border: '0.5px solid #E5E7EB', color: '#374151' }
@@ -409,7 +409,7 @@ export default function Sessions() {
               onClick={() => setShowFilters(v => !v)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                height: 28, padding: '0 10px', borderRadius: 20,
+                height: 36, padding: '0 12px', borderRadius: 20,
                 fontSize: 10, fontWeight: 500, cursor: 'pointer',
                 background: showFilters ? '#F0FDF4' : '#fff',
                 color: secondaryCount > 0 ? '#14532d' : '#374151',
