@@ -54,9 +54,9 @@ BEGIN
     LIMIT 1;
 
     IF next_user IS NOT NULL THEN
-      INSERT INTO public.session_participants (session_id, user_id, payment_status)
-      VALUES (OLD.session_id, next_user, 'pending')
-      ON CONFLICT DO NOTHING;
+      INSERT INTO public.session_participants (session_id, user_id, payment_status, promoted_from_waitlist)
+      VALUES (OLD.session_id, next_user, 'pending', true)
+      ON CONFLICT (session_id, user_id) DO NOTHING;
 
       DELETE FROM public.session_waitlist
       WHERE session_id = OLD.session_id AND user_id = next_user;
