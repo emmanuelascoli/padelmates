@@ -33,16 +33,17 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { sessionId, userId } = await req.json()
+    const { sessionId, userId, promoted = false } = await req.json()
     if (!sessionId || !userId) {
       return new Response(JSON.stringify({ error: 'sessionId et userId requis' }), { status: 400, headers: corsHeaders })
     }
 
-    // ── 1. Anti-doublon ──────────────────────────────────────────────────────
+    // ── 1. Anti-doublon (type différent pour promotion vs inscription directe) ─
+    const logType = promoted ? 'promotion' : 'confirmation'
     const { data: already } = await supabase
       .from('notification_log')
       .select('id')
-      .eq('type', 'confirmation')
+      .eq('type', logType)
       .eq('user_id', userId)
       .eq('session_id', sessionId)
       .maybeSingle()
@@ -93,7 +94,10 @@ Deno.serve(async (req) => {
 
     const body = `
       <p style="color:#374151;margin:0 0 4px 0;">Bonjour <strong>${displayName}</strong> 👋</p>
-      <p style="color:#374151;margin:0 0 20px 0;">Tu es bien inscrit à cette partie de padel. On t'y attend !</p>
+      <p style="color:#374151;margin:0 0 20px 0;">${promoted
+        ? '🎉 Une place s\'est libérée — tu passes de la liste d\'attente à la liste des joueurs ! On t\'y attend !'
+        : 'Tu es bien inscrit à cette partie de padel. On t\'y attend !'
+      }</p>
 
       ${sessionInfoBlock(session, dateStr)}
       ${playersBlock(firstNames)}
@@ -117,12 +121,14 @@ Deno.serve(async (req) => {
       </div>
     `
 
-    const html = emailWrapper('Tu es inscrit à la partie !', body)
+    const html = emailWrapper(promoted ? '🎉 Place libérée !' : 'Tu es inscrit à la partie !', body)
 
     // ── 6. Envoi ─────────────────────────────────────────────────────────────
     const ok = await sendEmail({
       to: user.email,
-      subject: `✅ Inscription confirmée — ${session.location}, ${(session.time as string).substring(0, 5)}`,
+      subject: promoted
+        ? `🎉 Place libérée ! — ${session.location}, ${(session.time as string).substring(0, 5)}`
+        : `✅ Inscription confirmée — ${session.location}, ${(session.time as string).substring(0, 5)}`,
       html,
       attachments: [{ filename: `padel-${session.date}.ics`, content: icsB64 }],
     })
@@ -133,7 +139,7 @@ Deno.serve(async (req) => {
 
     // ── 7. Log anti-doublon ──────────────────────────────────────────────────
     await supabase.from('notification_log').insert({
-      type: 'confirmation',
+      type: logType,
       user_id: userId,
       session_id: sessionId,
     })

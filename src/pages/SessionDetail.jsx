@@ -438,7 +438,28 @@ export default function SessionDetail() {
   async function handleLeave() {
     setActionLoading(true)
     setShowLeaveConfirm(false)
+
+    // Snapshot des IDs actuels avant désinscription
+    const prevIds = new Set(participants.map(p => p.user_id))
+
     await supabase.from('session_participants').delete().eq('session_id', id).eq('user_id', user.id)
+
+    // Vérifier si quelqu'un a été promu depuis la liste d'attente
+    // (le trigger DB insère avec promoted_from_waitlist = true)
+    const { data: newParts } = await supabase
+      .from('session_participants')
+      .select('user_id, promoted_from_waitlist')
+      .eq('session_id', id)
+      .eq('promoted_from_waitlist', true)
+
+    const promoted = (newParts || []).find(p => !prevIds.has(p.user_id))
+    if (promoted) {
+      // Email "place libérée" au joueur promu (fire-and-forget)
+      supabase.functions.invoke('send-confirmation', {
+        body: { sessionId: id, userId: promoted.user_id, promoted: true }
+      }).catch(() => {})
+    }
+
     await Promise.all([fetchParticipants(), fetchWaitlist()])
     setActionLoading(false)
   }
