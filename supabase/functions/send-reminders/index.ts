@@ -62,7 +62,7 @@ Deno.serve(async () => {
         if (!participants?.length) continue
 
         const firstNames = participants
-          .map((p: Record<string, Record<string, string>>) => p.profiles?.name?.split(' ')[0])
+          .map((p: Record<string, Record<string, string>>) => p.profiles?.name)
           .filter(Boolean) as string[]
 
         const sessionUrl = `${APP_URL}/sessions/${session.id}`
@@ -89,26 +89,15 @@ Deno.serve(async () => {
           // Rappel paiement : redirige vers la partie (pas de lien Revolut direct)
           // → le joueur clique Revolut dans l'app et son statut passe à "déclaré"
           const paymentBlock = isPending && hasCost ? `
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;margin:16px 0;">
-  <tr><td>
-    <p style="margin:0 0 4px 0;font-size:13px;font-weight:600;color:#9a3412;">💳 Tu n'as pas encore payé ta part</p>
-    <p style="margin:0;font-size:13px;color:#c2410c;">
-      <strong>${session.cost_per_player} CHF</strong> à rembourser à ${(session.organizer as Record<string, string>)?.name ?? "l'organisateur"} — pense à le faire avant la partie.
+<table width="100%" cellpadding="0" cellspacing="0" style="border-radius:12px;overflow:hidden;margin:16px 0;border:1.5px solid #f97316;">
+  <tr><td style="background:#f97316;padding:10px 16px;">
+    <p style="margin:0;font-size:13px;font-weight:600;color:#ffffff;">💳 Paiement en attente</p>
+  </td></tr>
+  <tr><td style="background:#fff7ed;padding:12px 16px;">
+    <p style="margin:0 0 10px 0;font-size:13px;color:#7c2d12;">
+      Rembourse <strong>${session.cost_per_player} CHF</strong> à ${(session.organizer as Record<string, string>)?.name ?? "l'organisateur"} avant la partie.
     </p>
-  </td></tr>
-</table>
-${ctaButton('Payer ma part →', sessionUrl)}` : ''
-
-          // Bloc code d'accès terrain (si renseigné)
-          const accessCode = session.access_code as string | null
-          const codeBlock = accessCode ? `
-<table width="100%" cellpadding="0" cellspacing="0" style="border-radius:14px;overflow:hidden;margin:20px 0;">
-  <tr><td style="background:#f59e0b;padding:12px 18px;">
-    <p style="margin:0;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.08em;">🔐 Code d'accès terrain</p>
-  </td></tr>
-  <tr><td style="background:#fffbeb;border:1.5px solid #f59e0b;border-top:none;border-radius:0 0 14px 14px;padding:16px 18px;">
-    <p style="margin:0 0 6px 0;font-size:38px;font-weight:800;color:#92400e;font-family:monospace;letter-spacing:0.15em;">${accessCode}</p>
-    <p style="margin:0;font-size:12px;color:#b45309;">Valide 15 min avant le début de ta réservation</p>
+    ${ctaButton('Régler maintenant →', sessionUrl, '#f97316')}
   </td></tr>
 </table>` : ''
 
@@ -117,7 +106,6 @@ ${ctaButton('Payer ma part →', sessionUrl)}` : ''
 <p style="margin:0 0 20px 0;font-size:14px;color:#6B7280;">Ta partie de padel est <strong>demain</strong> — tout est prêt ?</p>
 
 ${sessionInfoBlock(session, dateLabel)}
-${codeBlock}
 ${playersBlock(firstNames)}
 ${paymentBlock}
 ${calendarButtons(gcal, outlook)}

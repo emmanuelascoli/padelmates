@@ -166,6 +166,11 @@ export function sessionInfoBlock(session: Record<string, unknown>, dateStr: stri
   const org = (session.organizer as Record<string, string>)?.name
     ? `<tr><td style="padding:3px 0;font-size:13px;color:#374151;">👤 Organisé par ${(session.organizer as Record<string, string>).name}</td></tr>`
     : ''
+  const accessCode = session.access_code as string | null
+  const code = accessCode ? `
+      <tr><td style="padding:6px 0 3px;border-top:0.5px solid #E5E7EB;">
+        <span style="font-size:13px;color:#374151;">🔑 Code d'accès : <strong style="font-family:monospace;letter-spacing:0.08em;">${accessCode}</strong></span>
+      </td></tr>` : ''
   return `
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F4F0;border-radius:12px;padding:16px;margin:16px 0;">
   <tr><td>
@@ -174,6 +179,7 @@ export function sessionInfoBlock(session: Record<string, unknown>, dateStr: stri
       <tr><td style="padding:3px 0;font-size:13px;color:#374151;">📍 ${session.location}</td></tr>
       ${cost}
       ${org}
+      ${code}
     </table>
   </td></tr>
 </table>`
