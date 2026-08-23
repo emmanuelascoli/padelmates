@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -34,6 +34,12 @@ export default function NewSession() {
   const { user, profile, isAdmin } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [locations, setLocations] = useState([])
+
+  useEffect(() => {
+    supabase.from('locations').select('id, name').order('name')
+      .then(({ data }) => setLocations(data || []))
+  }, [])
 
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -44,6 +50,7 @@ export default function NewSession() {
     time: '18:00',
     duration: '1h30',
     location: '',
+    location_id: '',
     court_number: '',
     access_code: '',
     total_cost: '',
@@ -68,7 +75,7 @@ export default function NewSession() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.location.trim()) {
+    if (!form.location_id) {
       setError('Le lieu est obligatoire.')
       return
     }
@@ -90,6 +97,7 @@ export default function NewSession() {
         location: form.court_number.trim()
           ? `${form.location} — Terrain ${form.court_number.trim()}`
           : form.location.trim(),
+        location_id: form.location_id || null,
         cost_per_player: parseFloat(form.total_cost) / 4 || 0,
         max_players: 4,
         level_min: form.level_min || null,
@@ -198,17 +206,20 @@ export default function NewSession() {
         {/* Lieu + terrain */}
         <div>
           <label className="label">Lieu *</label>
-          <select name="location" value={form.location} onChange={handleChange} required className="input">
+          <select
+            value={form.location_id}
+            onChange={e => {
+              const loc = locations.find(l => l.id === e.target.value)
+              setForm(f => ({ ...f, location_id: e.target.value, location: loc?.name || '' }))
+              setError('')
+            }}
+            required
+            className="input"
+          >
             <option value="">-- Choisir un lieu --</option>
-            <option value="Bernex">Bernex</option>
-            <option value="Cologny">Cologny</option>
-            <option value="David Lloyd's Club">David Lloyd's Club</option>
-            <option value="Jonction">Jonction</option>
-            <option value="La Praille">La Praille</option>
-            <option value="Les Acacias">Les Acacias</option>
-            <option value="Padel Station">Padel Station</option>
-            <option value="Parc des Evaux">Parc des Evaux</option>
-            <option value="TC International Chambesy">TC International Chambesy</option>
+            {locations.map(l => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
           </select>
         </div>
         <div>

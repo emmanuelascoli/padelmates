@@ -1347,6 +1347,207 @@ function TabPaiements() {
   )
 }
 
+// ── Tab Lieux ─────────────────────────────────────────────────
+function TabLieux() {
+  const [locations, setLocations]   = useState([])
+  const [sessionCounts, setSessionCounts] = useState({})
+  const [loading, setLoading]       = useState(true)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [editingId, setEditingId]   = useState(null)
+  const [newName, setNewName]       = useState('')
+  const [newAddress, setNewAddress] = useState('')
+  const [editName, setEditName]     = useState('')
+  const [editAddress, setEditAddress] = useState('')
+  const [saving, setSaving]         = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
+
+  useEffect(() => { fetchAll() }, [])
+
+  async function fetchAll() {
+    setLoading(true)
+    const [{ data: locs }, { data: counts }] = await Promise.all([
+      supabase.from('locations').select('*').order('name'),
+      supabase.from('sessions').select('location_id').not('location_id', 'is', null),
+    ])
+    setLocations(locs || [])
+    const map = {}
+    ;(counts || []).forEach(s => {
+      map[s.location_id] = (map[s.location_id] || 0) + 1
+    })
+    setSessionCounts(map)
+    setLoading(false)
+  }
+
+  async function handleAdd() {
+    if (!newName.trim()) return
+    setSaving(true)
+    await supabase.from('locations').insert({ name: newName.trim(), address: newAddress.trim() || null })
+    setNewName(''); setNewAddress(''); setShowAddForm(false)
+    await fetchAll()
+    setSaving(false)
+  }
+
+  async function handleEdit(loc) {
+    setEditingId(loc.id)
+    setEditName(loc.name)
+    setEditAddress(loc.address || '')
+    setShowAddForm(false)
+  }
+
+  async function handleSaveEdit() {
+    if (!editName.trim()) return
+    setSaving(true)
+    await supabase.from('locations')
+      .update({ name: editName.trim(), address: editAddress.trim() || null })
+      .eq('id', editingId)
+    setEditingId(null)
+    await fetchAll()
+    setSaving(false)
+  }
+
+  async function handleDelete(loc) {
+    const count = sessionCounts[loc.id] || 0
+    if (count > 0) {
+      setDeleteError(`"${loc.name}" est utilisé dans ${count} partie${count > 1 ? 's' : ''} — suppression impossible.`)
+      setTimeout(() => setDeleteError(null), 4000)
+      return
+    }
+    await supabase.from('locations').delete().eq('id', loc.id)
+    await fetchAll()
+  }
+
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
+      <div className="w-6 h-6 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#111827' }}>Lieux de jeu</p>
+          <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9CA3AF' }}>
+            Ces lieux apparaissent dans le sélecteur lors de la création d'une partie.
+          </p>
+        </div>
+        <button
+          onClick={() => { setShowAddForm(v => !v); setEditingId(null) }}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', fontSize: 12, fontWeight: 500, background: '#14532d', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', flexShrink: 0 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+          Ajouter
+        </button>
+      </div>
+
+      {/* Message d'erreur suppression */}
+      {deleteError && (
+        <div style={{ background: '#FEF2F2', border: '.5px solid #FECACA', borderRadius: 10, padding: '9px 13px', fontSize: 12, color: '#B91C1C', marginBottom: 12 }}>
+          {deleteError}
+        </div>
+      )}
+
+      {/* Formulaire ajout */}
+      {showAddForm && (
+        <div style={{ background: '#F9FAFB', border: '.5px solid #E5E7EB', borderRadius: 12, padding: '14px', marginBottom: 12 }}>
+          <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 500, color: '#111827' }}>Nouveau lieu</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+            <div>
+              <label style={{ fontSize: 11, color: '#6B7280', display: 'block', marginBottom: 3 }}>Nom *</label>
+              <input value={newName} onChange={e => setNewName(e.target.value)}
+                placeholder="ex : Five Geneva" className="input" style={{ fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: '#6B7280', display: 'block', marginBottom: 3 }}>Adresse (optionnel)</label>
+              <input value={newAddress} onChange={e => setNewAddress(e.target.value)}
+                placeholder="ex : Rue de Berne 12" className="input" style={{ fontSize: 13 }} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 7, justifyContent: 'flex-end' }}>
+            <button onClick={() => setShowAddForm(false)}
+              style={{ padding: '6px 13px', fontSize: 12, background: 'none', border: '.5px solid #E5E7EB', borderRadius: 8, color: '#6B7280', cursor: 'pointer' }}>
+              Annuler
+            </button>
+            <button onClick={handleAdd} disabled={saving || !newName.trim()}
+              style={{ padding: '6px 13px', fontSize: 12, fontWeight: 500, background: '#14532d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', opacity: !newName.trim() ? 0.5 : 1 }}>
+              {saving ? '…' : 'Enregistrer'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Liste */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {locations.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#9CA3AF' }}>
+            Aucun lieu configuré. Commencez par en ajouter un.
+          </div>
+        )}
+        {locations.map(loc => (
+          <div key={loc.id}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff', border: '.5px solid #E5E7EB', borderRadius: 10, padding: '10px 12px' }}>
+              {/* Icône */}
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#14532d" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              {/* Infos */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#111827' }}>{loc.name}</p>
+                <p style={{ margin: '1px 0 0', fontSize: 11, color: '#9CA3AF' }}>
+                  {loc.address || 'Adresse non renseignée'}
+                  {sessionCounts[loc.id] > 0 && (
+                    <span style={{ color: '#14532d', marginLeft: 6 }}>
+                      · {sessionCounts[loc.id]} partie{sessionCounts[loc.id] > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </p>
+              </div>
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                <button onClick={() => editingId === loc.id ? setEditingId(null) : handleEdit(loc)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', fontSize: 11, background: 'none', border: '.5px solid #E5E7EB', borderRadius: 7, color: '#6B7280', cursor: 'pointer' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Modifier
+                </button>
+                <button onClick={() => handleDelete(loc)}
+                  style={{ display: 'flex', alignItems: 'center', padding: '5px 8px', fontSize: 11, background: 'none', border: '.5px solid #E5E7EB', borderRadius: 7, color: '#9CA3AF', cursor: 'pointer' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </div>
+            </div>
+            {/* Formulaire édition inline */}
+            {editingId === loc.id && (
+              <div style={{ background: '#F9FAFB', border: '.5px solid #E5E7EB', borderTop: 'none', borderRadius: '0 0 10px 10px', padding: '12px 14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, color: '#6B7280', display: 'block', marginBottom: 3 }}>Nom *</label>
+                    <input value={editName} onChange={e => setEditName(e.target.value)} className="input" style={{ fontSize: 13 }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, color: '#6B7280', display: 'block', marginBottom: 3 }}>Adresse (optionnel)</label>
+                    <input value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="Adresse" className="input" style={{ fontSize: 13 }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 7, justifyContent: 'flex-end' }}>
+                  <button onClick={() => setEditingId(null)}
+                    style={{ padding: '6px 13px', fontSize: 12, background: 'none', border: '.5px solid #E5E7EB', borderRadius: 8, color: '#6B7280', cursor: 'pointer' }}>
+                    Annuler
+                  </button>
+                  <button onClick={handleSaveEdit} disabled={saving || !editName.trim()}
+                    style={{ padding: '6px 13px', fontSize: 12, fontWeight: 500, background: '#14532d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+                    {saving ? '…' : 'Enregistrer'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Tab ELO (conservé pour référence mais retiré de l'UI) ────
 function TabElo() {
   const [players, setPlayers] = useState([])
@@ -1568,11 +1769,12 @@ export default function Admin() {
       {/* Tabs — flex scrollable pour supporter N onglets */}
       <div className="bg-gray-100 rounded-xl p-1" style={{ display: 'flex', gap: 2, overflowX: 'auto' }}>
         {[
-          { key: 'members',  label: '👥 Membres' },
-          { key: 'sessions', label: '📅 Parties' },
-          { key: 'stats',    label: '📊 Stats' },
-          { key: 'payments', label: '💳 Paiements' },
-          { key: 'activity', label: '📡 Activité' },
+          { key: 'members',   label: '👥 Membres' },
+          { key: 'sessions',  label: '📅 Parties' },
+          { key: 'stats',     label: '📊 Stats' },
+          { key: 'payments',  label: '💳 Paiements' },
+          { key: 'activity',  label: '📡 Activité' },
+          { key: 'locations', label: '📍 Lieux' },
         ].map(({ key, label }) => (
           <button
             key={key}
@@ -1587,11 +1789,12 @@ export default function Admin() {
         ))}
       </div>
 
-      {tab === 'members'  && <TabMembres />}
-      {tab === 'sessions' && <TabParties />}
-      {tab === 'stats'    && <TabStats />}
-      {tab === 'payments' && <TabPaiements />}
-      {tab === 'activity' && <TabActivite />}
+      {tab === 'members'   && <TabMembres />}
+      {tab === 'sessions'  && <TabParties />}
+      {tab === 'stats'     && <TabStats />}
+      {tab === 'payments'  && <TabPaiements />}
+      {tab === 'activity'  && <TabActivite />}
+      {tab === 'locations' && <TabLieux />}
     </div>
   )
 }
