@@ -340,6 +340,13 @@ export default function Profile() {
     setHistoryMatches(bySession)
   }
 
+  // ── Auto-save pour les champs toggle (main, position) ─────────
+  async function autoSaveField(field, value) {
+    if (!profile) return  // pas encore de profil : la sauvegarde complète est nécessaire
+    await supabase.from('profiles').update({ [field]: value || null }).eq('id', user.id)
+    await refreshProfile()
+  }
+
   // ── Profile save ──────────────────────────────────────────────
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -631,11 +638,15 @@ export default function Profile() {
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, fontWeight: 500, display: 'block' }}>Main préférée</label>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    {[{ value: 'droite', label: '🤚 Droite' }, { value: 'gauche', label: '🤚 Gauche' }].map(opt => (
+                    {[{ value: 'gauche', label: '🤚 Gauche' }, { value: 'droite', label: '🤚 Droite' }].map(opt => (
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => setForm(f => ({ ...f, dominant_hand: f.dominant_hand === opt.value ? '' : opt.value }))}
+                        onClick={async () => {
+                          const newVal = form.dominant_hand === opt.value ? '' : opt.value
+                          setForm(f => ({ ...f, dominant_hand: newVal }))
+                          await autoSaveField('dominant_hand', newVal)
+                        }}
                         style={{
                           flex: 1, padding: '9px 8px', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer',
                           border: form.dominant_hand === opt.value ? '1.5px solid #15803D' : '0.5px solid #E2E0D8',
@@ -658,7 +669,11 @@ export default function Profile() {
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => setForm(f => ({ ...f, court_side: f.court_side === opt.value ? '' : opt.value }))}
+                        onClick={async () => {
+                          const newVal = form.court_side === opt.value ? '' : opt.value
+                          setForm(f => ({ ...f, court_side: newVal }))
+                          await autoSaveField('court_side', newVal)
+                        }}
                         style={{
                           flex: 1, padding: '9px 4px', borderRadius: 10, fontSize: 12, fontWeight: 500, cursor: 'pointer',
                           border: form.court_side === opt.value ? '1.5px solid #15803D' : '0.5px solid #E2E0D8',

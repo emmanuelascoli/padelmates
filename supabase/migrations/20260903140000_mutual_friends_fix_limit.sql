@@ -1,6 +1,5 @@
--- Fonction pour récupérer les amis en commun entre deux joueurs.
--- SECURITY DEFINER : s'exécute avec les droits du propriétaire (bypass RLS),
--- ce qui permet de lire les amitiés des deux côtés sans exposer les données privées.
+-- Correction : augmente la limite des amis en commun retournés
+-- (l'UI affiche jusqu'à 3 avatars mais le compteur doit être exact)
 CREATE OR REPLACE FUNCTION public.get_mutual_friends(viewer_id uuid, target_id uuid)
 RETURNS TABLE (id uuid, name text, avatar_url text)
 LANGUAGE sql
