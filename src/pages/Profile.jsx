@@ -218,7 +218,7 @@ function DeleteAccountSection({ userEmail, onDeleted }) {
 export default function Profile() {
   const navigate = useNavigate()
   const { user, profile, refreshProfile, signOut, role } = useAuth()
-  const [form, setForm] = useState({ name: '', phone: '', revolut_tag: '', level: '3' })
+  const [form, setForm] = useState({ name: '', phone: '', revolut_tag: '', level: '3', dominant_hand: '', court_side: '' })
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -245,6 +245,8 @@ export default function Profile() {
         phone: profile.phone || '',
         revolut_tag: profile.revolut_tag || '',
         level: profile.level || '3',
+        dominant_hand: profile.dominant_hand || '',
+        court_side: profile.court_side || '',
       })
     }
     if (user) { fetchStats(); fetchHistory(); fetchPendingFriendCount() }
@@ -358,6 +360,8 @@ export default function Profile() {
         phone: form.phone.trim() || null,
         revolut_tag: form.revolut_tag.trim().replace(/^@/, '') || null,
         level: form.level,
+        dominant_hand: form.dominant_hand || null,
+        court_side: form.court_side || null,
       })
       if (insertError) { setError(insertError.message); setLoading(false); return }
     } else {
@@ -366,6 +370,8 @@ export default function Profile() {
         phone: form.phone.trim() || null,
         revolut_tag: form.revolut_tag.trim().replace(/^@/, '') || null,
         level: form.level,
+        dominant_hand: form.dominant_hand || null,
+        court_side: form.court_side || null,
       }).eq('id', user.id)
       if (updateError) { setError(updateError.message); setLoading(false); return }
     }
@@ -515,10 +521,14 @@ export default function Profile() {
             !!profile?.avatar_url,
             !!profile?.level,
             !!profile?.revolut_tag,
+            !!profile?.dominant_hand,
+            !!profile?.court_side,
           ]
           const score = checks.filter(Boolean).length
           const pct = Math.round((score / checks.length) * 100)
           if (pct === 100) return null
+          const missingHand     = !profile?.dominant_hand
+          const missingPosition = !profile?.court_side
           return (
             <div style={{ background: '#fff', padding: '10px 16px 12px', borderBottom: '0.5px solid #F3F4F6' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
@@ -540,6 +550,11 @@ export default function Profile() {
               {profile?.avatar_url && !profile?.revolut_tag && (
                 <div style={{ fontSize: 10, color: '#F59E0B', marginTop: 5 }}>
                   💳 Renseigne ton tag Revolut pour recevoir les remboursements
+                </div>
+              )}
+              {(missingHand || missingPosition) && (
+                <div style={{ fontSize: 10, color: '#F59E0B', marginTop: 5 }}>
+                  🖐 Renseigne ta {missingHand && missingPosition ? 'main dominante et ta position sur le court' : missingHand ? 'main dominante' : 'position sur le court'}
                 </div>
               )}
             </div>
@@ -607,11 +622,57 @@ export default function Profile() {
                   <input type="text" name="name" value={form.name} onChange={handleChange} required className="input" placeholder="Marie Dupont" />
                 </div>
                 {/* Level field */}
-                <div>
+                <div style={{ marginBottom: 14 }}>
                   <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 5, fontWeight: 500, display: 'block' }}>Niveau de jeu</label>
                   <select name="level" value={form.level} onChange={handleChange} className="input">
                     {LEVEL_OPTIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                   </select>
+                </div>
+
+                {/* Main préférée */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, fontWeight: 500, display: 'block' }}>Main préférée</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[{ value: 'droite', label: '🤚 Droite' }, { value: 'gauche', label: '🤚 Gauche' }].map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, dominant_hand: f.dominant_hand === opt.value ? '' : opt.value }))}
+                        style={{
+                          flex: 1, padding: '9px 8px', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                          border: form.dominant_hand === opt.value ? '1.5px solid #15803D' : '0.5px solid #E2E0D8',
+                          background: form.dominant_hand === opt.value ? '#F0FDF4' : '#F9F9F7',
+                          color: form.dominant_hand === opt.value ? '#15803D' : '#6B7280',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Position sur le court */}
+                <div>
+                  <label style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, fontWeight: 500, display: 'block' }}>Position sur le court</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[{ value: 'gauche', label: '◀ Gauche' }, { value: 'droite', label: '▶ Droite' }, { value: 'les_deux', label: '↔ Les deux' }].map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, court_side: f.court_side === opt.value ? '' : opt.value }))}
+                        style={{
+                          flex: 1, padding: '9px 4px', borderRadius: 10, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                          border: form.court_side === opt.value ? '1.5px solid #15803D' : '0.5px solid #E2E0D8',
+                          background: form.court_side === opt.value ? '#F0FDF4' : '#F9F9F7',
+                          color: form.court_side === opt.value ? '#15803D' : '#6B7280',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

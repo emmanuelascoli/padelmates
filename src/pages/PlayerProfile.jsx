@@ -249,6 +249,31 @@ export default function PlayerProfile() {
               </div>
             )}
 
+            {/* Main + position pills */}
+            {(profile.dominant_hand || profile.court_side) && (
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {profile.dominant_hand && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 10px',
+                    borderRadius: 999, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                    fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap',
+                  }}>
+                    🖐 Main {profile.dominant_hand}
+                  </span>
+                )}
+                {profile.court_side && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 10px',
+                    borderRadius: 999, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                    fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap',
+                  }}>
+                    {profile.court_side === 'gauche' ? '◀' : profile.court_side === 'droite' ? '▶' : '↔'}{' '}
+                    {profile.court_side === 'les_deux' ? 'Les deux côtés' : `Côté ${profile.court_side}`}
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Badge pills */}
             {profile.badges?.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2.5">
