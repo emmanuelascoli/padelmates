@@ -28,6 +28,7 @@ export default function PlayerProfile() {
   const [sessionMap, setSessionMap] = useState({})
   const [friendship, setFriendship] = useState(null)
   const [friendLoading, setFriendLoading] = useState(false)
+  const [mutualFriends, setMutualFriends] = useState([])
 
   const isOwnProfile = user?.id === id
 
@@ -35,7 +36,7 @@ export default function PlayerProfile() {
 
   async function fetchAll() {
     setLoading(true)
-    await Promise.all([fetchProfile(), fetchMatchStats(), fetchSessions(), fetchFriendship()])
+    await Promise.all([fetchProfile(), fetchMatchStats(), fetchSessions(), fetchFriendship(), fetchMutualFriends()])
     setLoading(false)
   }
 
@@ -47,6 +48,43 @@ export default function PlayerProfile() {
       .or(`and(requester_id.eq.${user.id},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${user.id})`)
       .maybeSingle()
     setFriendship(data)
+  }
+
+  async function fetchMutualFriends() {
+    if (!user || user.id === id) return
+
+    // Amis acceptés de l'utilisateur connecté
+    const { data: myFs } = await supabase
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+
+    const myFriendIds = new Set(
+      (myFs || []).map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id)
+    )
+    if (!myFriendIds.size) return
+
+    // Amis acceptés du joueur consulté — croisement avec les nôtres
+    const { data: theirFs } = await supabase
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${id},addressee_id.eq.${id}`)
+
+    const commonIds = (theirFs || [])
+      .map(f => f.requester_id === id ? f.addressee_id : f.requester_id)
+      .filter(fid => myFriendIds.has(fid))
+
+    if (!commonIds.length) return
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url')
+      .in('id', commonIds)
+      .limit(4)
+
+    setMutualFriends(profiles || [])
   }
 
   async function handleAddFriend() {
@@ -271,6 +309,32 @@ export default function PlayerProfile() {
                     {profile.court_side === 'les_deux' ? 'Les deux côtés' : `Côté ${profile.court_side}`}
                   </span>
                 )}
+              </div>
+            )}
+
+            {/* Amis en commun */}
+            {mutualFriends.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                <div style={{ display: 'flex' }}>
+                  {mutualFriends.slice(0, 3).map((f, i) => (
+                    f.avatar_url ? (
+                      <img
+                        key={f.id} src={f.avatar_url} alt=""
+                        style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', border: '2px solid #1B4332', marginRight: i < 2 ? -6 : 0, position: 'relative', zIndex: 3 - i }}
+                      />
+                    ) : (
+                      <div
+                        key={f.id}
+                        style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', border: '2px solid #1B4332', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', marginRight: i < 2 ? -6 : 0, position: 'relative', zIndex: 3 - i }}
+                      >
+                        {f.name?.charAt(0).toUpperCase()}
+                      </div>
+                    )
+                  ))}
+                </div>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', paddingLeft: 4 }}>
+                  {mutualFriends.length} ami{mutualFriends.length > 1 ? 's' : ''} en commun
+                </span>
               </div>
             )}
 
