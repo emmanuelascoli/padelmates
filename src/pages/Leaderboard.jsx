@@ -202,9 +202,11 @@ export default function Leaderboard() {
   const [eloRankings, setEloRankings] = useState([])
   const [loadingElo, setLoadingElo] = useState(true)
   const [eloExplainerOpen, setEloExplainerOpen] = useState(false)
+  const [friendIds, setFriendIds] = useState(new Set())
 
   useEffect(() => { fetchClassicRankings() }, [period])
   useEffect(() => { fetchEloRankings() },   [period])
+  useEffect(() => { if (user) fetchFriendships() }, [user?.id])
 
   // ── Classique ────────────────────────────────────────────────
   async function fetchClassicRankings() {
@@ -332,11 +334,24 @@ export default function Leaderboard() {
     setLoadingElo(false)
   }
 
+  // ── Amitiés ──────────────────────────────────────────────────
+  async function fetchFriendships() {
+    const { data } = await supabase
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+    const ids = new Set((data || []).map(f =>
+      f.requester_id === user.id ? f.addressee_id : f.requester_id
+    ))
+    setFriendIds(ids)
+  }
+
   const myClassicRank = rankings.findIndex(r => r.id === user?.id)
   const myEloRank     = eloRankings.findIndex(r => r.id === user?.id)
 
   // ── Rendu d'une ligne de tableau ─────────────────────────────
-  function PlayerRow({ player, rank, isElo }) {
+  function PlayerRow({ player, rank, isElo, isFriend }) {
     const isMe = player.id === user?.id
     const delta = player.rank_score_delta ?? 0
     const move  = isElo ? (player.rankMove ?? null) : null
@@ -371,12 +386,12 @@ export default function Leaderboard() {
               <img
                 src={player.avatar_url}
                 alt={player.name}
-                className={`shrink-0 object-cover rounded-xl ${isMe ? 'ring-2 ring-forest-400' : ''}`}
+                className={`shrink-0 object-cover rounded-xl ${isFriend ? 'ring-2 ring-forest-400' : ''}`}
                 style={{ width: 34, height: 34 }}
               />
             ) : (
               <div
-                className={`shrink-0 flex items-center justify-center text-xs font-bold rounded-xl ${isMe ? 'bg-forest-700 text-white' : 'bg-gray-100 text-gray-600'}`}
+                className={`shrink-0 flex items-center justify-center text-xs font-bold rounded-xl ${isMe ? 'bg-forest-700 text-white' : isFriend ? 'bg-gray-100 text-gray-600 ring-2 ring-forest-400' : 'bg-gray-100 text-gray-600'}`}
                 style={{ width: 34, height: 34 }}
               >
                 {player.name?.charAt(0).toUpperCase()}
@@ -385,7 +400,7 @@ export default function Leaderboard() {
             <div className="min-w-0 overflow-hidden">
               <div className="flex items-center gap-1">
                 <p className={`text-xs font-semibold truncate ${isMe ? 'text-forest-900' : 'text-gray-900'}`}>
-                  {player.name}{isMe && ' (moi)'}
+                  {player.name}
                 </p>
               </div>
               <p className="text-xs text-gray-400 truncate">{LEVEL_LABEL[player.level]}</p>
@@ -469,7 +484,7 @@ export default function Leaderboard() {
           </thead>
           <tbody>
             {data.map((player, i) => (
-              <PlayerRow key={player.id} player={player} rank={i} isElo={isElo} />
+              <PlayerRow key={player.id} player={player} rank={i} isElo={isElo} isFriend={friendIds.has(player.id)} />
             ))}
           </tbody>
         </table>

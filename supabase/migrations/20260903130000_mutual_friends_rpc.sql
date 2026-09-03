@@ -1,0 +1,31 @@
+-- Fonction pour récupérer les amis en commun entre deux joueurs.
+-- SECURITY DEFINER : s'exécute avec les droits du propriétaire (bypass RLS),
+-- ce qui permet de lire les amitiés des deux côtés sans exposer les données privées.
+CREATE OR REPLACE FUNCTION public.get_mutual_friends(viewer_id uuid, target_id uuid)
+RETURNS TABLE (id uuid, name text, avatar_url text)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH viewer_friends AS (
+    SELECT
+      CASE WHEN requester_id = viewer_id THEN addressee_id ELSE requester_id END AS friend_id
+    FROM friendships
+    WHERE status = 'accepted'
+      AND (requester_id = viewer_id OR addressee_id = viewer_id)
+  ),
+  target_friends AS (
+    SELECT
+      CASE WHEN requester_id = target_id THEN addressee_id ELSE requester_id END AS friend_id
+    FROM friendships
+    WHERE status = 'accepted'
+      AND (requester_id = target_id OR addressee_id = target_id)
+  )
+  SELECT p.id, p.name, p.avatar_url
+  FROM profiles p
+  INNER JOIN viewer_friends vf ON p.id = vf.friend_id
+  INNER JOIN target_friends tf ON p.id = tf.friend_id
+  WHERE p.id <> viewer_id
+    AND p.id <> target_id
+  LIMIT 4;
+$$;

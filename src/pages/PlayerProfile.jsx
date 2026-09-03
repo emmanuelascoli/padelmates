@@ -53,38 +53,13 @@ export default function PlayerProfile() {
   async function fetchMutualFriends() {
     if (!user || user.id === id) return
 
-    // Amis acceptés de l'utilisateur connecté
-    const { data: myFs } = await supabase
-      .from('friendships')
-      .select('requester_id, addressee_id')
-      .eq('status', 'accepted')
-      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+    // Appel RPC SECURITY DEFINER — contourne le RLS pour lire les deux côtés
+    const { data } = await supabase.rpc('get_mutual_friends', {
+      viewer_id: user.id,
+      target_id: id,
+    })
 
-    const myFriendIds = new Set(
-      (myFs || []).map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id)
-    )
-    if (!myFriendIds.size) return
-
-    // Amis acceptés du joueur consulté — croisement avec les nôtres
-    const { data: theirFs } = await supabase
-      .from('friendships')
-      .select('requester_id, addressee_id')
-      .eq('status', 'accepted')
-      .or(`requester_id.eq.${id},addressee_id.eq.${id}`)
-
-    const commonIds = (theirFs || [])
-      .map(f => f.requester_id === id ? f.addressee_id : f.requester_id)
-      .filter(fid => myFriendIds.has(fid))
-
-    if (!commonIds.length) return
-
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, name, avatar_url')
-      .in('id', commonIds)
-      .limit(4)
-
-    setMutualFriends(profiles || [])
+    setMutualFriends(data || [])
   }
 
   async function handleAddFriend() {
