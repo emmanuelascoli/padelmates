@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { LEVEL_LABEL, BADGES } from '../lib/constants'
+import { LEVEL_LABEL } from '../lib/constants'
 import { format, isPast } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -338,36 +338,6 @@ export default function PlayerProfile() {
               </div>
             )}
 
-            {/* Badge pills */}
-            {profile.badges?.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2.5">
-                {profile.badges.map(key => {
-                  const b = BADGES[key]
-                  if (!b) return null
-                  return (
-                    <span
-                      key={key}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        height: 26,
-                        padding: '0 10px',
-                        borderRadius: 999,
-                        background: 'rgba(255,255,255,0.1)',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: 'rgba(255,255,255,0.85)',
-                        whiteSpace: 'nowrap',
-                      }}
-                      title={b.description}
-                    >
-                      {b.label}
-                    </span>
-                  )
-                })}
-              </div>
-            )}
           </div>
         </div>
 

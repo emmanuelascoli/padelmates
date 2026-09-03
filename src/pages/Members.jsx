@@ -2,54 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { LEVEL_LABEL, ROLES, BADGES } from '../lib/constants'
-import { BadgeList } from '../components/BadgeList'
-
-// ── Badge icon config ─────────────────────────────────────────
-const BADGE_ICON_CONFIG = {
-  habitue: {
-    bg: '#1B4332',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-        <path d="M16 3.13a4 4 0 010 7.75"/>
-      </svg>
-    ),
-  },
-  organizer_active: {
-    bg: '#2D6A4F',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="8" r="6"/>
-        <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
-      </svg>
-    ),
-  },
-  on_fire: {
-    bg: '#D97706',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M13 2c0 2.5-2.5 4-2.5 6.5 0 1.5 1 2.5 2.5 2.5s2.5-1 2.5-2.5C15.5 6 13.5 4.5 13 2z"/>
-        <path d="M5 12.5C5 17 8 20 12 20s7-3 7-7.5c0-2-.5-3.5-1.5-5-.5 2.5-2 4-3.5 4-2 0-3.5-1.5-3.5-3.5 0 0-3.5 2-3.5 4z"/>
-      </svg>
-    ),
-  },
-  veteran: {
-    bg: '#7C3AED',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
-        <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
-        <path d="M4 22h16"/>
-        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-        <path d="M18 2H6v7a6 6 0 0012 0V2z"/>
-      </svg>
-    ),
-  },
-}
+import { LEVEL_LABEL, ROLES } from '../lib/constants'
 
 // Couleur de l'avatar selon le niveau
 function getLevelColor(level) {
@@ -88,7 +41,7 @@ export default function Members() {
   async function fetchMembers() {
     const { data } = await supabase
       .from('profiles')
-      .select('id, name, level, avatar_url, role, badges')
+      .select('id, name, level, avatar_url, role')
       .order('name', { ascending: true })
     setMembers(data || [])
   }
@@ -150,33 +103,6 @@ export default function Members() {
   return (
     <div className="max-w-lg mx-auto space-y-5">
       <h1 className="section-title text-gray-900">Membres</h1>
-
-      {/* Légende des badges */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2.5">Badges</p>
-        <div className="grid grid-cols-2 gap-2">
-          {Object.entries(BADGES).map(([key, badge]) => {
-            const cfg = BADGE_ICON_CONFIG[key]
-            return (
-              <div
-                key={key}
-                style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', background: '#F7F5F1', borderRadius: 12 }}
-              >
-                <div
-                  className="shrink-0 flex items-center justify-center"
-                  style={{ width: 32, height: 32, borderRadius: 10, background: cfg?.bg ?? '#6B7C72' }}
-                >
-                  {cfg?.icon}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-gray-800 leading-tight truncate">{badge.label}</p>
-                  <p className="text-[10px] text-gray-400 leading-tight">{badge.description}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
 
       {/* Demandes reçues */}
       {pendingRequests.length > 0 && (
@@ -287,7 +213,6 @@ export default function Members() {
                   </div>
                   <div className="flex items-center gap-1 mt-0.5">
                     <p className="text-xs text-gray-400">{LEVEL_LABEL[m.level] ?? '—'}</p>
-                    {m.badges?.length > 0 && <BadgeList badges={m.badges} size="sm" />}
                   </div>
                 </Link>
 

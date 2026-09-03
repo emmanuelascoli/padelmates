@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { LEVEL_LABEL, BADGES } from '../lib/constants'
+import { LEVEL_LABEL } from '../lib/constants'
 
 const MEDAL = ['🥇', '🥈', '🥉']
 
@@ -246,7 +246,7 @@ export default function Leaderboard() {
     const playerIds = Object.keys(stats)
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, name, level, avatar_url, badges')
+      .select('id, name, level, avatar_url')
       .in('id', playerIds)
 
     const ranked = (profiles || [])
@@ -301,7 +301,7 @@ export default function Leaderboard() {
     // Récupère rank_score + rank_score_delta depuis profiles
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, name, level, avatar_url, badges, rank_score, rank_score_delta')
+      .select('id, name, level, avatar_url, rank_score, rank_score_delta')
       .in('id', playerIds)
 
     const withStats = (profiles || []).map(p => ({
@@ -387,11 +387,6 @@ export default function Leaderboard() {
                 <p className={`text-xs font-semibold truncate ${isMe ? 'text-forest-900' : 'text-gray-900'}`}>
                   {player.name}{isMe && ' (moi)'}
                 </p>
-                {player.badges?.length > 0 && (
-                  <span className="shrink-0 text-xs leading-none" title={player.badges.map(b => BADGES[b]?.label).filter(Boolean).join(', ')}>
-                    {player.badges.map(b => BADGES[b]?.emoji).filter(Boolean).join('')}
-                  </span>
-                )}
               </div>
               <p className="text-xs text-gray-400 truncate">{LEVEL_LABEL[player.level]}</p>
             </div>
