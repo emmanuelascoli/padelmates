@@ -1,19 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
-// ── Lieux connus (synchronisés avec NewSession) ───────────────
-const KNOWN_VENUES = [
-  'Bernex', 'Cologny', "David Lloyd's Club", 'Jonction',
-  'La Praille', 'Les Acacias', 'Padel Station',
-  'Parc des Evaux', 'TC International Chambesy',
-]
-
 // ── Helpers filtres ───────────────────────────────────────────
-const LEVEL_RANGES = { '1-3': [1,3], '4-6': [4,6], '7-10': [7,10] }
+const LEVEL_RANGES = { '1-3': [1,3], '3-4': [3,4], '4-5': [4,5], '5-6': [5,6], '6-7': [6,7], '7-10': [7,10] }
 
 function matchesLevel(s, active) {
   if (active.size === 0) return true
@@ -276,6 +269,12 @@ export default function Sessions() {
   const [friendsOnly, setFriendsOnly]       = useState(false)
   const [showFilters, setShowFilters]       = useState(false)
 
+  // Lieux disponibles, dérivés des sessions chargées
+  const availableVenues = useMemo(() => {
+    const set = new Set(sessions.map(s => extractVenue(s.location)).filter(Boolean))
+    return [...set].sort((a, b) => a.localeCompare(b, 'fr'))
+  }, [sessions])
+
   const secondaryCount   = levelActive.size + timeActive.size + locationActive.size
   const hasActiveFilters = secondaryCount > 0 || openOnly || friendsOnly
 
@@ -467,7 +466,7 @@ export default function Sessions() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
                 <span style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 700, width: 44, flexShrink: 0, letterSpacing: '.05em', textTransform: 'uppercase' }}>Niveau</span>
                 <div style={{ display: 'flex', gap: 5 }}>
-                  {[['1-3','1–3'], ['4-6','4–6'], ['7-10','7–10']].map(([key, label]) => (
+                  {[['1-3','1–3'], ['3-4','3–4'], ['4-5','4–5'], ['5-6','5–6'], ['6-7','6–7'], ['7-10','7–10']].map(([key, label]) => (
                     <Pill key={key} active={levelActive.has(key)} onClick={() => toggleSet(setLevelActive, key)}>{label}</Pill>
                   ))}
                 </div>
@@ -487,7 +486,7 @@ export default function Sessions() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <span style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 700, width: 44, flexShrink: 0, letterSpacing: '.05em', textTransform: 'uppercase' }}>Lieu</span>
                 <div className="no-scrollbar" style={{ display: 'flex', gap: 5, overflowX: 'auto', flexWrap: 'nowrap' }}>
-                  {KNOWN_VENUES.map(loc => (
+                  {availableVenues.map(loc => (
                     <Pill key={loc} active={locationActive.has(loc)} onClick={() => toggleSet(setLocationActive, loc)}>{loc}</Pill>
                   ))}
                 </div>
