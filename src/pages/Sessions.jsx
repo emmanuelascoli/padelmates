@@ -126,6 +126,15 @@ function SessionCard({ session, userId, friendIds, friendProfiles }) {
     ? 'linear-gradient(90deg, #fca5a5, #dc2626)'
     : 'linear-gradient(90deg, #86efac, #16a34a)'
 
+  // Niveau — "4–5", "3+", ou null si non renseigné
+  const levelLabel = session.level_min && session.level_max
+    ? `${session.level_min}–${session.level_max}`
+    : session.level_min
+      ? `${session.level_min}+`
+      : session.level_max
+        ? `≤ ${session.level_max}`
+        : null
+
   return (
     <Link
       to={`/sessions/${session.id}`}
@@ -194,16 +203,18 @@ function SessionCard({ session, userId, friendIds, friendProfiles }) {
           friendProfiles={friendProfiles}
         />
 
-        {/* Barre de progression dégradée */}
+        {/* Barre de progression + compte + niveau */}
         {!isCancelled && (
-          <div className="mt-1.5">
-            <div className="w-full h-[4px] rounded-[2px] mb-1.5" style={{ background: '#F3F4F6', overflow: 'hidden' }}>
-              <div className="h-full rounded-[2px]" style={{ width: `${pct}%`, background: barGradient }} />
+          <div className="mt-1.5" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#F3F4F6', overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, background: barGradient }} />
             </div>
-            {/* Texte sous la barre : places dispo uniquement si non complet */}
-            {!isFull && (
-              <span className="text-[10px] font-medium" style={{ color: '#15803d' }}>
-                {max - count} place{max - count > 1 ? 's' : ''} disponible{max - count > 1 ? 's' : ''}
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+              {count}/{max}
+            </span>
+            {levelLabel && (
+              <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 6px', borderRadius: 99, background: '#F3F4F6', color: '#6B7280', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {levelLabel}
               </span>
             )}
           </div>
