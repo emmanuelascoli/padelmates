@@ -273,7 +273,7 @@ function NotifItem({ notif, justRead, onAction, isLast }) {
         </p>
         <p className="text-xs text-gray-400 mt-1">{timeAgo(notif.created_at)}</p>
 
-        {notif.type === 'friend_request' && isUnread && (
+        {notif.type === 'friend_request' && (
           <FriendRequestActions notif={notif} onDone={() => onAction(notif.id)} />
         )}
       </div>
@@ -284,27 +284,39 @@ function NotifItem({ notif, justRead, onAction, isLast }) {
 // ── Actions Accepter / Refuser ────────────────────────────────────────────────
 
 function FriendRequestActions({ notif, onDone }) {
-  const { user }        = useAuth()
-  const [busy, setBusy] = useState(false)
-  const [done, setDone] = useState(null)
+  const { user }                      = useAuth()
+  const [busy, setBusy]               = useState(false)
+  const [done, setDone]               = useState(null)       // null | 'accepted' | 'refused'
+  const [friendshipId, setFriendshipId] = useState(null)
+  const [checked, setChecked]         = useState(false)      // true once status pre-fetched
 
-  async function respond(accept) {
-    if (busy || done) return
-    setBusy(true)
-    const { data: friendship } = await supabase
+  // Pre-fetch current status — handles case where user already acted from Profile page
+  useEffect(() => {
+    supabase
       .from('friendships')
-      .select('id')
+      .select('id, status')
       .eq('requester_id', notif.data.from_user_id)
       .eq('addressee_id', user.id)
       .maybeSingle()
-    if (friendship) {
-      await supabase.from('friendships').update({ status: accept ? 'accepted' : 'declined' }).eq('id', friendship.id)
-    }
+      .then(({ data }) => {
+        if (!data) { setDone('refused'); setChecked(true); return }
+        setFriendshipId(data.id)
+        if (data.status === 'accepted') setDone('accepted')
+        else if (data.status === 'declined') setDone('refused')
+        setChecked(true)
+      })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function respond(accept) {
+    if (busy || done || !friendshipId) return
+    setBusy(true)
+    await supabase.from('friendships').update({ status: accept ? 'accepted' : 'declined' }).eq('id', friendshipId)
     setDone(accept ? 'accepted' : 'refused')
     setBusy(false)
     onDone()
   }
 
+  if (!checked) return null  // bref instant avant le fetch
   if (done === 'accepted') return <p className="text-xs text-forest-700 font-semibold mt-1.5">✓ Demande acceptée</p>
   if (done === 'refused')  return <p className="text-xs text-gray-400 mt-1.5">Demande refusée</p>
 
@@ -318,6 +330,64 @@ function FriendRequestActions({ notif, onDone }) {
         className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 text-xs font-semibold rounded-lg disabled:opacity-60 hover:bg-gray-50 transition-colors">
         Refuser
       </button>
+    </div>
+  )
+}
+
+// ── Ligne dans le bandeau de rappel ───────────────────────────────────────────
+
+function PendingRequestRow({ request, onRespond, isLast }) {
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState(null)
+
+  async function respond(accept) {
+    setBusy(true)
+    await onRespond(request.id, accept)
+    setDone(accept ? 'accepted' : 'refused')
+    setBusy(false)
+  }
+
+  const name = request.profile?.name ?? 'Joueur'
+  const initial = name.charAt(0).toUpperCase()
+  const color = avatarColor(request.requester_id)
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      paddingBottom: isLast ? 0 : 8,
+      borderBottom: isLast ? 'none' : '0.5px solid #BFDBFE',
+    }}>
+      {/* Avatar */}
+      {request.profile?.avatar_url ? (
+        <img src={request.profile.avatar_url} alt={name}
+          style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+      ) : (
+        <div style={{
+          width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+          background: color, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13,
+        }}>{initial}</div>
+      )}
+
+      {/* Nom */}
+      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#1E3A5F' }}>{name}</span>
+
+      {/* Actions */}
+      {done === 'accepted' && <span style={{ fontSize: 12, color: '#2D6A4F', fontWeight: 600 }}>✓ Accepté</span>}
+      {done === 'refused'  && <span style={{ fontSize: 12, color: '#9CA3AF' }}>Refusé</span>}
+      {!done && (
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <button onClick={() => respond(true)} disabled={busy} style={{
+            fontSize: 12, fontWeight: 600, color: '#fff', background: '#14532d',
+            border: 'none', borderRadius: 20, padding: '5px 14px', cursor: 'pointer',
+            opacity: busy ? 0.6 : 1,
+          }}>Accepter</button>
+          <button onClick={() => respond(false)} disabled={busy} style={{
+            fontSize: 12, fontWeight: 500, color: '#6B7280', background: '#E0E7FF',
+            border: 'none', borderRadius: 20, padding: '5px 10px', cursor: 'pointer',
+          }}>Refuser</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -391,8 +461,9 @@ function FriendSuggestionRow({ suggestion, myProfile, onAdd, onDismiss, isLast }
 export default function Notifications() {
   const { user, profile }                                      = useAuth()
   const { notifications, loading, markAllRead, markOneRead }   = useNotifications()
-  const [justRead, setJustRead]     = useState(new Set())
+  const [justRead, setJustRead]       = useState(new Set())
   const [suggestions, setSuggestions] = useState([])
+  const [pendingRequests, setPendingRequests] = useState([])
 
   useEffect(() => {
     const unreadIds = new Set(notifications.filter(n => !n.read).map(n => n.id))
@@ -406,6 +477,30 @@ export default function Notifications() {
 
   useEffect(() => {
     if (user?.id) fetchSuggestions()
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!user?.id) return
+    async function fetchPending() {
+      const { data: friendships } = await supabase
+        .from('friendships')
+        .select('id, requester_id, created_at')
+        .eq('addressee_id', user.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+      if (!friendships?.length) return
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', friendships.map(f => f.requester_id))
+      setPendingRequests(
+        friendships.map(f => ({
+          ...f,
+          profile: profiles?.find(p => p.id === f.requester_id) ?? null,
+        }))
+      )
+    }
+    fetchPending()
   }, [user?.id])
 
   async function fetchSuggestions() {
@@ -493,6 +588,11 @@ export default function Notifications() {
     markOneRead(notifId)
   }
 
+  async function handlePendingRespond(friendshipId, accept) {
+    await supabase.from('friendships').update({ status: accept ? 'accepted' : 'declined' }).eq('id', friendshipId)
+    setPendingRequests(prev => prev.filter(r => r.id !== friendshipId))
+  }
+
   // Groupement temporel
   const groups = { today: [], yesterday: [], earlier: [] }
   notifications.forEach(n => {
@@ -515,6 +615,48 @@ export default function Notifications() {
           </button>
         )}
       </div>
+
+      {/* ── Bandeau demandes d'amis en attente ── */}
+      {pendingRequests.length > 0 && (
+        <div style={{
+          background: '#EFF6FF',
+          border: '1.5px solid #BFDBFE',
+          borderRadius: 14,
+          padding: '14px 16px',
+        }}>
+          {/* En-tête */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: '#DBEAFE', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, flexShrink: 0,
+            }}>🤝</div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#1E40AF', marginBottom: 1 }}>
+                {pendingRequests.length === 1
+                  ? 'Demande d\'ami en attente'
+                  : `${pendingRequests.length} demandes d'amis en attente`}
+              </p>
+              <p style={{ fontSize: 11, color: '#93C5FD' }}>
+                Accepte ou refuse pour que vos stats se synchronisent
+              </p>
+            </div>
+          </div>
+
+          {/* Lignes */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {pendingRequests.map((r, i) => (
+              <PendingRequestRow
+                key={r.id}
+                request={r}
+                onRespond={handlePendingRespond}
+                isLast={i === pendingRequests.length - 1}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Suggestions de joueurs rencontrés */}
       {suggestions.length > 0 && (
