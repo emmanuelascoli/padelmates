@@ -116,7 +116,27 @@ function MatchForm({ sessionId, participants, onSaved }) {
   const [error, setError] = useState('')
   const players = participants.map(p => p.profiles)
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+  // When team 1 changes → clear team 2 so auto-fill can re-trigger
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setForm(prev => {
+      const next = { ...prev, [name]: value }
+      if (name === 't1p1' || name === 't1p2') {
+        next.t2p1 = ''
+        next.t2p2 = ''
+      }
+      return next
+    })
+  }
+
+  // Auto-fill team 2 when both team 1 players are chosen and exactly 2 remain
+  useEffect(() => {
+    if (!form.t1p1 || !form.t1p2) return
+    const remaining = players.filter(p => p.id !== form.t1p1 && p.id !== form.t1p2)
+    if (remaining.length === 2) {
+      setForm(prev => ({ ...prev, t2p1: remaining[0].id, t2p2: remaining[1].id }))
+    }
+  }, [form.t1p1, form.t1p2]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -138,33 +158,97 @@ function MatchForm({ sessionId, participants, onSaved }) {
     onSaved(); setLoading(false)
   }
 
-  const PlayerSelect = ({ name, label }) => (
-    <div>
-      <label className="text-xs text-gray-500 mb-0.5 block">{label}</label>
-      <select name={name} value={form[name]} onChange={handleChange} required className="input text-sm py-2">
-        <option value="">-- Joueur --</option>
-        {players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
-    </div>
-  )
+  // Build <option> list: show all players, disable those already picked in other slots
+  const renderOptions = (fieldName) => {
+    const takenIds = ['t1p1', 't1p2', 't2p1', 't2p2']
+      .filter(f => f !== fieldName)
+      .map(f => form[f])
+      .filter(Boolean)
+    return players.map(p => (
+      <option key={p.id} value={p.id} disabled={takenIds.includes(p.id)}>
+        {p.name}
+      </option>
+    ))
+  }
+
+  // True when team 2 was auto-filled (exactly 2 participants remain after team 1)
+  const isAutoFilled = !!(form.t1p1 && form.t1p2 && form.t2p1 && form.t2p2 &&
+    players.filter(p => p.id !== form.t1p1 && p.id !== form.t1p2).length === 2)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">{error}</div>}
       <div className="grid grid-cols-2 gap-3">
+
+        {/* ── Équipe 1 ── */}
         <div className="bg-forest-50 rounded-xl p-3 space-y-2">
           <p className="text-xs font-semibold text-forest-800 uppercase tracking-wide">Équipe 1</p>
-          <PlayerSelect name="t1p1" label="Joueur 1" />
-          <PlayerSelect name="t1p2" label="Joueur 2" />
-          <input type="number" name="t1score" value={form.t1score} onChange={handleChange} required min="0" max="99" className="input text-sm py-2" placeholder="Score" />
+
+          <div>
+            <label className="text-xs text-gray-500 mb-0.5 block">Joueur 1</label>
+            <select name="t1p1" value={form.t1p1} onChange={handleChange} required className="input text-sm py-2">
+              <option value="">-- Joueur --</option>
+              {renderOptions('t1p1')}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500 mb-0.5 block">Joueur 2</label>
+            <select name="t1p2" value={form.t1p2} onChange={handleChange} required className="input text-sm py-2">
+              <option value="">-- Joueur --</option>
+              {renderOptions('t1p2')}
+            </select>
+          </div>
+
+          <input
+            type="number"
+            inputMode="numeric"
+            name="t1score"
+            value={form.t1score}
+            onChange={handleChange}
+            required min="0" max="99"
+            className="input text-sm py-2"
+            placeholder="Score"
+          />
         </div>
+
+        {/* ── Équipe 2 ── */}
         <div className="bg-purple-50 rounded-xl p-3 space-y-2">
-          <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Équipe 2</p>
-          <PlayerSelect name="t2p1" label="Joueur 3" />
-          <PlayerSelect name="t2p2" label="Joueur 4" />
-          <input type="number" name="t2score" value={form.t2score} onChange={handleChange} required min="0" max="99" className="input text-sm py-2" placeholder="Score" />
+          <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">
+            Équipe 2{isAutoFilled && (
+              <span style={{ fontSize: 9, fontWeight: 400, color: '#9CA3AF', textTransform: 'none', letterSpacing: 0 }}> · auto</span>
+            )}
+          </p>
+
+          <div>
+            <label className="text-xs text-gray-500 mb-0.5 block">Joueur 3</label>
+            <select name="t2p1" value={form.t2p1} onChange={handleChange} required className="input text-sm py-2">
+              <option value="">-- Joueur --</option>
+              {renderOptions('t2p1')}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500 mb-0.5 block">Joueur 4</label>
+            <select name="t2p2" value={form.t2p2} onChange={handleChange} required className="input text-sm py-2">
+              <option value="">-- Joueur --</option>
+              {renderOptions('t2p2')}
+            </select>
+          </div>
+
+          <input
+            type="number"
+            inputMode="numeric"
+            name="t2score"
+            value={form.t2score}
+            onChange={handleChange}
+            required min="0" max="99"
+            className="input text-sm py-2"
+            placeholder="Score"
+          />
         </div>
       </div>
+
       <button type="submit" disabled={loading} className="btn-primary w-full text-sm">
         {loading ? 'Enregistrement...' : 'Enregistrer le match'}
       </button>
