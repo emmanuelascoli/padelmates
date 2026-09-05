@@ -186,13 +186,18 @@ function SessionCard({ session, userId, friendIds, friendProfiles }) {
           {session.location}
         </div>
 
-        {/* Organisateur (sans prix ni niveau) */}
+        {/* Organisateur + niveau */}
         {session.organizer?.name && (
           <div className="flex items-center gap-1 text-[11px] mb-1" style={{ color: '#6B7280' }}>
             <svg className="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             {session.organizer.name}
+            {levelLabel && (
+              <span style={{ marginLeft: 4, fontSize: 10, fontWeight: 500, padding: '1px 6px', borderRadius: 99, background: '#F3F4F6', color: '#6B7280' }}>
+                {levelLabel}
+              </span>
+            )}
           </div>
         )}
 
@@ -203,18 +208,15 @@ function SessionCard({ session, userId, friendIds, friendProfiles }) {
           friendProfiles={friendProfiles}
         />
 
-        {/* Barre de progression + compte + niveau */}
+        {/* Barre de progression + compte (masqué si complet) */}
         {!isCancelled && (
           <div className="mt-1.5" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#F3F4F6', overflow: 'hidden' }}>
               <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, background: barGradient }} />
             </div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
-              {count}/{max}
-            </span>
-            {levelLabel && (
-              <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 6px', borderRadius: 99, background: '#F3F4F6', color: '#6B7280', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {levelLabel}
+            {!isFull && (
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+                {count}/{max}
               </span>
             )}
           </div>
