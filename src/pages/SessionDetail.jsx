@@ -1284,6 +1284,18 @@ export default function SessionDetail() {
                 )
               })}
 
+              {/* Organizer payment hint + summary */}
+              {isOrganizer && session.cost_per_player > 0 && participants.filter(p => p.user_id !== session.organizer_id).length > 0 && (
+                <div style={{ borderTop: '0.5px solid #F3F4F6', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <p style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.4, flex: 1 }}>
+                    💡 Appuie sur le statut d'un joueur pour confirmer la réception du paiement.
+                  </p>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {participants.filter(p => p.payment_status === 'confirmed').length}/{participants.filter(p => p.user_id !== session.organizer_id).length} réglés · {(participants.filter(p => p.user_id !== session.organizer_id).length * session.cost_per_player).toFixed(0)} CHF
+                  </span>
+                </div>
+              )}
+
             </div>
           )}
 
@@ -1445,45 +1457,6 @@ export default function SessionDetail() {
                 })()}
               </div>
 
-            ) : isOrganizer && participants.length > 1 ? (
-              /* ── Organisateur : récapitulatif des paiements ── */
-              <div className="card border-gray-100 bg-gray-50">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-gray-800">💳 Paiements</h4>
-                  <span className="text-xs text-gray-400">
-                    {participants.filter(p => p.payment_status === 'confirmed').length}/{participants.filter(p => p.user_id !== session.organizer_id).length} confirmés
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {participants.filter(p => p.user_id !== session.organizer_id).map(p => (
-                    <div key={p.id} className="flex items-center gap-3 py-1.5">
-                      <div className="w-7 h-7 rounded-full bg-forest-100 flex items-center justify-center text-xs font-bold text-forest-800 shrink-0">
-                        {p.profiles?.name?.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="flex-1 text-sm text-gray-700 font-medium truncate">{p.profiles?.name}</span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span
-                          className={`badge text-xs ${p.payment_status !== 'confirmed' ? paymentStatusColor[p.payment_status] : ''}`}
-                          style={p.payment_status === 'confirmed' ? paymentConfirmedStyle : undefined}
-                        >
-                          {paymentStatusLabel[p.payment_status]}
-                        </span>
-                        {p.payment_status === 'paid' && (
-                          <button
-                            onClick={() => togglePayment(p.id, p.payment_status)}
-                            className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition-colors"
-                          >
-                            Confirmer
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-200">
-                  Total attendu : <strong>{((participants.filter(p => p.user_id !== session.organizer_id).length) * session.cost_per_player).toFixed(2)} CHF</strong>
-                </p>
-              </div>
             ) : null
           )}
 
