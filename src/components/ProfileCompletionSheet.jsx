@@ -151,10 +151,11 @@ export default function ProfileCompletionSheet() {
         {/* ── Côté sur le court ── */}
         <div style={{ marginBottom: 22 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Côté sur le court</div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
             {[
-              { value: 'gauche', label: '◀ Gauche' },
-              { value: 'droite', label: 'Droite ▶'  },
+              { value: 'gauche',   label: '◀ Gauche'  },
+              { value: 'droite',   label: 'Droite ▶'   },
+              { value: 'les_deux', label: '⇄ Les deux' },
             ].map(opt => {
               const active = side === opt.value
               return (
@@ -166,12 +167,13 @@ export default function ProfileCompletionSheet() {
                     background:   active ? '#14532d' : '#F5F4F0',
                     border:       `1.5px solid ${active ? '#14532d' : '#E2E0D8'}`,
                     borderRadius: 11,
-                    padding:      '12px 0',
-                    fontSize:     13,
+                    padding:      '11px 0',
+                    fontSize:     12,
                     fontWeight:   active ? 600 : 500,
                     color:        active ? '#fff' : '#374151',
                     cursor:       'pointer',
                     transition:   'all 0.15s',
+                    lineHeight:   1.3,
                   }}
                 >
                   {opt.label}{active ? ' ✓' : ''}
