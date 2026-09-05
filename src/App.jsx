@@ -23,6 +23,7 @@ import Confidentialite from './pages/Confidentialite'
 import MentionsLegales from './pages/MentionsLegales'
 import Footer from './components/Footer'
 import CookieBanner from './components/CookieBanner'
+import ProfileCompletionSheet from './components/ProfileCompletionSheet'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -38,7 +39,7 @@ function ProtectedRoute({ children }) {
 }
 
 function AppRoutes() {
-  const { user, loading, needsProfileSetup } = useAuth()
+  const { user, profile, loading, needsProfileSetup } = useAuth()
 
   if (loading) {
     return (
@@ -93,6 +94,7 @@ function AppRoutes() {
         <Footer />
       </div>
       <CookieBanner />
+      {user && profile && <ProfileCompletionSheet />}
     </BrowserRouter>
   )
 }
