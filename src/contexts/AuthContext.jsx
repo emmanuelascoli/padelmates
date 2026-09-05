@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import posthog from 'posthog-js'
 
 const AuthContext = createContext({})
 
@@ -55,9 +56,13 @@ export function AuthProvider({ children }) {
       setNeedsProfileSetup(false)
       setOauthMeta(null)
       // Logue la connexion à chaque chargement de profil (anti-doublon 1h en DB)
-      // Utilise .then(null, () => {}) plutôt que .catch() car le builder
-      // Supabase est un "thenable" sans garantie de .catch()
       supabase.rpc('log_user_login').then(null, () => {})
+      // Identifie l'utilisateur dans Posthog (lie les events à une personne)
+      posthog.identify(authUser.id, {
+        email: authUser.email,
+        name:  data.name,
+        level: data.level,
+      })
     } else {
       // No profile yet — extract OAuth metadata for pre-fill
       const meta = authUser.user_metadata || {}
@@ -75,6 +80,7 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    posthog.reset() // dissocie l'utilisateur de la session Posthog
     await supabase.auth.signOut()
   }
 

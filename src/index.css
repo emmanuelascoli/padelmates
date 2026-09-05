@@ -4,6 +4,7 @@
 
 /* ── Design tokens PadelMates — v2 ───────────────────────── */
 :root {
+  color-scheme: light; /* Empêche Chrome Android d'appliquer des ajustements de thème système */
   /* Couleurs principales */
   --color-primary:        #1B4332;  /* forest green — boutons, header */
   --color-primary-hover:  #2D6A4F;  /* hover state */
