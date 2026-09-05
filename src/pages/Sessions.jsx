@@ -90,9 +90,7 @@ function FriendAvatars({ participants, friendIds, friendProfiles }) {
         })}
       </div>
       <span className="text-[10px] text-forest-700 font-medium">
-        {friendsIn.length === 1
-          ? `${friendProfiles[friendsIn[0]]?.name?.split(' ')[0] ?? 'Ami'} joue`
-          : `${friendsIn.length} amis jouent`}
+        {friendsIn.length === 1 ? '1 ami' : `${friendsIn.length} amis`}
       </span>
     </div>
   )
@@ -177,27 +175,27 @@ function SessionCard({ session, userId, friendIds, friendProfiles }) {
           </div>
         </div>
 
-        {/* Lieu */}
+        {/* Lieu + niveau */}
         <div className="flex items-center gap-1 text-[11px] mb-1" style={{ color: '#6B7280' }}>
           <svg className="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           {session.location}
+          <span style={{ color: '#D1D5DB', margin: '0 1px' }}>·</span>
+          {levelLabel
+            ? <span style={{ color: '#374151', fontWeight: 500 }}>Niveau {levelLabel}</span>
+            : <span style={{ color: '#9CA3AF', fontStyle: 'italic' }}>Tous niveaux</span>
+          }
         </div>
 
-        {/* Organisateur + niveau */}
+        {/* Organisateur */}
         {session.organizer?.name && (
           <div className="flex items-center gap-1 text-[11px] mb-1" style={{ color: '#6B7280' }}>
             <svg className="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             {session.organizer.name}
-            {levelLabel && (
-              <span style={{ marginLeft: 4, fontSize: 10, fontWeight: 500, padding: '1px 6px', borderRadius: 99, background: '#F3F4F6', color: '#6B7280' }}>
-                {levelLabel}
-              </span>
-            )}
           </div>
         )}
 
